@@ -504,19 +504,22 @@
                     e.preventDefault();
                     const format = option.getAttribute('data-format');
                     const currentType = new URLSearchParams(window.location.search).get('type') || 'weekly';
+                    let url = `{{ route('reports.export') }}?type=${currentType}&format=${format}`;
+                    
                     if (currentType === 'custom') {
                         const form = document.getElementById('custom-report-form');
                         if (form.checkValidity()) {
                             const formData = new FormData(form);
                             formData.set('format', format);
-                            const url = '{{ route('reports.custom') }}?' + new URLSearchParams(formData).toString();
+                            formData.set('type', 'custom');
+                            url = '{{ route('reports.export') }}?' + new URLSearchParams(formData).toString();
                             window.location.href = url;
                         } else {
                             alert('Please fill all required fields in the analytics report form.');
                             exportDropdown.classList.add('hidden');
                         }
                     } else {
-                        window.location.href = `{{ route('reports.export') }}?type=${currentType}&format=${format}`;
+                        window.location.href = url;
                     }
                 });
             });

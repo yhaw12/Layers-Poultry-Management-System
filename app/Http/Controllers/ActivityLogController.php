@@ -38,7 +38,7 @@ class ActivityLogController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        Log::info('Marking alert as read', ['alert_id' => $alert->id, 'user_id' => $user->id]);
+        // Log::info('Marking alert as read', ['alert_id' => $alert->id, 'user_id' => $user->id]);
         $alert->update(['read_at' => now()]);
         return redirect()->back()->with('success', 'Alert marked as read.');
     }

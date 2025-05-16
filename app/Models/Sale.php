@@ -9,8 +9,22 @@ class Sale extends Model
 {
     use HasFactory;
     protected $table = 'sales';
-    protected $fillable = ['customer_id', 'saleable_id', 'saleable_type', 'quantity', 'unit_price', 'total_amount', 'sale_date'];
-    protected $casts = ['sale_date' => 'date', 'unit_price' => 'decimal:2', 'total_amount' => 'decimal:2'];
+    protected $fillable = [
+        'customer_id',
+        'saleable_id',
+        'saleable_type',
+        'quantity',
+        'unit_price',
+        'total_amount',
+        'sale_date',
+        'product_variant'
+    ];
+    protected $casts = [
+        'sale_date' => 'date',
+        'unit_price' => 'decimal:2',
+        'total_amount' => 'decimal:2',
+        'product_variant' => 'string'
+    ];
 
     public function customer()
     {

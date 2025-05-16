@@ -15,12 +15,19 @@ use App\Models\MedicineLog;
 use App\Models\Mortalities;
 use App\Models\Payroll;
 use App\Models\Sale;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     /**
      * Display the dashboard with key metrics and trends.
      *
@@ -34,26 +41,21 @@ class DashboardController extends Controller
         $end = $request->input('end_date', now()->endOfMonth()->toDateString());
         $period = [$start, $end];
 
-        // Core financials
-        $totalExpenses = Expense::whereBetween('date', $period)->sum('amount') ?? 0;
-        $totalIncome = Income::whereBetween('date', $period)->sum('amount') ?? 0;
-        $profit = $totalIncome - $totalExpenses;
+        // Get authenticated user with null check
+        /** @var User $user */
+        $user = Auth::user();
+        if (!$user) {
+            abort(401, 'Unauthorized');
+        }
 
-        // Stock counts
+        $isAdmin = $user->isAdmin();
+
+        // Common data for all users
         $chicks = Chicks::sum('quantity_bought') ?? 0;
         $layers = Bird::where('type', 'layer')->sum('quantity') ?? 0;
         $broilers = Bird::where('type', 'broiler')->sum('quantity') ?? 0;
         $totalBirds = $chicks + $layers + $broilers;
 
-        $totalEggs = Egg::whereBetween('date_laid', [now()->startOfMonth(), now()->endOfMonth()])
-        ->sum('crates') ?? 0;
-
-        // Alerts for backup status
-        $alerts = auth()->user()->isAdmin() 
-            ? Alert::where('user_id', auth()->id())->whereNull('read_at')->get() 
-            : collect();
-
-        // Monthly KPIs
         $metrics = [
             'egg_crates' => Egg::whereBetween('date_laid', $period)->sum('crates') ?? 0,
             'feed_kg' => Feed::whereBetween('purchase_date', $period)->sum('quantity') ?? 0,
@@ -64,64 +66,66 @@ class DashboardController extends Controller
             'medicine_use' => MedicineLog::where('type', 'consumption')
                 ->whereBetween('date', $period)
                 ->sum('quantity') ?? 0,
-            'sales' => Sale::whereBetween('sale_date', $period)
-                ->selectRaw('SUM(quantity * unit_price) as total')
-                ->value('total') ?? 0,
-            'customers' => Customer::count() ?? 0,
         ];
 
-        // Calculated KPIs
         $mortalityRate = $totalBirds ? ($metrics['mortality'] / $totalBirds) * 100 : 0;
         $fcr = $metrics['egg_crates'] ? round($metrics['feed_kg'] / $metrics['egg_crates'], 2) : 0;
 
-        // Employee overview
-        $employees = Employee::count() ?? 0;
-        $payroll = Payroll::whereBetween('pay_date', $period)->sum('net_pay') ?? 0;
-
-        // Trend data for charts
         $eggTrend = Egg::whereBetween('date_laid', $period)
             ->select(DB::raw('date_laid as date'), DB::raw('SUM(crates) as value'))
             ->groupBy('date_laid')
             ->orderBy('date_laid')
+            ->take(50)
             ->get();
+
         $feedTrend = Feed::whereBetween('purchase_date', $period)
             ->select(DB::raw('purchase_date as date'), DB::raw('SUM(quantity) as value'))
             ->groupBy('purchase_date')
             ->orderBy('purchase_date')
-            ->get();
-        $payrollTrend = Payroll::whereBetween('pay_date', $period)
-            ->select(DB::raw('pay_date as date'), DB::raw('SUM(net_pay) as value'))
-            ->groupBy('pay_date')
-            ->orderBy('pay_date')
+            ->take(50)
             ->get();
 
-            // Fetch sales trend data, grouped by date
-        $salesTrend = Sale::whereBetween('sale_date', [now()->subDays(30), now()])
-            ->select(DB::raw('DATE(sale_date) as date'), DB::raw('SUM(total_amount) as value'))
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
-            ->get();
+        // Admin-only data
+        if ($isAdmin) {
+            $totalExpenses = Expense::whereBetween('date', $period)->sum('amount') ?? 0;
+            $totalIncome = Income::whereBetween('date', $period)->sum('amount') ?? 0;
+            $profit = $totalIncome - $totalExpenses;
 
-        // Render the dashboard view with all data
-        return view('dashboard', compact(
-            'start',
-            'end',
-            'totalExpenses',
-            'totalIncome',
-            'profit',
-            'chicks',
-            'layers',
-            'broilers',
-            'metrics',
-            'mortalityRate',
-            'fcr',
-            'employees',
-            'payroll',
-            'eggTrend',
-            'feedTrend',
-            'payrollTrend',
-            'alerts',
-            'salesTrend'
+            $metrics['sales'] = Sale::whereBetween('sale_date', $period)
+                ->selectRaw('SUM(total_amount) as total')
+                ->value('total') ?? 0;
+            $metrics['customers'] = Customer::count() ?? 0;
+
+            $employees = Employee::count() ?? 0;
+            $payroll = Payroll::whereBetween('pay_date', $period)->sum('net_pay') ?? 0;
+
+            $salesTrend = Sale::whereBetween('sale_date', $period)
+                ->select(DB::raw('DATE(sale_date) as date'), DB::raw('SUM(total_amount) as value'))
+                ->groupBy('date')
+                ->orderBy('date')
+                ->take(50)
+                ->get();
+
+            $payrollTrend = Payroll::whereBetween('pay_date', $period)
+                ->select(DB::raw('pay_date as date'), DB::raw('SUM(net_pay) as value'))
+                ->groupBy('pay_date')
+                ->orderBy('pay_date')
+                ->take(50)
+                ->get();
+
+            $alerts = Alert::where('user_id', $user->id)->whereNull('read_at')->take(50)->get();
+
+            return view('dashboard.admin', compact(
+                'start', 'end', 'totalExpenses', 'totalIncome', 'profit',
+                'chicks', 'layers', 'broilers', 'metrics', 'mortalityRate', 'fcr',
+                'employees', 'payroll', 'eggTrend', 'feedTrend', 'salesTrend', 'payrollTrend', 'alerts'
+            ));
+        }
+
+        // Non-admin view
+        return view('dashboard.user', compact(
+            'start', 'end', 'chicks', 'layers', 'broilers',
+            'metrics', 'mortalityRate', 'fcr', 'eggTrend', 'feedTrend'
         ));
     }
 
@@ -133,9 +137,14 @@ class DashboardController extends Controller
      */
     public function exportPDF(Request $request)
     {
+        /** @var User $user */
+        $user = Auth::user();
+        if (!$user || !$user->isAdmin()) {
+            abort(403, 'Unauthorized');
+        }
+
         $data = $this->index($request)->getData();
         $pdf = Pdf::loadView('dashboard_pdf', $data);
-
         return $pdf->download('dashboard_report_' . now()->format('Ymd') . '.pdf');
     }
 }

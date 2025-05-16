@@ -36,12 +36,12 @@ class EventServiceProvider extends ServiceProvider
      * @var array<class-string, array<int, class-string>>
      */
     protected $listen = [
-        \Spatie\Backup\Events\BackupWasSuccessful::class => [
-            \App\Listeners\LogBackupStatus::class,
-        ],
-        \Spatie\Backup\Events\BackupHasFailed::class => [
-            \App\Listeners\LogBackupStatus::class,
-        ],
+        // \Spatie\Backup\Events\BackupWasSuccessful::class => [
+        //     \App\Listeners\LogBackupStatus::class,
+        // ],
+        // \Spatie\Backup\Events\BackupHasFailed::class => [
+        //     \App\Listeners\LogBackupStatus::class,
+        // ],
     ];
 
     /**
@@ -59,7 +59,7 @@ class EventServiceProvider extends ServiceProvider
         Mortalities::observe(MortalitiesObserver::class);
         Egg::observe(EggObserver::class);
         Feed::observe(FeedObserver::class);
-        Sale::observe(SaleObserver::class); // Fixed: Single observer for Sale
+        Sale::observe(SaleObserver::class); 
         Customer::observe(CustomerObserver::class);
     }
 

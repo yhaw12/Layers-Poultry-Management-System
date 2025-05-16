@@ -14,14 +14,21 @@
                 @csrf
                 @method('PUT')
                 <div>
-                    <label for="customer_id" class="block text-gray-700 dark:text-gray-300">Customer</label>
-                    <select name="customer_id" id="customer_id" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
-                        <option value="" disabled>Select Customer</option>
+                    <label for="customer_name" class="block text-gray-700 dark:text-gray-300">Customer Name</label>
+                    <input type="text" name="customer_name" id="customer_name" value="{{ old('customer_name', $sale->customer->name) }}" list="customer_suggestions" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
+                    <datalist id="customer_suggestions">
                         @foreach($customers as $customer)
-                            <option value="{{ $customer->id }}" {{ $sale->customer_id == $customer->id ? 'selected' : '' }}>{{ $customer->name }}</option>
+                            <option value="{{ $customer->name }}">
                         @endforeach
-                    </select>
-                    @error('customer_id')
+                    </datalist>
+                    @error('customer_name')
+                        <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
+                <div>
+                    <label for="customer_phone" class="block text-gray-700 dark:text-gray-300">Customer Phone (Optional)</label>
+                    <input type="text" name="customer_phone" id="customer_phone" value="{{ old('customer_phone', $sale->customer->phone) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white">
+                    @error('customer_phone')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
                 </div>
@@ -29,8 +36,8 @@
                     <label for="saleable_type" class="block text-gray-700 dark:text-gray-300">Product Type</label>
                     <select name="saleable_type" id="saleable_type" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
                         <option value="" disabled>Select Type</option>
-                        <option value="App\Models\Bird" {{ $sale->saleable_type == 'App\Models\Bird' ? 'selected' : '' }}>Bird</option>
-                        <option value="App\Models\Egg" {{ $sale->saleable_type == 'App\Models\Egg' ? 'selected' : '' }}>Egg</option>
+                        <option value="App\Models\Bird" {{ old('saleable_type', $sale->saleable_type) == 'App\Models\Bird' ? 'selected' : '' }}>Bird</option>
+                        <option value="App\Models\Egg" {{ old('saleable_type', $sale->saleable_type) == 'App\Models\Egg' ? 'selected' : '' }}>Egg</option>
                     </select>
                     @error('saleable_type')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
@@ -40,37 +47,39 @@
                     <label for="saleable_id" class="block text-gray-700 dark:text-gray-300">Product</label>
                     <select name="saleable_id" id="saleable_id" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
                         <option value="" disabled selected>Select Product</option>
-                        @if($sale->saleable_type == 'App\Models\Bird')
-                            @foreach($birds as $bird)
-                                <option value="{{ $bird->id }}" {{ $sale->saleable_id == $bird->id ? 'selected' : '' }}>{{ $bird->breed }} ({{ $bird->type }})</option>
-                            @endforeach
-                        @elseif($sale->saleable_type == 'App\Models\Egg')
-                            @foreach($eggs as $egg)
-                                <option value="{{ $egg->id }}" {{ $sale->saleable_id == $egg->id ? 'selected' : '' }}>Egg Batch {{ $egg->id }}</option>
-                            @endforeach
-                        @endif
+                        <!-- Populated dynamically via JavaScript -->
                     </select>
                     @error('saleable_id')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
                 </div>
                 <div>
-                    <label for="quantity" class="block text-gray-700 dark:text-gray-300">Quantity</label>
-                    <input type="number" name="quantity" id="quantity" value="{{ $sale->quantity }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" min="1" required>
+                    <label for="product_variant" class="block text-gray-700 dark:text-gray-300">Product Variant</label>
+                    <select name="product_variant" id="product_variant" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
+                        <option value="" disabled>Select Variant</option>
+                        <!-- Populated dynamically via JavaScript -->
+                    </select>
+                    @error('product_variant')
+                        <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
+                <div>
+                    <label for="quantity" class="block text-gray-700 dark:text-gray-300">Quantity (Crates for Eggs, Number for Birds)</label>
+                    <input type="number" name="quantity" id="quantity" value="{{ old('quantity', $sale->quantity) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" min="1" required>
                     @error('quantity')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
                 </div>
                 <div>
                     <label for="unit_price" class="block text-gray-700 dark:text-gray-300">Unit Price</label>
-                    <input type="number" name="unit_price" id="unit_price" value="{{ $sale->unit_price }}" step="0.01" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" min="0" required>
+                    <input type="number" name="unit_price" id="unit_price" value="{{ old('unit_price', $sale->unit_price) }}" step="0.01" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" min="0" required>
                     @error('unit_price')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
                 </div>
                 <div>
                     <label for="sale_date" class="block text-gray-700 dark:text-gray-300">Sale Date</label>
-                    <input type="date" name="sale_date" id="sale_date" value="{{ $sale->sale_date->format('Y-m-d') }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
+                    <input type="date" name="sale_date" id="sale_date" value="{{ old('sale_date', $sale->sale_date->format('Y-m-d')) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
                     @error('sale_date')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
@@ -89,28 +98,97 @@
 </div>
 
 <script>
-document.getElementById('saleable_type').addEventListener('change', function() {
-    const type = this.value;
+document.addEventListener('DOMContentLoaded', function() {
+    const saleableTypeSelect = document.getElementById('saleable_type');
     const saleableIdSelect = document.getElementById('saleable_id');
-    saleableIdSelect.innerHTML = '<option value="" disabled selected>Select Product</option>';
+    const productVariantSelect = document.getElementById('product_variant');
+    
+    // Customer autocomplete
+    const customerInput = document.getElementById('customer_name');
+    const customers = @json($customers ?? []);
 
-    if (type === 'App\\Models\\Bird') {
+    // Populate saleable_id and product_variant based on current sale
+    const initialType = '{{ old('saleable_type', $sale->saleable_type) }}';
+    saleableIdSelect.innerHTML = '<option value="" disabled>Select Product</option>';
+    productVariantSelect.innerHTML = '<option value="" disabled>Select Variant</option>';
+
+    if (initialType === 'App\\Models\\Bird') {
         const birds = @json($birds);
         birds.forEach(bird => {
             const option = document.createElement('option');
             option.value = bird.id;
             option.text = `${bird.breed} (${bird.type})`;
+            if (bird.id == '{{ old('saleable_id', $sale->saleable_id) }}') {
+                option.selected = true;
+            }
             saleableIdSelect.appendChild(option);
         });
-    } else if (type === 'App\\Models\\Egg') {
+        ['broiler', 'layer'].forEach(variant => {
+            const option = document.createElement('option');
+            option.value = variant;
+            option.text = variant.charAt(0).toUpperCase() + variant.slice(1);
+            if (variant == '{{ old('product_variant', $sale->product_variant) }}') {
+                option.selected = true;
+            }
+            productVariantSelect.appendChild(option);
+        });
+    } else if (initialType === 'App\\Models\\Egg') {
         const eggs = @json($eggs);
         eggs.forEach(egg => {
             const option = document.createElement('option');
             option.value = egg.id;
-            option.text = `Egg Batch ${egg.id}`;
+            option.text = `Egg Batch ${egg.id} (${egg.date_laid})`;
+            if (egg.id == '{{ old('saleable_id', $sale->saleable_id) }}') {
+                option.selected = true;
+            }
             saleableIdSelect.appendChild(option);
         });
+        ['big', 'small', 'cracked'].forEach(variant => {
+            const option = document.createElement('option');
+            option.value = variant;
+            option.text = variant.charAt(0).toUpperCase() + variant.slice(1);
+            if (variant == '{{ old('product_variant', $sale->product_variant) }}') {
+                option.selected = true;
+            }
+            productVariantSelect.appendChild(option);
+        });
     }
+
+    saleableTypeSelect.addEventListener('change', function() {
+        const type = this.value;
+        saleableIdSelect.innerHTML = '<option value="" disabled selected>Select Product</option>';
+        productVariantSelect.innerHTML = '<option value="" disabled selected>Select Variant</option>';
+
+        if (type === 'App\\Models\\Bird') {
+            const birds = @json($birds);
+            birds.forEach(bird => {
+                const option = document.createElement('option');
+                option.value = bird.id;
+                option.text = `${bird.breed} (${bird.type})`;
+                saleableIdSelect.appendChild(option);
+            });
+            ['broiler', 'layer'].forEach(variant => {
+                const option = document.createElement('option');
+                option.value = variant;
+                option.text = variant.charAt(0).toUpperCase() + variant.slice(1);
+                productVariantSelect.appendChild(option);
+            });
+        } else if (type === 'App\\Models\\Egg') {
+            const eggs = @json($eggs);
+            eggs.forEach(egg => {
+                const option = document.createElement('option');
+                option.value = egg.id;
+                option.text = `Egg Batch ${egg.id} (${egg.date_laid})`;
+                saleableIdSelect.appendChild(option);
+            });
+            ['big', 'small', 'cracked'].forEach(variant => {
+                const option = document.createElement('option');
+                option.value = variant;
+                option.text = variant.charAt(0).toUpperCase() + variant.slice(1);
+                productVariantSelect.appendChild(option);
+            });
+        }
+    });
 });
 </script>
 @endsection

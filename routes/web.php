@@ -76,15 +76,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/feed/consumption', [FeedController::class, 'consumption'])->name('feed.consumption');
     Route::get('/medicine-logs/purchase', [MedicineLogController::class, 'index'])->name('medicine-logs.purchase');
     Route::get('/medicine-logs/consumption', [MedicineLogController::class, 'index'])->name('medicine-logs.consumption');
-    Route::get('/eggs/sales', [SalesController::class, 'sales'])->name('eggs.sales');
+    Route::get('/sales/eggs', [SalesController::class, 'sales'])->name('eggs.sales');
     Route::get('/sales/birds', [SalesController::class, 'birdSales'])->name('sales.birds');
     Route::post('/payroll/generate', [PayrollController::class, 'generateMonthly'])->name('payroll.generate');
     Route::get('/payroll/export', [PayrollController::class, 'exportPDF'])->name('payroll.export');
+    Route::get('/sales/{sale}/invoice', [SalesController::class, 'invoice'])->name('sales.invoice')->middleware('auth');
 
+    
     // Reports Routes
     Route::prefix('reports')->name('reports.')->group(function () {
-        Route::match(['get', 'post'], '/{type?}', [ReportController::class, 'index'])->name('index');
-        Route::get('/custom', [ReportController::class, 'generateCustom'])->name('custom');
-        Route::get('/export', [ReportController::class, 'export'])->name('export');
-    });
+    Route::get('/export', [ReportController::class, 'export'])->name('export'); // Move this up
+    Route::match(['get', 'post'], '/{type?}', [ReportController::class, 'index'])->name('index');
+    Route::get('/custom', [ReportController::class, 'custom'])->name('custom');
+   });
 });
