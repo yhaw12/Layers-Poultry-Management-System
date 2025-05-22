@@ -11,9 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-             $table->boolean('is_admin')->default(false)->after('password');
-        });
+         Schema::create('deaths', function (Blueprint $table) {
+        $table->id();
+        $table->integer('quantity'); // Number of dead chickens
+        $table->date('date'); // Date of death
+        $table->timestamps();
+    });
     }
 
     /**
@@ -21,8 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-             $table->dropColumn('is_admin');
-        });
+        Schema::dropIfExists('deaths');
     }
 };

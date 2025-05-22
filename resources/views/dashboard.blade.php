@@ -30,7 +30,7 @@
         </div>
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 animate-fadeInUp delay-100">
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold text-gray-700">Total Income</h2>
+                <h2 class="text-xl font-semibold text-gray-700">Total Egg Sales</h2>
                 <span class="text-green-500 text-2xl">💰</span>
             </div>
             <p class="text-3xl font-bold text-green-600 mt-4">${{ number_format($totalIncome, 2) }}</p>
@@ -46,8 +46,9 @@
         </div>
     </div>
 
-    <!-- Inventory Metrics -->
+    <!-- Inventory & Staff Metrics -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Chicks -->
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 animate-fadeInUp delay-300">
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold text-gray-700">Chicks</h2>
@@ -56,6 +57,8 @@
             <p class="text-3xl font-bold text-blue-600 mt-4">{{ $chickCount }}</p>
             <p class="text-sm text-gray-500 mt-1">Total Count</p>
         </div>
+
+        <!-- Hens -->
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 animate-fadeInUp delay-400">
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold text-gray-700">Hens</h2>
@@ -64,6 +67,8 @@
             <p class="text-3xl font-bold text-blue-600 mt-4">{{ $henCount }}</p>
             <p class="text-sm text-gray-500 mt-1">Total Count</p>
         </div>
+
+        <!-- Feed -->
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 animate-fadeInUp delay-500">
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold text-gray-700">Feed This Month</h2>
@@ -72,6 +77,8 @@
             <p class="text-3xl font-bold text-blue-600 mt-4">{{ $feedQuantityThisMonth }}</p>
             <p class="text-sm text-gray-500 mt-1">kg, {{ now()->format('F Y') }}</p>
         </div>
+
+        <!-- Eggs -->
         <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 animate-fadeInUp delay-600">
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold text-gray-700">Eggs This Month</h2>
@@ -80,49 +87,36 @@
             <p class="text-3xl font-bold text-blue-600 mt-4">{{ $eggCountThisMonth }}</p>
             <p class="text-sm text-gray-500 mt-1">{{ now()->format('F Y') }}</p>
         </div>
+
+        <!-- Mortality Rate -->
+        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 animate-fadeInUp delay-700">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-gray-700">Mortality Rate</h2>
+                <span class="text-red-500 text-2xl">⚰️</span>
+            </div>
+            <p class="text-3xl font-bold {{ $mortalityRate > 5 ? 'text-red-600' : 'text-yellow-600' }} mt-4">{{ number_format($mortalityRate, 2) }}%</p>
+            <p class="text-sm text-gray-500 mt-1">This Month</p>
+        </div>
+
+        <!-- Employees -->
+        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 animate-fadeInUp delay-800">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-gray-700">Employees</h2>
+                <span class="text-blue-500 text-2xl">👨‍🌾</span>
+            </div>
+            <p class="text-3xl font-bold text-blue-600 mt-4">{{ $employeeCount }}</p>
+            <p class="text-sm text-gray-500 mt-1">Active Staff</p>
+        </div>
+
+        <!-- Monthly Payroll -->
+        <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 animate-fadeInUp delay-900">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-gray-700">Monthly Payroll</h2>
+                <span class="text-green-500 text-2xl">💵</span>
+            </div>
+            <p class="text-3xl font-bold text-green-600 mt-4">${{ number_format($monthlyPayroll, 2) }}</p>
+            <p class="text-sm text-gray-500 mt-1">{{ now()->format('F Y') }}</p>
+        </div>
     </div>
 </div>
-
-<!-- Custom Animations -->
-<style>
-    /* Fade In with Bounce for Title */
-    .animate-fadeInBounce {
-        animation: fadeInBounce 1s ease-out;
-    }
-    @keyframes fadeInBounce {
-        0% { opacity: 0; transform: translateY(-20px); }
-        60% { opacity: 1; transform: translateY(10px); }
-        100% { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Slide In from Right for Links */
-    .dashboard-link {
-        animation: slideInRight 0.5s ease-out;
-        transition: transform 0.2s, color 0.2s;
-    }
-    .dashboard-link:hover {
-        transform: scale(1.05);
-    }
-    @keyframes slideInRight {
-        0% { opacity: 0; transform: translateX(20px); }
-        100% { opacity: 1; transform: translateX(0); }
-    }
-
-    /* Fade In Up for Cards */
-    .animate-fadeInUp {
-        animation: fadeInUp 0.5s ease-out;
-    }
-    @keyframes fadeInUp {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Delay Classes */
-    .delay-100 { animation-delay: 0.1s; }
-    .delay-200 { animation-delay: 0.2s; }
-    .delay-300 { animation-delay: 0.3s; }
-    .delay-400 { animation-delay: 0.4s; }
-    .delay-500 { animation-delay: 0.5s; }
-    .delay-600 { animation-delay: 0.6s; }
-</style>
 @endsection

@@ -17,12 +17,13 @@ Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 Route::get('/register', [UserController::class, 'showRegistrationForm'])->name('register');
 Route::post('/register', [UserController::class, 'register']);
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware('auth')->group(function () {
+    // Dashboard and common resources for all authenticated users
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::resource('expenses', ExpenseController::class);
-    Route::resource('chicks', ChicksController::class);
-    Route::resource('hens', HenController::class);
-    Route::resource('feed', FeedController::class);
-    Route::resource('eggs', EggController::class);
+    Route::resource('chicks',   ChicksController::class);
+    Route::resource('hens',     HenController::class);
+    Route::resource('feed',     FeedController::class);
+    Route::resource('eggs',     EggController::class);
     Route::resource('income', IncomeController::class);
 });
