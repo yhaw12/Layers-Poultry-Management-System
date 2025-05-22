@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-         Schema::create('deaths', function (Blueprint $table) {
+         Schema::create('mortalities', function (Blueprint $table) {
         $table->id();
         $table->integer('quantity'); // Number of dead chickens
         $table->date('date'); // Date of death
@@ -24,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('deaths');
+        Schema::dropIfExists('mortalities');
     }
 };

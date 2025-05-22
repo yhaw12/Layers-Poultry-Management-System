@@ -3,65 +3,89 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Expense;
-use App\Models\Income;
-use App\Models\Chicks; 
-use App\Models\Hen;
-use App\Models\Feed;
-use App\Models\Egg;
-use App\Models\Death;
-use App\Models\Employee;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
+use PDF;
+use App\Models\{
+    Expense,
+    Income,
+    Chicks,
+    Hen,
+    Feed,
+    Egg,
+    Mortalities,
+    Employee,
+    MedicineLog,
+    Sale,
+    Customer
+};
+use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
-{
-    $start_date = $request->input('start_date', now()->startOfMonth()->toDateString());
-    $end_date = $request->input('end_date', now()->endOfMonth()->toDateString());
+    {
+        // Date filter defaults to current month
+        $start = $request->input('start_date', now()->startOfMonth()->toDateString());
+        $end   = $request->input('end_date',   now()->endOfMonth()->toDateString());
 
-    $totalExpenses = Expense::whereBetween('date', [$start_date, $end_date])->sum('amount');
-    $totalIncome = Income::whereBetween('date', [$start_date, $end_date])->sum('amount');
-    $profit = $totalIncome - $totalExpenses;
+        // Core financials
+        $totalExpenses = Expense::whereBetween('date', [$start, $end])->sum('amount');
+        $totalIncome   = Income::whereBetween('date', [$start, $end])->sum('amount');
+        $profit        = $totalIncome - $totalExpenses;
 
-    $chickCount = Chicks::sum('quantity_bought');
-    $henCount = Hen::sum('quantity');
-    $totalBirds = $chickCount + $henCount;
+        // Stock counts
+        $chicks = Chicks::sum('quantity_bought');
+        $hens   = Hen::sum('quantity');
+        $birds  = $chicks + $hens;
 
-    $currentMonth = now()->month;
-    $currentYear = now()->year;
+        // Timeframe for trends
+        $period = [$start, $end];
 
-    $eggCountThisMonth = Egg::whereMonth('date_laid', $currentMonth)
-                            ->whereYear('date_laid', $currentYear)
-                            ->sum('crates');
-    $feedQuantityThisMonth = Feed::whereMonth('purchase_date', $currentMonth)
-                                ->whereYear('purchase_date', $currentYear)
-                                ->sum('quantity');
+        // Monthly KPIs
+        $metrics = [
+            'egg_crates'    => Egg::whereBetween('date_laid', $period)->sum('crates'),
+            'feed_kg'       => Feed::whereBetween('purchase_date', $period)->sum('quantity'),
+            'mortality'     => Mortalities::whereBetween('date', $period)->sum('quantity'),
+            'medicine_buy'  => MedicineLog::where('type', 'purchase')->whereBetween('date', $period)->sum('quantity'),
+            'medicine_use'  => MedicineLog::where('type', 'consumption')->whereBetween('date', $period)->sum('quantity'),
+            'sales' => Sale::whereBetween('date_sold', $period)
+              ->selectRaw('SUM(quantity * unit_price) as total')
+              ->value('total'),
 
-    // Mortality
-    $mortalityCount = Death::whereMonth('date', $currentMonth)
-                            ->whereYear('date', $currentYear)
-                            ->sum('quantity'); // Adjust field name if needed
-    $mortalityRate = $totalBirds > 0 ? ($mortalityCount / $totalBirds) * 100 : 0;
+            'customers'     => Customer::count(),
+        ];
 
-    // Employees
-    $employeeCount = Employee::count();
-    $monthlyPayroll = Employee::sum('monthly_salary'); // Replace with actual column name
+        // Calculated KPIs
+        $mortalityRate = $birds ? ($metrics['mortality'] / $birds) * 100 : 0;
+        $fcr           = $metrics['egg_crates'] ? round($metrics['feed_kg'] / $metrics['egg_crates'], 2) : null;
 
-    return view('dashboard', compact(
-        'totalExpenses',
-        'totalIncome',
-        'profit',
-        'chickCount',
-        'henCount',
-        'feedQuantityThisMonth',
-        'eggCountThisMonth',
-        'mortalityRate',
-        'employeeCount',
-        'monthlyPayroll',
-        'start_date',
-        'end_date'
-    ));
-}
+        // Employee overview
+        $employees     = Employee::count();
+        $payroll       = Employee::sum('monthly_salary');
 
+        // Trend data for charts
+        $eggTrend  = Egg::whereBetween('date_laid', $period)
+            ->select(DB::raw('date_laid as date'), DB::raw('SUM(crates) as value'))
+            ->groupBy('date_laid')
+            ->get();
+        $feedTrend = Feed::whereBetween('purchase_date', $period)
+            ->select(DB::raw('purchase_date as date'), DB::raw('SUM(quantity) as value'))
+            ->groupBy('purchase_date')
+            ->get();
+
+        return view('dashboard', compact(
+            'start', 'end', 'totalExpenses', 'totalIncome', 'profit',
+            'chicks', 'hens', 'birds', 'metrics', 'mortalityRate', 'fcr',
+            'employees', 'payroll', 'eggTrend', 'feedTrend'
+        ));
+    }
+
+    public function exportPDF(Request $request)
+    {
+        $data = $this->index($request)->getData();
+        $pdf = Pdf::loadView('dashboard_pdf', $data);
+
+        return $pdf->download('dashboard_report_' . now()->format('Ymd') . '.pdf');
+    }
 }
