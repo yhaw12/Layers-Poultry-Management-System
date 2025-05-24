@@ -12,6 +12,9 @@ use App\Http\Controllers\EggController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\MedicineLogController;
+use App\Http\Controllers\MortalitiesController;
+use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\SalesController;
 
 Route::get('/login', [UserController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [UserController::class, 'login']);
@@ -32,5 +35,12 @@ Route::middleware('auth')->group(function () {
     Route::resource('customers', CustomerController::class);
     Route::resource('employees', EmployeeController::class);
     Route::resource('medicine-logs', MedicineLogController::class);
-
+    Route::resource('deaths', MortalitiesController::class);
+    Route::get('feed-consumption', [FeedController::class, 'consumption'])->name('feed.consumption');
+    Route::get('medicine/buy', [MedicineLogController::class, 'buy'])->name('medicine.buy');
+    Route::get('medicine/use', [MedicineLogController::class, 'use'])->name('medicine.use');
+    Route::resource('payroll', PayrollController::class);
+    Route::get('/egg-sales', [EggController::class, 'sales'])->name('eggs.sales');
+    Route::get('feed-consumption', [FeedController::class, 'consumption'])->name('feed.consumption');
+    Route::resource('sales', SalesController::class);
 });

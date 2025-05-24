@@ -3,7 +3,7 @@
 @section('content')
 <style>
     body {
-        background-image: url('{{ asset('images/chicken.jpeg') }}');
+        background-image: url('{{ asset('images/chicken.jpg') }}');
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -11,7 +11,7 @@
 </style>
 
 <div class="container mx-auto px-4 py-6 max-w-md">
-    <div class="bg-white bg-opacity-90 p-6 rounded-lg shadow-lg">
+    <div class="bg-white bg-opacity-60 p-6 rounded-lg shadow-lg">
         <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">Login</h1>
         <form method="POST" action="{{ route('login') }}" class="space-y-6">
             @csrf

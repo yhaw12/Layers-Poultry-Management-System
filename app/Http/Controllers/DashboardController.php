@@ -4,8 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\{
     Expense,
     Income,
@@ -19,7 +18,6 @@ use App\Models\{
     Sale,
     Customer
 };
-use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
 
 class DashboardController extends Controller
 {
@@ -49,10 +47,9 @@ class DashboardController extends Controller
             'mortality'     => Mortalities::whereBetween('date', $period)->sum('quantity'),
             'medicine_buy'  => MedicineLog::where('type', 'purchase')->whereBetween('date', $period)->sum('quantity'),
             'medicine_use'  => MedicineLog::where('type', 'consumption')->whereBetween('date', $period)->sum('quantity'),
-            'sales' => Sale::whereBetween('date_sold', $period)
-              ->selectRaw('SUM(quantity * unit_price) as total')
-              ->value('total'),
-
+            'sales'         => Sale::whereBetween('date_sold', $period)
+                                ->selectRaw('SUM(quantity * unit_price) as total')
+                                ->value('total'),
             'customers'     => Customer::count(),
         ];
 
@@ -68,10 +65,12 @@ class DashboardController extends Controller
         $eggTrend  = Egg::whereBetween('date_laid', $period)
             ->select(DB::raw('date_laid as date'), DB::raw('SUM(crates) as value'))
             ->groupBy('date_laid')
+            ->orderBy('date_laid')
             ->get();
         $feedTrend = Feed::whereBetween('purchase_date', $period)
             ->select(DB::raw('purchase_date as date'), DB::raw('SUM(quantity) as value'))
             ->groupBy('purchase_date')
+            ->orderBy('purchase_date')
             ->get();
 
         return view('dashboard', compact(

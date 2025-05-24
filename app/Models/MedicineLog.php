@@ -20,3 +20,4 @@ class MedicineLog extends Model
     ];
 }
 
+
