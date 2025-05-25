@@ -52,8 +52,9 @@
             $groupedKpis = [
                 'Flock Statistics' => [
                     ['label'=>'Chicks','value'=>$chicks,'icon'=>'🐤'],
-                    ['label'=>'Hens','value'=>$hens,'icon'=>'🐔'],
-                    ['label'=>'Birds','value'=>$birds,'icon'=>'🐥'],
+                    ['label'=>'Birds','value'=>$birds,'icon'=>'🐔'],      // renamed from Hens, using hen icon
+                    ['label'=>'Broilers','value'=>$broilers ?? 0,'icon'=>'🥩'], // new broilers
+                    ['label'=>'Layers','value'=>$layers ?? 0,'icon'=>'🐓'],   // new layers
                     ['label'=>'Mortality %','value'=>number_format($mortalityRate,2),'icon'=>'⚰️'],
                 ],
                 'Production' => [

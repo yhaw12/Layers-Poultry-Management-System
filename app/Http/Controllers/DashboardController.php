@@ -10,6 +10,7 @@ use App\Models\{
     Income,
     Chicks,
     Hen,
+    Broiler,
     Feed,
     Egg,
     Mortalities,
@@ -25,7 +26,7 @@ class DashboardController extends Controller
     {
         // Date filter defaults to current month
         $start = $request->input('start_date', now()->startOfMonth()->toDateString());
-        $end   = $request->input('end_date',   now()->endOfMonth()->toDateString());
+        $end   = $request->input('end_date', now()->endOfMonth()->toDateString());
 
         // Core financials
         $totalExpenses = Expense::whereBetween('date', [$start, $end])->sum('amount');
@@ -33,9 +34,10 @@ class DashboardController extends Controller
         $profit        = $totalIncome - $totalExpenses;
 
         // Stock counts
-        $chicks = Chicks::sum('quantity_bought');
-        $hens   = Hen::sum('quantity');
-        $birds  = $chicks + $hens;
+        $chicks   = Chicks::sum('quantity_bought');
+        $layers   = Hen::sum('quantity');
+        $broilers = Broiler::sum('quantity');
+        $birds    = $chicks + $layers + $broilers;
 
         // Timeframe for trends
         $period = [$start, $end];
@@ -75,7 +77,8 @@ class DashboardController extends Controller
 
         return view('dashboard', compact(
             'start', 'end', 'totalExpenses', 'totalIncome', 'profit',
-            'chicks', 'hens', 'birds', 'metrics', 'mortalityRate', 'fcr',
+            'chicks', 'layers', 'broilers', 'birds',
+            'metrics', 'mortalityRate', 'fcr',
             'employees', 'payroll', 'eggTrend', 'feedTrend'
         ));
     }
