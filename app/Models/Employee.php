@@ -14,4 +14,8 @@ class Employee extends Model
         'phone',
         'monthly_salary',
     ];
+     public function payrolls()
+    {
+        return $this->hasMany(Payroll::class);
+    }
 }

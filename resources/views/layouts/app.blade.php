@@ -41,7 +41,7 @@
                             <a href="{{ route('dashboard') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Dashboard</a>
                             <a href="{{ route('expenses.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Expenses</a>
                             <a href="{{ route('chicks.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Chicks</a>
-                            <a href="{{ route('hens.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Hens</a>
+                            <a href="{{ route('birds.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Birds</a>
                             <a href="{{ route('feed.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Feed</a>
                             <a href="{{ route('eggs.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Eggs</a>
                             @if(auth()->user()->is_admin)

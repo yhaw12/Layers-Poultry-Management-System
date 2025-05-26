@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('phone');
-            $table->string('telephone')->nullable();
             $table->decimal('monthly_salary', 10, 2);
             $table->timestamps();
         });

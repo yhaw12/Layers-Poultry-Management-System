@@ -8,11 +8,11 @@
         <div class="flex flex-wrap items-end gap-4">
             <div class="flex-1">
                 <label class="block text-gray-700 dark:text-gray-300">Start Date</label>
-                <input type="date" name="start_date" value="{{ $start }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white">
+                <input type="date" name="start_date" value="{{ $start ?? now()->subDays(30)->format('Y-m-d') }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white">
             </div>
             <div class="flex-1">
                 <label class="block text-gray-700 dark:text-gray-300">End Date</label>
-                <input type="date" name="end_date" value="{{ $end }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white">
+                <input type="date" name="end_date" value="{{ $end ?? now()->format('Y-m-d') }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white">
             </div>
             <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
                 Filter
@@ -25,14 +25,14 @@
         <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Summary</h2>
         @php
             $cards = [
-                ['label'=>'Expenses', 'value'=>$totalExpenses, 'icon'=>'💸', 'color'=>'red'],
-                ['label'=>'Income', 'value'=>$totalIncome,  'icon'=>'💰', 'color'=>'green'],
-                ['label'=>'Profit',  'value'=>$profit,       'icon'=>'📈', 'color'=>$profit>=0?'green':'red'],
+                ['label'=>'Expenses', 'value'=>$totalExpenses ?? 0, 'icon'=>'💸', 'color'=>'red'],
+                ['label'=>'Income', 'value'=>$totalIncome ?? 0, 'icon'=>'💰', 'color'=>'green'],
+                ['label'=>'Profit', 'value'=>$profit ?? 0, 'icon'=>'📈', 'color'=>($profit ?? 0) >= 0 ? 'green' : 'red'],
             ];
         @endphp
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             @foreach($cards as $card)
-                <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1">
+                <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md hover:shadow-xl transition-transform hover:-translate-y-1">
                     <div class="flex items-center justify-between">
                         <h3 class="font-semibold text-gray-700 dark:text-gray-200">{{ $card['label'] }}</h3>
                         <span class="text-2xl text-{{ $card['color'] }}-500">{{ $card['icon'] }}</span>
@@ -45,30 +45,59 @@
         </div>
     </section>
 
+    <!-- Quick Access Modules -->
+    <section>
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Quick Access</h2>
+        @php
+            $modules = [
+                ['label'=>'Dashboard', 'icon'=>'🏠', 'route'=>route('dashboard')],
+                ['label'=>'All Birds', 'icon'=>'🐓', 'route'=>route('birds.index')],
+                ['label'=>'Add Bird', 'icon'=>'➕', 'route'=>route('birds.create')],
+                ['label'=>'All Chicks', 'icon'=>'🐤', 'route'=>route('chicks.index')],
+                ['label'=>'Add Chicks', 'icon'=>'➕', 'route'=>route('chicks.create')],
+                ['label'=>'All Mortalities', 'icon'=>'💀', 'route'=>route('mortalities.index')],
+                ['label'=>'Add Mortality', 'icon'=>'➕', 'route'=>route('mortalities.create')],
+                ['label'=>'All Egg Crates', 'icon'=>'🥚', 'route'=>route('eggs.index')],
+                ['label'=>'Add Egg Record', 'icon'=>'➕', 'route'=>route('eggs.create')],
+                ['label'=>'Sales', 'icon'=>'🛒', 'route'=>route('sales.index')],
+                ['label'=>'Add Sale', 'icon'=>'➕', 'route'=>route('sales.create')],
+                ['label'=>'Payroll', 'icon'=>'💵', 'route'=>route('payroll.index')],
+                ['label'=>'Add Payroll', 'icon'=>'➕', 'route'=>route('payroll.create')],
+            ];
+        @endphp
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+            @foreach($modules as $mod)
+                <a href="{{ $mod['route'] }}" class="bg-white dark:bg-[#1a1a3a] p-4 rounded-2xl shadow hover:shadow-lg transition-transform hover:-translate-y-1 flex flex-col items-center justify-center">
+                    <span class="text-3xl">{{ $mod['icon'] }}</span>
+                    <span class="mt-2 text-gray-700 dark:text-gray-300 font-medium text-center">{{ $mod['label'] }}</span>
+                </a>
+            @endforeach
+        </div>
+    </section>
+
     <!-- KPIs Section -->
     <section>
         <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Key Performance Indicators (KPIs)</h2>
         @php
             $groupedKpis = [
                 'Flock Statistics' => [
-                    ['label'=>'Chicks','value'=>$chicks,'icon'=>'🐤'],
-                    ['label'=>'Birds','value'=>$birds,'icon'=>'🐔'],      // renamed from Hens, using hen icon
-                    ['label'=>'Broilers','value'=>$broilers ?? 0,'icon'=>'🥩'], // new broilers
-                    ['label'=>'Layers','value'=>$layers ?? 0,'icon'=>'🐓'],   // new layers
-                    ['label'=>'Mortality %','value'=>number_format($mortalityRate,2),'icon'=>'⚰️'],
+                    ['label'=>'Chicks', 'value'=>$chicks ?? 0, 'icon'=>'🐤'],
+                    ['label'=>'Layers', 'value'=>$layers ?? 0, 'icon'=>'🐓'],
+                    ['label'=>'Broilers', 'value'=>$broilers ?? 0, 'icon'=>'🥩'],
+                    ['label'=>'Mortality %', 'value'=>number_format($mortalityRate ?? 0, 2), 'icon'=>'⚰️'],
                 ],
                 'Production' => [
-                    ['label'=>'Eggs','value'=>$metrics['egg_crates'],'icon'=>'🥚'],
-                    ['label'=>'Feed (kg)','value'=>$metrics['feed_kg'],'icon'=>'🌾'],
-                    ['label'=>'FCR','value'=>$fcr,'icon'=>'⚖️'],
+                    ['label'=>'Egg Crate', 'value'=>$metrics['egg_crates'] ?? 0, 'icon'=>'🥚'],
+                    ['label'=>'Feed (kg)', 'value'=>$metrics['feed_kg'] ?? 0, 'icon'=>'🌾'],
+                    ['label'=>'FCR', 'value'=>$fcr ?? 0, 'icon'=>'⚖️'],
                 ],
                 'Operations' => [
-                    ['label'=>'Employees','value'=>$employees,'icon'=>'👨‍🌾'],
-                    ['label'=>'Payroll','value'=>number_format($payroll,2),'icon'=>'💵'],
-                    ['label'=>'Sales','value'=>$metrics['sales'],'icon'=>'🛒'],
-                    ['label'=>'Customers','value'=>$metrics['customers'],'icon'=>'👥'],
-                    ['label'=>'Med Bought','value'=>$metrics['medicine_buy'],'icon'=>'💊'],
-                    ['label'=>'Med Used','value'=>$metrics['medicine_use'],'icon'=>'🩺'],
+                    ['label'=>'Employees', 'value'=>$employees ?? 0, 'icon'=>'👨‍🌾'],
+                    ['label'=>'Payroll', 'value'=>number_format($payroll ?? 0, 2), 'icon'=>'💵'],
+                    ['label'=>'Sales', 'value'=>$metrics['sales'] ?? 0, 'icon'=>'🛒'],
+                    ['label'=>'Customers', 'value'=>$metrics['customers'] ?? 0, 'icon'=>'👥'],
+                    ['label'=>'Med Bought', 'value'=>$metrics['medicine_buy'] ?? 0, 'icon'=>'💊'],
+                    ['label'=>'Med Used', 'value'=>$metrics['medicine_use'] ?? 0, 'icon'=>'🩺'],
                 ],
             ];
         @endphp
@@ -76,8 +105,8 @@
             <div class="mb-6">
                 <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-3">{{ $group }}</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    @foreach($kpis as $i => $item)
-                        <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded shadow hover:shadow-lg transition animate-fadeInUp delay-{{ $i }}00">
+                    @foreach($kpis as $item)
+                        <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow hover:shadow-lg transition-transform">
                             <div class="flex items-center justify-between">
                                 <h4 class="text-gray-700 dark:text-gray-300 font-medium">{{ $item['label'] }}</h4>
                                 <span class="text-2xl">{{ $item['icon'] }}</span>
@@ -93,34 +122,33 @@
     <!-- Trend Charts -->
     <section>
         <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Production Trends</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white dark:bg-[#1a1a3a] p-4 rounded shadow">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white dark:bg-[#1a1a3a] p-4 rounded-2xl shadow">
                 <h4 class="font-medium mb-2 dark:text-gray-200">Egg Trend</h4>
-                <div class="relative" style="height: 200px;">
-                    <canvas id="eggTrend"></canvas>
-                </div>
+                <canvas id="eggTrend" class="w-full h-32"></canvas>
             </div>
-            <div class="bg-white dark:bg-[#1a1a3a] p-4 rounded shadow">
+            <div class="bg-white dark:bg-[#1a1a3a] p-4 rounded-2xl shadow">
                 <h4 class="font-medium mb-2 dark:text-gray-200">Feed Trend</h4>
-                <div class="relative" style="height: 200px;">
-                    <canvas id="feedTrend"></canvas>
-                </div>
+                <canvas id="feedTrend" class="w-full h-32"></canvas>
+            </div>
+            <div class="bg-white dark:bg-[#1a1a3a] p-4 rounded-2xl shadow">
+                <h4 class="font-medium mb-2 dark:text-gray-200">Payroll Trend</h4>
+                <canvas id="payrollTrend" class="w-full h-32"></canvas>
             </div>
         </div>
     </section>
 </div>
 
-<!-- Chart.js Integration -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const eggCtx = document.getElementById('eggTrend').getContext('2d');
     new Chart(eggCtx, {
         type: 'line',
         data: {
-            labels: @json($eggTrend->pluck('date')),
+            labels: @json($eggTrend->pluck('date') ?? []),
             datasets: [{
                 label: 'Egg Crates',
-                data: @json($eggTrend->pluck('value')),
+                data: @json($eggTrend->pluck('value') ?? []),
                 fill: false,
                 borderColor: 'rgba(75, 192, 192, 1)',
                 tension: 0.1
@@ -128,7 +156,7 @@
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false
+            aspectRatio: 2
         }
     });
 
@@ -136,10 +164,10 @@
     new Chart(feedCtx, {
         type: 'line',
         data: {
-            labels: @json($feedTrend->pluck('date')),
+            labels: @json($feedTrend->pluck('date') ?? []),
             datasets: [{
                 label: 'Feed (kg)',
-                data: @json($feedTrend->pluck('value')),
+                data: @json($feedTrend->pluck('value') ?? []),
                 fill: false,
                 borderColor: 'rgba(255, 99, 132, 1)',
                 tension: 0.1
@@ -147,7 +175,26 @@
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false
+            aspectRatio: 2
+        }
+    });
+
+    const payrollCtx = document.getElementById('payrollTrend').getContext('2d');
+    new Chart(payrollCtx, {
+        type: 'line',
+        data: {
+            labels: @json($payrollTrend->pluck('date') ?? []),
+            datasets: [{
+                label: 'Payroll (Net Pay)',
+                data: @json($payrollTrend->pluck('value') ?? []),
+                fill: false,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            aspectRatio: 2
         }
     });
 </script>

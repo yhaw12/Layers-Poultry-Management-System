@@ -1,83 +1,83 @@
-@extends('layouts.app')
+<?php
 
-@section('content')
-<div class="container mx-auto px-4 py-8">
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">Eggs</h1>
-            <a href="{{ route('eggs.create') }}" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 font-semibold">+ Add Eggs</a>
-        </div>
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\UserController;
+use App\Http\Controllers\BirdsController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\ChicksController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\FeedController;
+use App\Http\Controllers\EggController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\IncomeController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\MedicineLogController;
+use App\Http\Controllers\MortalitiesController;
+use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SalesController;
+use App\Http\Controllers\ActivityLogController;
 
-        @if (session('success'))
-            <div class="bg-green-100 text-green-700 p-4 rounded-md mb-6 shadow-sm">{{ session('success') }}</div>
-        @endif
+/*
+|--------------------------------------------------------------------------
+| Guest Routes
+|--------------------------------------------------------------------------
+*/
+Route::get('/login', [UserController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [UserController::class, 'login']);
+Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 
-        <!-- Monthly Egg Crate Chart -->
-        <div class="mb-8">
-            <canvas id="eggChart" class="w-full h-64"></canvas>
-        </div>
+Route::get('/register', [UserController::class, 'showRegistrationForm'])->name('register');
+Route::post('/register', [UserController::class, 'register']);
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th class="p-4 text-gray-700 font-semibold uppercase">Crates</th>
-                        <th class="p-4 text-gray-700 font-semibold uppercase">Date Collected</th>
-                        <th class="p-4 text-gray-700 font-semibold uppercase">Sold Quantity</th>
-                        <th class="p-4 text-gray-700 font-semibold uppercase">Sold Date</th>
-                        <th class="p-4 text-gray-700 font-semibold uppercase">Sale Price</th>
-                        <th class="p-4 text-gray-700 font-semibold uppercase">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($eggs as $egg)
-                        <tr class="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200">
-                            <td class="p-4">{{ $egg->crates }}</td>
-                            <td class="p-4">{{ $egg->date_laid->format('Y-m-d') }}</td>
-                            <td class="p-4">{{ $egg->sold_quantity }}</td>
-                            <td class="p-4">{{ $egg->sold_date ? $egg->sold_date->format('Y-m-d') : 'N/A' }}</td>
-                            <td class="p-4">{{ $egg->sale_price ? '$' . number_format($egg->sale_price, 2) : 'N/A' }}</td>
-                            <td class="p-4 flex space-x-3">
-                                <a href="{{ route('eggs.edit', $egg) }}" class="text-green-600 hover:text-green-800 font-medium">Edit</a>
-                                <form action="{{ route('eggs.destroy', $egg) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-800 font-medium" 
-                                            onclick="return confirm('Are you sure?')">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="p-4 text-center text-gray-500">No eggs found.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+/*
+|--------------------------------------------------------------------------
+| Authenticated Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->group(function () {
+    // Dashboard
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/export', [DashboardController::class, 'exportPDF'])->name('dashboard.export');
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const eggCtx = document.getElementById('eggChart').getContext('2d');
-    new Chart(eggCtx, {
-        type: 'line',
-        data: {
-            labels: {{ json_encode($eggLabels) }},
-            datasets: [{
-                label: 'Egg Crates',
-                data: {{ json_encode($eggData) }},
-                fill: false,
-                borderColor: '#10b981',
-                tension: 0.1
-            }]
-        },
-        options: {
-            scales: {
-                y: { beginAtZero: true }
-            }
-        }
+    // Activity Logs
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+
+    // Resource Routes
+    Route::resources([
+        'expenses'        => ExpenseController::class,
+        'chicks'          => ChicksController::class,
+        'birds'           => BirdsController::class,
+        'eggs'            => EggController::class,
+        'income'          => IncomeController::class,
+        'customers'       => CustomerController::class,
+        'employees'       => EmployeeController::class,
+        'medicine-logs'   => MedicineLogController::class,
+        'payroll'         => PayrollController::class,
+        'sales'           => SalesController::class,
+        'inventory'       => InventoryController::class,
+        'mortalities'     => MortalitiesController::class,
+    ]);
+
+    // Custom Functional Routes
+    Route::get('/feed', [FeedController::class, 'index'])->name('feed.index');
+    Route::get('/feed/consumption', [FeedController::class, 'consumption'])->name('feed.consumption');
+    Route::get('/medicine-logs/buy', [MedicineLogController::class, 'buy'])->name('medicine-logs.buy');
+    Route::get('/medicine-logs/use', [MedicineLogController::class, 'use'])->name('medicine-logs.use');
+
+    // Sales Subroutes
+    Route::get('/eggs/sales', [SalesController::class, 'sales'])->name('eggs.sales');
+    Route::get('/sales/birds', [SalesController::class, 'birdSales'])->name('sales.birds');
+
+    // Reports
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/daily', [ReportController::class, 'daily'])->name('daily');
+        Route::get('/weekly', [ReportController::class, 'weekly'])->name('weekly');
+        Route::get('/monthly', [ReportController::class, 'monthly'])->name('monthly');
     });
-</script>
-@endsection
+
+    // Payroll
+    Route::post('/payroll/generate', [PayrollController::class, 'generateMonthly'])->name('payroll.generate');
+    Route::get('/payroll/export', [PayrollController::class, 'exportPDF'])->name('payroll.export');
+});

@@ -1,30 +1,63 @@
 @extends('layouts.app')
 
 @section('content')
-    <h1 class="text-2xl font-bold mb-4">Edit Expense</h1>
-    <form action="{{ route('expenses.update', $expense) }}" method="POST" class="bg-white p-6 rounded shadow">
-        @csrf
-        @method('PUT')
-        <div class="mb-4">
-            <label class="block text-gray-700">Category</label>
-            <select name="category" class="w-full p-2 border rounded">
-                <option value="Structure" {{ $expense->category == 'Structure' ? 'selected' : '' }}>Structure</option>
-                <option value="Feed" {{ $expense->category == 'Feed' ? 'selected' : '' }}>Feed</option>
-                <!-- Add other options -->
-            </select>
+<div class="container mx-auto px-4 py-8 space-y-12 bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
+    <!-- Header -->
+    <section>
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Edit Feed</h2>
+    </section>
+
+    <!-- Form -->
+    <section>
+        <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
+            <form method="POST" action="{{ route('feeds.update', $feed) }}" class="space-y-6">
+                @csrf
+                @method('PUT')
+                <div>
+                    <label for="type" class="block text-gray-700 dark:text-gray-300">Type</label>
+                    <input name="type" type="text" id="type" value="{{ old('type', $feed->type) }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('type') border-red-500 @enderror" required>
+                    @error('type')
+                        <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
+                <div>
+                    <label for="quantity" class="block text-gray-700 dark:text-gray-300">Quantity (Bags)</label>
+                    <input name="quantity" type="number" id="quantity" value="{{ old('quantity', $feed->quantity) }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('quantity') border-red-500 @enderror" min="1" required>
+                    @error('quantity')
+                        <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
+                <div>
+                    <label for="weight" class="block text-gray-700 dark:text-gray-300">Weight per Bag (kg)</label>
+                    <input name="weight" type="number" step="0.01" id="weight" value="{{ old('weight', $feed->weight) }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('weight') border-red-500 @enderror" min="0" required>
+                    @error('weight')
+                        <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
+                <div>
+                    <label for="purchase_date" class="block text-gray-700 dark:text-gray-300">Purchase Date</label>
+                    <input name="purchase_date" type="date" id="purchase_date" value="{{ old('purchase_date', $feed->purchase_date->format('Y-m-d')) }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('purchase_date') border-red-500 @enderror" required>
+                    @error('purchase_date')
+                        <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
+                <div>
+                    <label for="cost" class="block text-gray-700 dark:text-gray-300">Cost (GHS)</label>
+                    <input name="cost" type="number" step="0.01" id="cost" value="{{ old('cost', $feed->cost) }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('cost') border-red-500 @enderror" min="0" required>
+                    @error('cost')
+                        <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+                        Update
+                    </button>
+                    <a href="{{ route('feeds.index') }}" class="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                        Cancel
+                    </a>
+                </div>
+            </form>
         </div>
-        <div class="mb-4">
-            <label class="block text-gray-700">Description</label>
-            <input type="text" name="description" value="{{ $expense->description }}" class="w-full p-2 border rounded">
-        </div>
-        <div class="mb-4">
-            <label class="block text-gray-700">Amount</label>
-            <input type="number" name="amount" value="{{ $expense->amount }}" step="0.01" class="w-full p-2 border rounded" required>
-        </div>
-        <div class="mb-4">
-            <label class="block text-gray-700">Date</label>
-            <input type="date" name="date" value="{{ $expense->date->format('Y-m-d') }}" class="w-full p-2 border rounded" required>
-        </div>
-        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Update</button>
-    </form>
+    </section>
+</div>
 @endsection

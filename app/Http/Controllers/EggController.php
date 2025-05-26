@@ -9,7 +9,10 @@ class EggController extends Controller
 {
     public function index()
     {
-        $eggs = Egg::all();
+        $eggs = Egg::orderBy('date_laid', 'desc')->paginate(10);
+        $totalCrates = Egg::sum('crates') ?? 0;
+        $totalSold = Egg::sum('sold_quantity') ?? 0;
+        $totalProduced = Egg::sum('crates') ?? 0;
 
         // Monthly egg crate chart data (last 6 months)
         $eggData = [];
@@ -19,12 +22,12 @@ class EggController extends Controller
             $eggLabels[] = $month->format('M Y');
             $eggData[] = Egg::whereMonth('date_laid', $month->month)
                             ->whereYear('date_laid', $month->year)
-                            ->sum('crates');
+                            ->sum('crates') ?? 0;
         }
         $eggLabels = array_reverse($eggLabels);
         $eggData = array_reverse($eggData);
 
-        return view('eggs.index', compact('eggs', 'eggLabels', 'eggData'));
+        return view('eggs.index', compact('eggs', 'eggLabels', 'eggData', 'totalCrates', 'totalSold', 'totalProduced'));
     }
 
     public function create()
@@ -48,7 +51,7 @@ class EggController extends Controller
 
     public function edit(Egg $egg)
     {
-        return view('eggs.edit', compact('eggs'));
+        return view('eggs.edit', compact('egg')); 
     }
 
     public function update(Request $request, Egg $egg)
