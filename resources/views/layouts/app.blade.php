@@ -14,6 +14,11 @@
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900 dark:bg-[#0a0a23] dark:text-white font-sans">
+    <!-- Loading Overlay -->
+  <div id="loading-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
+    <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+    
     @auth
         <div class="flex h-screen relative">
             <!-- Overlay for mobile -->
@@ -38,12 +43,12 @@
                             </button>
 
                             <!-- Navigation links -->
-                            <a href="{{ route('dashboard') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Dashboard</a>
+                            {{-- <a href="{{ route('dashboard') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Dashboard</a>
                             <a href="{{ route('expenses.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Expenses</a>
                             <a href="{{ route('chicks.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Chicks</a>
                             <a href="{{ route('birds.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Birds</a>
                             <a href="{{ route('feed.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Feed</a>
-                            <a href="{{ route('eggs.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Eggs</a>
+                            <a href="{{ route('eggs.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Eggs</a> --}}
                             @if(auth()->user()->is_admin)
                                 <a href="{{ route('income.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Income</a>
                             @endif
@@ -91,6 +96,16 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+
+       // Hide loader when everything’s loaded
+  window.addEventListener('load', () => {
+    const loader = document.getElementById('loading-overlay');
+    if (loader) {
+      loader.style.transition = 'opacity 0.4s ease';
+      loader.style.opacity = '0';
+      setTimeout(() => loader.remove(), 300);
+    }
+  });
         (function() {
             // Dark Mode Script
             const themeToggle = document.getElementById('theme-toggle');

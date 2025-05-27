@@ -6,27 +6,29 @@ use App\Models\Sale;
 use App\Models\Customer;
 use App\Models\Bird;
 use App\Models\Egg;
+use App\Models\Alert;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class SalesController extends Controller
 {
     public function sales()
-       {
-           $sales = Sale::with('customer', 'saleable')
-               ->where('saleable_type', Egg::class)
-               ->orderBy('sale_date', 'desc')
-               ->paginate(10);
-           $totalSales = Sale::where('saleable_type', Egg::class)->sum('total_amount') ?? 0;
-           $totalCratesSold = Sale::where('saleable_type', Egg::class)->sum('quantity') ?? 0;
+    {
+        $sales = Sale::with('customer', 'saleable')
+            ->where('saleable_type', Egg::class)
+            ->orderBy('sale_date', 'desc')
+            ->paginate(10);
+        $totalSales = Sale::where('saleable_type', Egg::class)->sum('total_amount') ?? 0;
+        $totalCratesSold = Sale::where('saleable_type', Egg::class)->sum('quantity') ?? 0;
 
-           return view('eggs.sales', compact('sales', 'totalSales', 'totalCratesSold'));
-       }
+        return view('eggs.sales', compact('sales', 'totalSales', 'totalCratesSold'));
+    }
 
     public function create()
     {
         $customers = Customer::all();
         $birds = Bird::all();
-        $eggs = Egg::all(); // Adjust if eggs are tracked differently
+        $eggs = Egg::all();
         return view('sales.create', compact('customers', 'birds', 'eggs'));
     }
 
@@ -43,6 +45,12 @@ class SalesController extends Controller
 
         $validated['total_amount'] = $validated['quantity'] * $validated['unit_price'];
         Sale::create($validated);
+
+        Alert::create([
+            'message' => "New sale for customer ID {$validated['customer_id']}",
+            'type' => 'sale',
+        ]);
+
         return redirect()->route('sales.index')->with('success', 'Sale recorded successfully.');
     }
 
@@ -79,8 +87,15 @@ class SalesController extends Controller
     public function birdSales()
     {
         $sales = Sale::with('customer', 'saleable')
-                     ->where('saleable_type', Bird::class)
-                     ->paginate(10);
+            ->where('saleable_type', Bird::class)
+            ->paginate(10);
         return view('sales.birds', compact('sales'));
+    }
+
+    public function invoice(Sale $sale)
+    {
+        $sale->load('customer', 'saleable');
+        $pdf = Pdf::loadView('sales.invoice', compact('sale'));
+        return $pdf->download("invoice-{$sale->id}.pdf");
     }
 }

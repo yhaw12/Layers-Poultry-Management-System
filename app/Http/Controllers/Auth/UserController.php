@@ -4,59 +4,88 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
+    public function __construct()
+    {
+        // Only guests can access login/register, all others must be authenticated
+        $this->middleware('guest')->except('logout');
+    }
+
+    /**
+     * Show login form
+     */
     public function showLoginForm()
     {
         return view('auth.login');
     }
 
+    /**
+     * Handle login request
+     */
     public function login(Request $request)
-   {
-    $credentials = $request->validate([
-        'email' => ['required', 'email'],
-        'password' => ['required'],
-    ]);
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
 
-    if (Auth::attempt($credentials, $request->boolean('remember'))) {
-        $request->session()->regenerate();
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $request->session()->regenerate();
 
-        // Flash message based on role
-        session()->flash('status', Auth::user()->is_admin
-            ? 'Logged in as Admin.'
-            : 'Logged in as User.');
+            // Log login activity
+            UserActivityLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'login',
+                'description' => 'User logged in',
+            ]);
 
-        // Redirect based on role
-        if (Auth::user()->is_admin) {
-            return redirect()->route('dashboard');
+            // Flash message
+            session()->flash('status', Auth::user()->is_admin ? 'Logged in as Admin.' : 'Login successful.');
+
+            return redirect()->intended(route('dashboard'));
         }
 
-        return redirect()->route('dashboard');
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->onlyInput('email');
     }
 
-    return back()->withErrors([
-        'email' => 'The provided credentials do not match our records.',
-    ])->onlyInput('email');
-}
-
-
+    /**
+     * Logout the user
+     */
     public function logout(Request $request)
     {
+        // Log logout activity
+        UserActivityLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'logout',
+            'description' => 'User logged out',
+        ]);
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/');
+
+        return redirect()->route('login');
     }
 
+    /**
+     * Show registration form
+     */
     public function showRegistrationForm()
     {
         return view('auth.register');
     }
 
+    /**
+     * Handle user registration
+     */
     public function register(Request $request)
     {
         $data = $request->validate([
@@ -65,7 +94,6 @@ class UserController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-       // Determine admin status by name
         $isAdmin = strtolower(trim($data['name'])) === 'admin';
 
         $user = User::create([
@@ -76,11 +104,14 @@ class UserController extends Controller
         ]);
 
         Auth::login($user);
-        return redirect('/');
-    }
 
-    public function __construct()
-    {
-        // $this->middleware('guest')->except('logout');
+        // Log registration activity
+        UserActivityLog::create([
+            'user_id' => $user->id,
+            'action' => 'register',
+            'description' => 'User registered',
+        ]);
+
+        return redirect()->route('dashboard');
     }
 }

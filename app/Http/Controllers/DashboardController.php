@@ -2,55 +2,68 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Alert;
+use App\Models\Bird;
+use App\Models\Chicks;
+use App\Models\Customer;
+use App\Models\Egg;
+use App\Models\Employee;
+use App\Models\Expense;
+use App\Models\Feed;
+use App\Models\Income;
+use App\Models\MedicineLog;
+use App\Models\Mortalities;
+use App\Models\Payroll;
+use App\Models\Sale;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf;
-use App\Models\{
-    Expense,
-    Income,
-    Chicks,
-    Bird,
-    Feed,
-    Egg,
-    Mortalities,
-    Employee,
-    MedicineLog,
-    Sale,
-    Customer,
-    Payroll
-};
 
 class DashboardController extends Controller
 {
+    /**
+     * Display the dashboard with key metrics and trends.
+     *
+     * @param Request $request
+     * @return \Illuminate\View\View
+     */
     public function index(Request $request)
     {
         // Date filter defaults to current month
         $start = $request->input('start_date', now()->startOfMonth()->toDateString());
         $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+        $period = [$start, $end];
 
         // Core financials
-        $totalExpenses = Expense::whereBetween('date', [$start, $end])->sum('amount') ?? 0;
-        $totalIncome = Income::whereBetween('date', [$start, $end])->sum('amount') ?? 0;
+        $totalExpenses = Expense::whereBetween('date', $period)->sum('amount') ?? 0;
+        $totalIncome = Income::whereBetween('date', $period)->sum('amount') ?? 0;
         $profit = $totalIncome - $totalExpenses;
 
         // Stock counts
         $chicks = Chicks::sum('quantity_bought') ?? 0;
         $layers = Bird::where('type', 'layer')->sum('quantity') ?? 0;
         $broilers = Bird::where('type', 'broiler')->sum('quantity') ?? 0;
-
-        // Total flock for mortality calculation
         $totalBirds = $chicks + $layers + $broilers;
 
-        // Timeframe for trends
-        $period = [$start, $end];
+        $totalEggs = Egg::whereBetween('date_laid', [now()->startOfMonth(), now()->endOfMonth()])
+        ->sum('crates') ?? 0;
+
+        // Alerts for backup status
+        $alerts = Alert::whereNull('read_at')
+            ->whereIn('type', ['backup_success', 'backup_failed'])
+            ->get();
 
         // Monthly KPIs
         $metrics = [
             'egg_crates' => Egg::whereBetween('date_laid', $period)->sum('crates') ?? 0,
             'feed_kg' => Feed::whereBetween('purchase_date', $period)->sum('quantity') ?? 0,
             'mortality' => Mortalities::whereBetween('date', $period)->sum('quantity') ?? 0,
-            'medicine_buy' => MedicineLog::where('type', 'purchase')->whereBetween('date', $period)->sum('quantity') ?? 0,
-            'medicine_use' => MedicineLog::where('type', 'consumption')->whereBetween('date', $period)->sum('quantity') ?? 0,
+            'medicine_buy' => MedicineLog::where('type', 'purchase')
+                ->whereBetween('date', $period)
+                ->sum('quantity') ?? 0,
+            'medicine_use' => MedicineLog::where('type', 'consumption')
+                ->whereBetween('date', $period)
+                ->sum('quantity') ?? 0,
             'sales' => Sale::whereBetween('sale_date', $period)
                 ->selectRaw('SUM(quantity * unit_price) as total')
                 ->value('total') ?? 0,
@@ -82,16 +95,34 @@ class DashboardController extends Controller
             ->orderBy('pay_date')
             ->get();
 
+        // Render the dashboard view with all data
         return view('dashboard', compact(
-            'start', 'end',
-            'totalExpenses', 'totalIncome', 'profit',
-            'chicks', 'layers', 'broilers',
-            'metrics', 'mortalityRate', 'fcr',
-            'employees', 'payroll',
-            'eggTrend', 'feedTrend', 'payrollTrend'
+            'start',
+            'end',
+            'totalExpenses',
+            'totalIncome',
+            'profit',
+            'chicks',
+            'layers',
+            'broilers',
+            'metrics',
+            'mortalityRate',
+            'fcr',
+            'employees',
+            'payroll',
+            'eggTrend',
+            'feedTrend',
+            'payrollTrend',
+            'alerts'
         ));
     }
 
+    /**
+     * Export the dashboard data as a PDF.
+     *
+     * @param Request $request
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse
+     */
     public function exportPDF(Request $request)
     {
         $data = $this->index($request)->getData();

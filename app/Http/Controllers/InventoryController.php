@@ -26,9 +26,9 @@ class InventoryController extends Controller
             'qty'  => 'required|integer|min:0',
         ]);
 
-        Inventory::create($req->only('name','sku','qty'));
+        Inventory::create($req->only('name', 'sku', 'qty'));
         return redirect()->route('inventory.index')
-                         ->with('success','Inventory item added.');
+                         ->with('success', 'Inventory item added.');
     }
 
     public function edit(Inventory $inventory)
@@ -36,7 +36,7 @@ class InventoryController extends Controller
         return view('inventory.edit', compact('inventory'));
     }
 
-    public function update(Request $req, InventorY $inventory)
+    public function update(Request $req, Inventory $inventory)
     {
         $req->validate([
             'name' => 'required|string|max:255',
@@ -44,14 +44,14 @@ class InventoryController extends Controller
             'qty'  => 'required|integer|min:0',
         ]);
 
-        $inventory->update($req->only('name','sku','qty'));
+        $inventory->update($req->only('name', 'sku', 'qty'));
         return redirect()->route('inventory.index')
-                         ->with('success','Inventory item updated.');
+                         ->with('success', 'Inventory item updated.');
     }
 
     public function destroy(Inventory $inventory)
     {
         $inventory->delete();
-        return back()->with('success','Item removed.');
+        return back()->with('success', 'Item removed.');
     }
 }

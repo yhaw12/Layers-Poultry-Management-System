@@ -30,7 +30,7 @@
                    class="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600 {{ Route::is('eggs.sales') ? 'bg-gray-100 dark:bg-gray-600' : '' }}">
                     Sales
                 </a>
-            </div>
+            </div>f
         </div>
 
         <!-- Birds -->
@@ -179,14 +179,20 @@
         <!-- Activity Logs -->
         @if(auth()->user()->is_admin)
         <div class="relative">
-            <button data-target="logs-submenu" class="toggle-btn flex items-center justify-between w-full px-4 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+            <button data-target="logs-submenu" 
+                    class="toggle-btn flex items-center justify-between w-full px-4 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition">
                 <div class="flex items-center">
-                    <span class="icon">📋</span><span class="ml-2 uppercase font-semibold">Activity Logs</span>
+                    <span class="icon">📋</span>
+                    <span class="ml-2 uppercase font-semibold">Activity Logs</span>
+                </div>
+                <div class="icons">
+                    <svg class="plus-icon w-4 h-4" ...></svg>
+                    <svg class="minus-icon w-4 h-4 hidden" ...></svg>
                 </div>
             </button>
             <div id="logs-submenu" class="submenu hidden mt-2 ml-6 space-y-1 opacity-0 transition-opacity duration-300">
                 <a href="{{ route('activity-logs.index') }}"
-                   class="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600 {{ Route::is('activity-logs.index') ? 'bg-gray-100 dark:bg-gray-600' : '' }}">
+                class="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600 {{ Route::is('activity-logs.index') ? 'bg-gray-100 dark:bg-gray-600' : '' }}">
                     View Logs
                 </a>
             </div>

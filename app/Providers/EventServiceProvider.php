@@ -9,13 +9,12 @@ use App\Models\Payroll;
 use App\Models\Expense;
 use App\Models\Income;
 use App\Models\Chicks;
-use App\Models\Birds;
+use App\Models\Bird;
 use App\Models\Mortalities;
-use App\Models\Eggs;
+use App\Models\Egg;
 use App\Models\Feed;
-use App\Models\Sales;
-use App\Models\Customer;
 use App\Models\Sale;
+use App\Models\Customer;
 use App\Observers\EmployeeObserver;
 use App\Observers\MedicineLogObserver;
 use App\Observers\PayrollObserver;
@@ -31,11 +30,24 @@ use App\Observers\CustomerObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
+    /**
+     * The event to listener mappings for the application.
+     *
+     * @var array<class-string, array<int, class-string>>
+     */
     protected $listen = [
-        // Other events...
+        \Spatie\Backup\Events\BackupWasSuccessful::class => [
+            \App\Listeners\LogBackupStatus::class,
+        ],
+        \Spatie\Backup\Events\BackupHasFailed::class => [
+            \App\Listeners\LogBackupStatus::class,
+        ],
     ];
 
-    public function boot()
+    /**
+     * Register any events for your application.
+     */
+    public function boot(): void
     {
         Employee::observe(EmployeeObserver::class);
         MedicineLog::observe(MedicineLogObserver::class);
@@ -43,11 +55,19 @@ class EventServiceProvider extends ServiceProvider
         Expense::observe(ExpenseObserver::class);
         Income::observe(IncomeObserver::class);
         Chicks::observe(ChicksObserver::class);
-        Sale::observe(BirdObserver::class);
+        Bird::observe(BirdObserver::class);
         Mortalities::observe(MortalitiesObserver::class);
-        Sale::observe(EggObserver::class);
+        Egg::observe(EggObserver::class);
         Feed::observe(FeedObserver::class);
-        Sale::observe(SaleObserver::class);
+        Sale::observe(SaleObserver::class); // Fixed: Single observer for Sale
         Customer::observe(CustomerObserver::class);
+    }
+
+    /**
+     * Determine if events and listeners should be automatically discovered.
+     */
+    public function shouldDiscoverEvents(): bool
+    {
+        return false;
     }
 }

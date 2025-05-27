@@ -17,6 +17,10 @@ return new class extends Migration
         $table->string('contact')->nullable();
         $table->timestamps();
          });
+         Schema::table('customers', function (Blueprint $table) {
+    $table->text('purchase_history')->nullable();
+    $table->decimal('credit_limit', 10, 2)->default(0);
+});
     }
 
     /**

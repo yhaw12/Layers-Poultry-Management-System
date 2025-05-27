@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Sale;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
@@ -12,6 +13,11 @@ class CustomerController extends Controller
         $customers = Customer::orderBy('name')->paginate(10);
         return view('customers.index', compact('customers'));
     }
+    public function show(Customer $customer)
+        {
+            $sales = Sale::where('customer_id', $customer->id)->with('saleable')->get();
+            return view('customers.show', compact('customer', 'sales'));
+        }
 
     public function create()
     {
@@ -21,7 +27,7 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'  => 'required|string|max:255',
+            'name'  => 'required|string|max:255',  
             'phone' => 'required|string|max:20',
         ]);
 

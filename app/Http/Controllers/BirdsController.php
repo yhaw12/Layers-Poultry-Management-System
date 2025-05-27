@@ -24,13 +24,16 @@ class BirdsController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'breed' => 'required|string|max:255',
-            'type' => 'required|in:layer,broiler',
-            'quantity' => 'required|integer|min:1',
-            'working' => 'required|boolean',
-            'age' => 'required|integer|min:0',
-            'entry_date' => 'required|date',
-        ]);
+    'breed' => 'required|string|max:255',
+    'type' => 'required|in:layer,broiler',
+    'quantity' => 'required|integer|min:1',
+    'working' => 'required|boolean',
+    'age' => 'required|integer|min:0',
+    'entry_date' => 'required|date',
+    'vaccination_status' => 'nullable|string|max:255',
+    'housing_location' => 'nullable|string|max:255',
+    'stage' => 'required|in:chick,grower,layer',
+    ]);
         Bird::create($validated);
         return redirect()->route('birds.index')->with('success', 'Bird batch added successfully.');
     }

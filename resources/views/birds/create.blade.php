@@ -54,6 +54,22 @@
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
                 </div>
+                <div class="mb-4">
+    <label class="block text-gray-700 dark:text-gray-300">Vaccination Status</label>
+    <input type="text" name="vaccination_status" class="w-full border rounded p-2 dark:bg-gray-800">
+</div>
+<div class="mb-4">
+    <label class="block text-gray-700 dark:text-gray-300">Housing Location</label>
+    <input type="text" name="housing_location" class="w-full border rounded p-2 dark:bg-gray-800">
+</div>
+<div class="mb-4">
+    <label class="block text-gray-700 dark:text-gray-300">Stage</label>
+    <select name="stage" class="w-full border rounded p-2 dark:bg-gray-800">
+        <option value="chick">Chick</option>
+        <option value="grower">Grower</option>
+        <option value="layer">Layer</option>
+    </select>
+</div>
                 <div>
                     <label for="entry_date" class="block text-gray-700 dark:text-gray-300">Entry Date</label>
                     <input type="date" name="entry_date" id="entry_date" value="{{ old('entry_date') }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
