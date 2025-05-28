@@ -1,6 +1,6 @@
 <?php
 
- use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
@@ -14,7 +14,7 @@ return new class extends Migration
             $table->date('date_laid');
             $table->integer('sold_quantity')->nullable();
             $table->date('sold_date')->nullable();
-            $table->decimal('sale_price', 100, 2)->nullable();
+            $table->decimal('sale_price', 10, 2)->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

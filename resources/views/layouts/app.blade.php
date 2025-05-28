@@ -15,9 +15,9 @@
 </head>
 <body class="bg-gray-100 text-gray-900 dark:bg-[#0a0a23] dark:text-white font-sans">
     <!-- Loading Overlay -->
-  <div id="loading-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
-    <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-  </div>
+    {{-- <div id="loading-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
+        <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>  --}}
     
     @auth
         <div class="flex h-screen relative">
@@ -25,7 +25,7 @@
             <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
 
             <!-- Sidebar -->
-            <aside class="sidebar w-64 bg-white shadow-md h-screen fixed top-0 left-0 transform -translate-x-full md:translate-x-0 md:static z-20 transition-transform duration-300 ease-in-out">
+            <aside class="sidebar w-64 bg-gray-100 dark:bg-gray-900 shadow-md h-screen fixed top-0 left-0 transform -translate-x-full md:translate-x-0 md:static z-20 transition-transform duration-300 ease-in-out">
                 @include('partials.sidebar')
             </aside>
 
@@ -43,12 +43,6 @@
                             </button>
 
                             <!-- Navigation links -->
-                            {{-- <a href="{{ route('dashboard') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Dashboard</a>
-                            <a href="{{ route('expenses.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Expenses</a>
-                            <a href="{{ route('chicks.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Chicks</a>
-                            <a href="{{ route('birds.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Birds</a>
-                            <a href="{{ route('feed.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Feed</a>
-                            <a href="{{ route('eggs.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Eggs</a> --}}
                             @if(auth()->user()->is_admin)
                                 <a href="{{ route('income.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Income</a>
                             @endif
@@ -94,20 +88,10 @@
     @endguest
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ asset('js/chart.min.js') }}"></script>
     <script>
-
-       // Hide loader when everything’s loaded
-  window.addEventListener('load', () => {
-    const loader = document.getElementById('loading-overlay');
-    if (loader) {
-      loader.style.transition = 'opacity 0.4s ease';
-      loader.style.opacity = '0';
-      setTimeout(() => loader.remove(), 300);
-    }
-  });
+        // Dark Mode Script
         (function() {
-            // Dark Mode Script
             const themeToggle = document.getElementById('theme-toggle');
             const iconMoon = document.getElementById('icon-moon');
             const iconSun = document.getElementById('icon-sun');
@@ -158,6 +142,16 @@
                     window.expandedSubmenu = null;
                 }
             });
+
+            // Hide loading overlay after page load
+               // Hide loader when everything’s loaded
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('loading-overlay');
+            if (loader) {
+            loader.style.transition = 'opacity 0.4s ease';
+            loader.style.opacity = '0';
+            setTimeout(() => loader.remove(), 300);
+            }
         })();
     </script>
 </body>

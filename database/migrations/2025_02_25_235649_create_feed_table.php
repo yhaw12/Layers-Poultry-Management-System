@@ -10,11 +10,11 @@ class CreateFeedTable extends Migration
     {
         Schema::create('feed', function (Blueprint $table) {
             $table->id();
-            $table->string('type'); // chick mash, layers mash
-            $table->integer('quantity'); 
-            $table->decimal('weight', 10, 2); // Weight in kg
-            $table->date('purchase_date');
+            $table->string('type'); 
             $table->string('supplier');
+            $table->integer('quantity'); 
+            $table->decimal('weight', 10, 2);
+            $table->date('purchase_date');
             $table->decimal('cost', 10, 2);
             $table->timestamp('synced_at')->nullable();
             $table->timestamps();

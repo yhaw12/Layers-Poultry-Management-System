@@ -154,7 +154,7 @@
                         <option value="bar">Bar</option>
                     </select>
                 </div>
-                <canvas id="eggTrend" class="w-full h-32"></canvas>
+                <canvas id="eggTrend" class="w-full h-48"></canvas>
             </div>
             <!-- Feed Trend -->
             <div class="bg-white dark:bg-[#1a1a3a] p-4 rounded-2xl shadow">
@@ -166,7 +166,7 @@
                         <option value="bar">Bar</option>
                     </select>
                 </div>
-                <canvas id="feedTrend" class="w-full h-32"></canvas>
+                <canvas id="feedTrend" class="w-full h-48"></canvas>
             </div>
             <!-- Payroll Trend -->
             <div class="bg-white dark:bg-[#1a1a3a] p-4 rounded-2xl shadow">
@@ -178,15 +178,13 @@
                         <option value="bar">Bar</option>
                     </select>
                 </div>
-                <canvas id="payrollTrend" class="w-full h-32"></canvas>
+                <canvas id="payrollTrend" class="w-full h-48"></canvas>
             </div>
         </div>
     </section>
 </div>
 
-<!-- Chart.js (Local for Offline Use) -->
-{{-- <script src="{{ asset('js/chart.min.js') }}"></script> --}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ asset('js/chart.min.js') }}"></script>
 <script>
     // Egg Trend Chart
     let eggChart;
@@ -208,7 +206,13 @@
             },
             options: {
                 responsive: true,
-                aspectRatio: 2
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Egg Production Trend'
+                    }
+                }
             }
         });
     }
@@ -234,7 +238,13 @@
             },
             options: {
                 responsive: true,
-                aspectRatio: 2
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Feed Consumption Trend'
+                    }
+                }
             }
         });
     }
@@ -260,11 +270,16 @@
             },
             options: {
                 responsive: true,
-                aspectRatio: 2
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Payroll Trend'
+                    }
+                }
             }
         });
     }
     updatePayrollChart();
 </script>
 @endsection
-

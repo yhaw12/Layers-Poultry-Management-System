@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('medicine_logs', function (Blueprint $table) {
         $table->id();
         $table->string('medicine_name');
-        $table->enum('type', ['purchase', 'consumption']);
-        $table->float('quantity'); // Use consistent unit (e.g., ml or mg)
-        $table->string('unit')->default('ml'); // Optional: 'ml', 'mg', etc.
+        $table->enum('type', ['purchase', 'consumption'])->nullable();;
+        $table->float('quantity'); 
+        $table->string('unit')->default('ml'); 
         $table->date('date');
         $table->text('notes')->nullable();
         $table->timestamps();

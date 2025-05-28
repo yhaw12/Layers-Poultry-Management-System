@@ -11,7 +11,7 @@
            Schema::create('sales', function (Blueprint $table) {
                $table->id();
                $table->foreignId('customer_id')->constrained('customers')->onDelete('restrict');
-               $table->morphs('saleable'); // saleable_id, saleable_type for birds/eggs
+               $table->morphs('saleable'); 
                $table->integer('quantity');
                $table->decimal('unit_price', 8, 2);
                $table->decimal('total_amount', 8, 2);
