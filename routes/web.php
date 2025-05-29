@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
         'eggs' => EggController::class,
         'employees' => EmployeeController::class,
         'expenses' => ExpenseController::class,
+        'feed'     => FeedController::class,
         'income' => IncomeController::class,
         'inventory' => InventoryController::class,
         'medicine-logs' => MedicineLogController::class,
@@ -73,18 +74,20 @@ Route::middleware('auth')->group(function () {
         'sales' => SalesController::class,
         'suppliers' => SupplierController::class,
         'vaccination-logs' => VaccinationLogController::class,
+        'oders'            => OrderController::class,
+        'reports'           => ReportController::class,
     ]);
 
     // Custom Egg Routes
     Route::delete('eggs/bulk', [EggController::class, 'bulkDelete'])->name('eggs.bulkDelete');
 
     // Custom Feed Routes
-    Route::get('/feed', [FeedController::class, 'index'])->name('feed.index');
+    // Route::get('/feed', [FeedController::class, 'index'])->name('feed.index');
     Route::get('/feed/consumption', [FeedController::class, 'consumption'])->name('feed.consumption');
 
     // Custom Medicine Log Routes
-    Route::get('/medicine-logs/buy', [MedicineLogController::class, 'buy'])->name('medicine-logs.buy');
-    Route::get('/medicine-logs/use', [MedicineLogController::class, 'use'])->name('medicine-logs.use');
+    Route::get('/medicine-logs/purchase', [MedicineLogController::class, 'index'])->name('medicine-logs.purchase');
+    Route::get('/medicine-logs/consumption', [MedicineLogController::class, 'index'])->name('medicine-logs.consumption');
 
     // Custom Sales Routes
     Route::get('/eggs/sales', [SalesController::class, 'sales'])->name('eggs.sales');

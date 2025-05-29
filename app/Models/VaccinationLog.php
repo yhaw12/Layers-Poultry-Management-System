@@ -5,7 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class VaccinationLog extends Model
 {
-    protected $fillable = ['bird_id', 'vaccine_name', 'date_administered', 'notes'];
+    protected $fillable = ['vaccine_name', 'date_administered', 'notes'];
 
     public function bird()
     {

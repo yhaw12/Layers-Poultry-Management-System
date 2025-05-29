@@ -12,9 +12,9 @@ class OrderFactory extends Factory
     public function definition()
     {
         return [
-            // 'supplier_id' set in seeder as 'customer_id' seems incorrect here
-            'status' => $this->faker->randomElement(['pending', 'completed']),
-            'total_amount' => $this->faker->randomFloat(2, 100, 5000),
+            // 'customer_id' => Customer::factory(),
+            'status' => $this->faker->randomElement(['pending', 'completed', 'cancelled']),
+            'total_amount' => $this->faker->randomFloat(2, 50, 1000),
             'created_at' => now(),
             'updated_at' => now(),
         ];

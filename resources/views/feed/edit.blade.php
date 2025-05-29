@@ -10,7 +10,7 @@
     <!-- Form -->
     <section>
         <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
-            <form method="POST" action="{{ route('feeds.update', $feed) }}" class="space-y-6">
+            <form method="POST" action="{{ route('feed.update', $feed) }}" class="space-y-6">
                 @csrf
                 @method('PUT')
                 <div>
@@ -52,7 +52,7 @@
                     <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
                         Update
                     </button>
-                    <a href="{{ route('feeds.index') }}" class="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                    <a href="{{ route('feed.index') }}" class="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
                         Cancel
                     </a>
                 </div>

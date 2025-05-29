@@ -42,13 +42,13 @@ class DatabaseSeeder extends Seeder
         $suppliers = SupplierFactory::new()->count(10)->create();
 
         // Create Birds
-        $birds = BirdFactory::new()->count(50)->create();
+        $birds = BirdFactory::new()->count(500)->create();
 
         // Create Chicks
         ChickFactory::new()->count(30)->create();
 
         // Create Eggs
-        $eggs = EggFactory::new()->count(100)->create();
+        $eggs = EggFactory::new()->count(900)->create();
 
         // Create Feed
         $feeds = FeedFactory::new()->count(50)->create();
@@ -59,15 +59,11 @@ class DatabaseSeeder extends Seeder
         }
 
         // Create Medicine Logs
-        MedicineLogFactory::new()->count(40)->create(['type' => 'purchase']);
-        MedicineLogFactory::new()->count(40)->create(['type' => 'consumption']);
+        MedicineLogFactory::new()->count(20)->create(['type' => 'purchase']);
+        MedicineLogFactory::new()->count(20)->create(['type' => 'consumption']);
 
         // Create Mortalities
-        foreach ($birds->random(10) as $bird) {
-            $mortality = MortalitiesFactory::new()->create();
-            $mortality->bird_id = $bird->id;
-            $mortality->save();
-        }
+        MortalitiesFactory::new()->count(30)->create();
 
         // Create Inventory
         InventoryFactory::new()->count(20)->create();
@@ -76,7 +72,7 @@ class DatabaseSeeder extends Seeder
         ExpenseFactory::new()->count(50)->create();
 
         // Create Income
-        IncomeFactory::new()->count(30)->create();
+        IncomeFactory::new()->count(100)->create();
 
         // Create Employees
         $employees = EmployeeFactory::new()->count(15)->create();
@@ -90,7 +86,6 @@ class DatabaseSeeder extends Seeder
         $customers = CustomerFactory::new()->count(20)->create();
 
         // Create Sales
-        // Merge birds and eggs into a single collection for polymorphic saleable relationship
         $saleables = $birds->merge($eggs);
         foreach ($customers as $customer) {
             for ($i = 0; $i < 3; $i++) {
@@ -104,13 +99,11 @@ class DatabaseSeeder extends Seeder
         }
 
         // Create Vaccination Logs
-        foreach ($birds->random(20) as $bird) {
-            VaccinationLogFactory::new()->count(2)->create(['bird_id' => $bird->id]);
-        }
+        VaccinationLogFactory::new()->count(40)->create();
 
         // Create Orders
-        foreach ($suppliers as $supplier) {
-            OrderFactory::new()->count(3)->create(['supplier_id' => $supplier->id]);
+        foreach ($customers as $customer) {
+            OrderFactory::new()->count(8)->create();
         }
 
         // Create Alerts

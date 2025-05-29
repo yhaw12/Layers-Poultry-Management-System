@@ -11,18 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-         Schema::create('customers', function (Blueprint $table) {
-        $table->id();
-        $table->string('name');
-        $table->string('phone')->nullable();
-        $table->timestamps();
-         });
-
-         
-         Schema::table('customers', function (Blueprint $table) {
-         $table->text('purchase_history')->nullable();
-          $table->decimal('credit_limit', 10, 2)->default(0);
-         });
+        Schema::create('customers', function (Blueprint $table) {
+    $table->id();
+    $table->string('name');
+    $table->string('phone')->nullable();
+    // $table->decimal('credit_limit', 10, 2)->default(0);
+    $table->timestamps();
+   });
     }
 
     /**

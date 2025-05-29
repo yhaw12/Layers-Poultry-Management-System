@@ -33,7 +33,8 @@ class Kernel extends HttpKernel
         // 'role_or_permission' => \Spatie\Permission\Middlewares\RoleOrPermissionMiddleware::class,
 
         // Your custom middleware
-        'is_admin' => \App\Http\Middleware\CheckAdmin::class,
+        'is_admin' => \App\Http\Middleware\IsAdmin::class,
+        
     ];
 
     // Other properties like $middlewareGroups, $middleware, etc., remain unchanged

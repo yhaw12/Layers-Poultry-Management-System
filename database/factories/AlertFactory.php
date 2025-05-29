@@ -12,7 +12,7 @@ class AlertFactory extends Factory
     public function definition()
     {
         return [
-            'type' => $this->faker->randomElement(['backup_success', 'backup_failed']),
+            // 'type' => $this->faker->randomElement(['backup_success', 'backup_failed']),
             'message' => $this->faker->sentence(),
             'read_at' => $this->faker->boolean(50) ? now() : null,
             'created_at' => now(),

@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Mortalities;
+use App\Models\Bird;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class MortalitiesFactory extends Factory

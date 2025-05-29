@@ -15,8 +15,8 @@
 </head>
 <body class="bg-gray-100 text-gray-900 dark:bg-[#0a0a23] dark:text-white font-sans">
     <!-- Loading Overlay -->
-    {{-- <div id="loading-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
-        <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    {{-- <div id="loading-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50"> --}}
+        {{-- <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
     </div>  --}}
     
     @auth
@@ -144,14 +144,9 @@
             });
 
             // Hide loading overlay after page load
-               // Hide loader when everything’s loaded
-        window.addEventListener('load', () => {
-            const loader = document.getElementById('loading-overlay');
-            if (loader) {
-            loader.style.transition = 'opacity 0.4s ease';
-            loader.style.opacity = '0';
-            setTimeout(() => loader.remove(), 300);
-            }
+            window.addEventListener('load', () => {
+                document.getElementById('loading-overlay').style.display = 'none';
+            });
         })();
     </script>
 </body>

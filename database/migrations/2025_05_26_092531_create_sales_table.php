@@ -24,4 +24,5 @@
        {
            Schema::dropIfExists('sales');
        }
+       
    }

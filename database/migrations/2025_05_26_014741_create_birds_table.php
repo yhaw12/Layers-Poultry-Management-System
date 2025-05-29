@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Mortalities;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -22,7 +23,12 @@ return new class extends Migration
             $table->dateTime('synced_at')->nullable();
             $table->timestamps();
         });
+
     }
+
+//     public function mortalities() {
+//     return $this->hasMany(Mortalities::class);
+// }
 
     /**
      * Reverse the migrations.

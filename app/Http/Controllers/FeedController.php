@@ -15,12 +15,12 @@ class FeedController extends Controller
         $totalCost = Feed::sum('cost') ?? 0;
         $totalConsumed = FeedConsumption::sum('quantity') ?? 0;
 
-        return view('feeds.index', compact('feeds', 'totalQuantity', 'totalCost', 'totalConsumed'));
+        return view('feed.index', compact('feeds', 'totalQuantity', 'totalCost', 'totalConsumed'));
     }
 
     public function create()
     {
-        return view('feeds.create');
+        return view('feed.create');
     }
 
     public function store(Request $request)
@@ -34,12 +34,12 @@ class FeedController extends Controller
         ]);
 
         Feed::create($data);
-        return redirect()->route('feeds.index')->with('success', 'Feed added successfully');
+        return redirect()->route('feed.index')->with('success', 'Feed added successfully');
     }
 
     public function edit(Feed $feed)
     {
-        return view('feeds.edit', compact('feed'));
+        return view('feed.edit', compact('feed'));
     }
 
     public function update(Request $request, Feed $feed)
@@ -53,13 +53,13 @@ class FeedController extends Controller
         ]);
 
         $feed->update($data);
-        return redirect()->route('feeds.index')->with('success', 'Feed updated successfully');
+        return redirect()->route('feed.index')->with('success', 'Feed updated successfully');
     }
 
     public function destroy(Feed $feed)
     {
         $feed->delete();
-        return redirect()->route('feeds.index')->with('success', 'Feed deleted successfully');
+        return redirect()->route('feed.index')->with('success', 'Feed deleted successfully');
     }
 
     public function consumption()
@@ -68,7 +68,7 @@ class FeedController extends Controller
         $consumptions = FeedConsumption::orderBy('date', 'desc')->paginate(10);
         $totalConsumed = FeedConsumption::sum('quantity') ?? 0;
 
-        return view('feeds.consumption', compact('feeds', 'consumptions', 'totalConsumed'));
+        return view('feed.consumption', compact('feeds', 'consumptions', 'totalConsumed'));
     }
 
     public function storeConsumption(Request $request)
@@ -80,6 +80,6 @@ class FeedController extends Controller
         ]);
 
         FeedConsumption::create($data);
-        return redirect()->route('feeds.consumption')->with('success', 'Feed consumption recorded successfully');
+        return redirect()->route('feed.consumption')->with('success', 'Feed consumption recorded successfully');
     }
 }

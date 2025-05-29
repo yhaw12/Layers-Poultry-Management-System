@@ -33,6 +33,14 @@
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
                 </div>
+                <select name="bird_id" required>
+                    <option value="">Select Bird Batch</option>
+                    @foreach($birds as $bird)
+                        <option value="{{ $bird->id }}" {{ old('bird_id') == $bird->id ? 'selected' : '' }}>
+                            {{ $bird->breed }} ({{ $bird->type }})
+                        </option>
+                    @endforeach
+                </select>
                 <div class="flex space-x-4">
                     <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
                         Save

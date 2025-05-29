@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Sale;
+use App\Models\Customer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class SaleFactory extends Factory
@@ -14,8 +15,9 @@ class SaleFactory extends Factory
         $quantity = $this->faker->numberBetween(1, 10);
         $unit_price = $this->faker->randomFloat(2, 10, 200);
         return [
-            'saleable_id' => null, 
-            'saleable_type' => null, 
+            // 'customer_id' => Customer::factory(),
+            'saleable_id' => null,
+            'saleable_type' => null,
             'quantity' => $quantity,
             'unit_price' => $unit_price,
             'total_amount' => $quantity * $unit_price,

@@ -1,5 +1,4 @@
 <?php
-
 namespace Database\Factories;
 
 use App\Models\Supplier;
@@ -15,7 +14,6 @@ class SupplierFactory extends Factory
             'name' => $this->faker->company(),
             'contact' => $this->faker->phoneNumber(),
             'email' => $this->faker->unique()->safeEmail(),
-            // 'address' => $this->faker->address(),
             'created_at' => now(),
             'updated_at' => now(),
         ];

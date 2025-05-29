@@ -7,10 +7,10 @@
         <div class="flex justify-between items-center">
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Feed Inventory</h2>
             <div class="space-x-4">
-                <a href="{{ route('feeds.create') }}" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+                <a href="{{ route('feed.create') }}" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
                     + Add Feed
                 </a>
-                <a href="{{ route('feeds.consumption') }}" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
+                <a href="{{ route('feed.consumption') }}" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
                     Record Consumption
                 </a>
             </div>
@@ -48,8 +48,8 @@
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $feed->purchase_date->format('Y-m-d') }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ number_format($feed->cost, 2) }}</td>
                             <td class="px-6 py-4 whitespace-nowrap space-x-2">
-                                <a href="{{ route('feeds.edit', $feed) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Edit</a>
-                                <form action="{{ route('feeds.destroy', $feed) }}" method="POST" class="inline" onsubmit="return confirm('Delete this feed record?');">
+                                <a href="{{ route('feed.edit', $feed) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Edit</a>
+                                <form action="{{ route('feed.destroy', $feed) }}" method="POST" class="inline" onsubmit="return confirm('Delete this feed record?');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-red-600 dark:text-red-400 hover:underline">Delete</button>

@@ -2,114 +2,123 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-
-// class ReportController extends Controller
-// {
-//     public function daily()
-//     {
-//         // Example data fetch
-//         $data = DB::table('eggs')
-//             ->selectRaw('date(created_at) as date, sum(quantity) as total')
-//             ->groupBy('date')
-//             ->orderBy('date','desc')
-//             ->take(7)
-//             ->get();
-
-//         return view('reports.daily', compact('data'));
-//     }
-
-//     public function weekly()
-//     {
-//         $data = DB::table('eggs')
-//             ->selectRaw("week(created_at) as week, sum(quantity) as total")
-//             ->groupBy('week')
-//             ->orderBy('week','desc')
-//             ->take(4)
-//             ->get();
-
-//         return view('reports.weekly', compact('data'));
-//     }
-
-//     public function monthly()
-//     {
-//         $data = DB::table('eggs')
-//             ->selectRaw("month(created_at) as month, sum(quantity) as total")
-//             ->groupBy('month')
-//             ->orderBy('month','desc')
-//             ->take(6)
-//             ->get();
-
-//         return view('reports.monthly', compact('data'));
-//     }
-// }
-
-
-// app/Http/Controllers/ReportController.php
-namespace App\Http\Controllers;
-
-use App\Models\Egg;
 use App\Models\Sale;
-use App\Models\Expense;
-use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\CustomReportExport;
 use App\Models\Bird;
+use App\Models\Egg;
+use App\Models\Expense;
 use App\Models\FeedConsumption;
+use Barryvdh\DomPDF;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ReportController extends Controller
 {
-    public function custom(Request $request)
+    public function index(Request $request)
     {
-        $validated = $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'metrics' => 'required|array', // e.g., ['eggs', 'sales', 'expenses']
-            'format' => 'required|in:pdf,excel',
-        ]);
-
+        // Initialize data
+        $reportType = $request->input('type', 'monthly');
         $data = [];
-        if (in_array('eggs', $validated['metrics'])) {
-            $data['eggs'] = Egg::whereBetween('date_laid', [$validated['start_date'], $validated['end_date']])
-                               ->orderBy('date_laid')
-                               ->get();
-        }
-        if (in_array('sales', $validated['metrics'])) {
-            $data['sales'] = Sale::whereBetween('sale_date', [$validated['start_date'], $validated['end_date']])
-                                 ->with('customer', 'saleable')
-                                 ->get();
-        }
-        if (in_array('expenses', $validated['metrics'])) {
-            $data['expenses'] = Expense::whereBetween('date', [$validated['start_date'], $validated['end_date']])
-                                       ->get();
+        $validated = [];
+        $errors = [];
+
+        // Daily report data
+        if ($reportType === 'daily') {
+            $data['daily'] = DB::table('eggs')
+                ->selectRaw('DATE(date_laid)->as date, COUNT(*) as) total')
+                ->groupBy('date')
+                ->orderBy('date', 'desc')
+                ->take(10)
+                ->get();
         }
 
-        if ($validated['format'] === 'pdf') {
-            $pdf = Pdf::loadView('reports.custom', compact('data', 'validated'));
-            return $pdf->download('report_' . now()->format('Ymd') . '.pdf');
+        // Weekly report data
+        if ($reportType === 'weekly') {
+            $data['weekly'] = DB::table('eggs')
+                ->selectRaw('WEEK(date_laid, 1) as week, YEAR(date_laid) as year, COUNT(*) as total')
+                ->groupBy('week', 'year')
+                ->orderBy('year', 'desc')
+                ->orderBy('week', 'desc')
+                ->take(8)
+                ->get();
         }
 
-        return Excel::download(new CustomReportExport($data), 'report.xlsx');
-    }
+        // Monthly report data
+        if ($reportType === 'monthly') {
+            $data['monthly'] = DB::table('eggs')
+                ->selectRaw('MONTH(date_laid) as month, YEAR(date_laid) as year, COUNT(*) as total')
+                ->groupBy('month', 'year')
+                ->orderBy('year', 'desc')
+                ->orderBy('month', 'desc')
+                ->take(6)
+                ->get();
+        }
 
-    public function profitability(Request $request)
-        {
-            $birds = Bird::all();
-            $profitData = $birds->map(function ($bird) {
-                $sales = Sale::where('saleable_type', Bird::class)
-                            ->where('saleable_id', $bird->id)
-                            ->sum('total_amount');
-                $feedCost = FeedConsumption::whereHas('feed', fn($q) => $q->where('bird_id', $bird->id))
-                            ->sum('cost');
-                $expenses = Expense::where('bird_id', $bird->id)->sum('amount');
+        // Custom report data
+        if ($reportType === 'custom' && $request->isMethod('post')) {
+            $validated = $request->validate([
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+                'metrics' => 'required|array',
+                'metrics.*' => 'in:eggs,sales,expenses',
+                'format' => 'required|in:pdf,excel',
+            ]);
+
+            if (in_array('eggs', $validated['metrics'])) {
+                $data['eggs'] = Egg::whereBetween('date_laid', [$validated['start_date'], $validated['end_date']])
+                                   ->orderBy('date_laid')
+                                   ->get();
+            }
+            if (in_array('sales', $validated['metrics'])) {
+                $data['sales'] = Sale::whereBetween('sale_date', [$validated['start_date'], $validated['end_date']])
+                                    ->with(['customer', 'saleable'])
+                                    ->get();
+            }
+            if (in_array('expenses', $validated['metrics'])) {
+                $data['expenses'] = Expense::whereBetween('date', [$validated['start_date'], $validated['end_date']])
+                                           ->orderBy('date')
+                                           ->get();
+            }
+
+            if ($validated['format'] === 'pdf') {
+                $pdf = Pdf::loadView('reports.custom_pdf', ['data' => $data, 'validated' => $validated]);
+
+                return $pdf->download('report_custom_' . now()->format('Ymd') . '.pdf');
+            }
+            if ($validated['format'] === 'excel') {
+                return Excel::download(new CustomReportExport($data), 'report_custom_' . now()->format('Ymd') . '.xlsx');
+            }
+        }
+
+        // Profitability report data
+        if ($reportType === 'profitability') {
+            $birds = $Bird::all();
+            $data['profitability'] = $birds->map(function ($bird) {
+                $sales = Sale::where('saleable_type', 'Bird::class);
+                             ->where('saleable_id', $bird->id);
+                             ->sum('total_amount') ?: 0;
+
+                 $feedCost = FeedConsumption::where('bird_id', $bird->id)
+                                           ->sum('cost') ?: 0;
+
+                 $expenses = Expense::where('description', 'LIKE', "%bird {$bird->id}%")
+                                    ->sum('amount') ?: 0;
+
                 return [
-                    'bird' => $bird->id,
+                    'bird_id' => $bird->id,
                     'breed' => $bird->breed,
+                    'sales' => $sales,
+                    'feed_cost' => $feedCost,
+                    'expenses' => $expenses,
                     'profit' => $sales - ($feedCost + $expenses),
                 ];
-            });
-            return view('reports.profitability', compact('profitData'));
-        }
+            })->filter(function ($data) {
+                    return $data['sales'] > 0 || $data['feed_cost'] > 0 || $data['expenses'] > 0;
+                })->values();
+            })->values();
+            }
+
+        return view('reports.index', compact('data', 'reportType', 'validated'));
+    }
 }

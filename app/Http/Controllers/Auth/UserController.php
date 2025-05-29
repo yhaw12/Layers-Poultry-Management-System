@@ -94,7 +94,8 @@ class UserController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $isAdmin = strtolower(trim($data['name'])) === 'admin';
+        // $isAdmin = strtolower(trim($data['name'])) === 'admin';
+        $isAdmin = $data['email'] === env('ADMIN_EMAIL', 'admin@example.com');
 
         $user = User::create([
             'name' => $data['name'],
@@ -109,7 +110,8 @@ class UserController extends Controller
         UserActivityLog::create([
             'user_id' => $user->id,
             'action' => 'register',
-            'description' => 'User registered',
+            // 'description' => 'User registered',
+           'description' => 'User registered' . ($isAdmin ? ' as admin' : ''),
         ]);
 
         return redirect()->route('dashboard');
