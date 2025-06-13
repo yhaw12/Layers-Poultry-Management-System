@@ -15,9 +15,9 @@
 </head>
 <body class="bg-gray-100 text-gray-900 dark:bg-[#0a0a23] dark:text-white font-sans">
     <!-- Loading Overlay -->
-    {{-- <div id="loading-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50"> --}}
-        {{-- <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-    </div>  --}}
+    <div id="loading-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
+        <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
     
     @auth
         <div class="flex h-screen relative">
@@ -90,17 +90,26 @@
     <!-- Scripts -->
     <script src="{{ asset('js/chart.min.js') }}"></script>
     <script>
-        // Dark Mode Script
+        // Global error handler for debugging
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error(`Error: ${message} at ${source}:${lineno}:${colno}`, error);
+        };
+
+        // Dark Mode Script and Sidebar Toggle
         (function() {
             const themeToggle = document.getElementById('theme-toggle');
             const iconMoon = document.getElementById('icon-moon');
             const iconSun = document.getElementById('icon-sun');
             const root = document.documentElement;
             const stored = localStorage.getItem('darkMode');
+            const mobileBtn = document.getElementById('mobile-menu-button');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const loadingOverlay = document.getElementById('loading-overlay');
 
             let isDark = stored === 'true' ? true : (stored === 'false' ? false : window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-            const apply = () => {
+            const applyTheme = () => {
                 if (isDark) {
                     root.classList.add('dark');
                     iconMoon.classList.add('hidden');
@@ -112,41 +121,44 @@
                 }
             };
 
-            apply();
+            applyTheme();
 
-            themeToggle.addEventListener('click', () => {
-                isDark = !isDark;
-                localStorage.setItem('darkMode', isDark);
-                apply();
-            });
+            if (themeToggle) {
+                themeToggle.addEventListener('click', () => {
+                    isDark = !isDark;
+                    localStorage.setItem('darkMode', isDark);
+                    applyTheme();
+                });
+            }
 
-            // Sidebar Toggle
-            const mobileBtn = document.getElementById('mobile-menu-button');
-            const sidebar = document.querySelector('.sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
+            if (mobileBtn && sidebar && overlay) {
+                mobileBtn.addEventListener('click', () => {
+                    sidebar.classList.toggle('expanded');
+                    overlay.classList.toggle('hidden');
+                });
 
-            mobileBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('expanded');
-                overlay.classList.toggle('hidden');
-            });
-
-            overlay.addEventListener('click', () => {
-                sidebar.classList.remove('expanded');
-                overlay.classList.add('hidden');
-                if (window.expandedSubmenu) {
-                    const prevSubmenu = document.getElementById(window.expandedSubmenu);
-                    const prevBtn = document.querySelector(`[data-target="${window.expandedSubmenu}"]`);
-                    prevSubmenu.classList.add('hidden');
-                    prevBtn.querySelector('.plus-icon').classList.remove('hidden');
-                    prevBtn.querySelector('.minus-icon').classList.add('hidden');
-                    window.expandedSubmenu = null;
-                }
-            });
+                overlay.addEventListener('click', () => {
+                    sidebar.classList.remove('expanded');
+                    overlay.classList.add('hidden');
+                    if (window.expandedSubmenu) {
+                        const prevSubmenu = document.getElementById(window.expandedSubmenu);
+                        const prevBtn = document.querySelector(`[data-target="${window.expandedSubmenu}"]`);
+                        if (prevSubmenu && prevBtn) {
+                            prevSubmenu.classList.add('hidden');
+                            prevBtn.querySelector('.plus-icon')?.classList.remove('hidden');
+                            prevBtn.querySelector('.minus-icon')?.classList.add('hidden');
+                            window.expandedSubmenu = null;
+                        }
+                    }
+                });
+            }
 
             // Hide loading overlay after page load
-            window.addEventListener('load', () => {
-                document.getElementById('loading-overlay').style.display = 'none';
-            });
+            if (loadingOverlay) {
+                window.addEventListener('load', () => {
+                    loadingOverlay.style.display = 'none';
+                });
+            }
         })();
     </script>
 </body>

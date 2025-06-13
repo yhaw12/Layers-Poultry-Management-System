@@ -42,7 +42,7 @@ class UserController extends Controller
             UserActivityLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'login',
-                'description' => 'User logged in',
+                'details' => 'User logged in', // Changed from 'description' to 'details'
             ]);
 
             // Flash message
@@ -65,7 +65,7 @@ class UserController extends Controller
         UserActivityLog::create([
             'user_id' => Auth::id(),
             'action' => 'logout',
-            'description' => 'User logged out',
+            'details' => 'User logged out', // Changed from 'description' to 'details'
         ]);
 
         Auth::logout();
@@ -94,7 +94,6 @@ class UserController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        // $isAdmin = strtolower(trim($data['name'])) === 'admin';
         $isAdmin = $data['email'] === env('ADMIN_EMAIL', 'admin@example.com');
 
         $user = User::create([
@@ -110,8 +109,7 @@ class UserController extends Controller
         UserActivityLog::create([
             'user_id' => $user->id,
             'action' => 'register',
-            // 'description' => 'User registered',
-           'description' => 'User registered' . ($isAdmin ? ' as admin' : ''),
+            'details' => 'User registered' . ($isAdmin ? ' as admin' : ''), // Changed to 'details'
         ]);
 
         return redirect()->route('dashboard');

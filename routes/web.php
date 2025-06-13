@@ -40,7 +40,7 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    // Logout
+    // Authentication
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 
     // Dashboard
@@ -64,7 +64,7 @@ Route::middleware('auth')->group(function () {
         'eggs' => EggController::class,
         'employees' => EmployeeController::class,
         'expenses' => ExpenseController::class,
-        'feed'     => FeedController::class,
+        'feed' => FeedController::class,
         'income' => IncomeController::class,
         'inventory' => InventoryController::class,
         'medicine-logs' => MedicineLogController::class,
@@ -74,35 +74,22 @@ Route::middleware('auth')->group(function () {
         'sales' => SalesController::class,
         'suppliers' => SupplierController::class,
         'vaccination-logs' => VaccinationLogController::class,
-        'oders'            => OrderController::class,
-        'reports'           => ReportController::class,
     ]);
 
-    // Custom Egg Routes
+    // Custom Routes
     Route::delete('eggs/bulk', [EggController::class, 'bulkDelete'])->name('eggs.bulkDelete');
-
-    // Custom Feed Routes
-    // Route::get('/feed', [FeedController::class, 'index'])->name('feed.index');
     Route::get('/feed/consumption', [FeedController::class, 'consumption'])->name('feed.consumption');
-
-    // Custom Medicine Log Routes
     Route::get('/medicine-logs/purchase', [MedicineLogController::class, 'index'])->name('medicine-logs.purchase');
     Route::get('/medicine-logs/consumption', [MedicineLogController::class, 'index'])->name('medicine-logs.consumption');
-
-    // Custom Sales Routes
     Route::get('/eggs/sales', [SalesController::class, 'sales'])->name('eggs.sales');
     Route::get('/sales/birds', [SalesController::class, 'birdSales'])->name('sales.birds');
-
-    // Payroll Routes
     Route::post('/payroll/generate', [PayrollController::class, 'generateMonthly'])->name('payroll.generate');
     Route::get('/payroll/export', [PayrollController::class, 'exportPDF'])->name('payroll.export');
 
-    // Reports
+    // Reports Routes
     Route::prefix('reports')->name('reports.')->group(function () {
-        Route::get('/daily', [ReportController::class, 'daily'])->name('daily');
-        Route::get('/weekly', [ReportController::class, 'weekly'])->name('weekly');
-        Route::get('/monthly', [ReportController::class, 'monthly'])->name('monthly');
-        Route::get('/custom', [ReportController::class, 'custom'])->name('custom');
-        Route::get('/profitability', [ReportController::class, 'profitability'])->name('profitability');
-    });
+    Route::get('/{type?}', [ReportController::class, 'index'])->name('index');
+    Route::post('/custom', [ReportController::class, 'generateCustom'])->name('custom.generate');
+    Route::get('/custom/pdf', [ReportController::class, 'generateCustomPDF'])->name('custom.pdf');
+   });
 });

@@ -6,15 +6,7 @@ use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
 {
-    /**
-     * The application's route middleware.
-     *
-     * These middleware may be assigned to groups or used individually.
-     *
-     * @var array
-     */
-    protected $routeMiddleware = [
-        // Laravel's default middleware
+    protected $middlewareAliases = [
         'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'bindings' => \Illuminate\Routing\Middleware\SubstituteBindings::class,
@@ -26,16 +18,6 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-
-        // Spatie Permission middleware (optional, include if using spatie/laravel-permission)
-        // 'role' => \Spatie\Permission\Middlewares\RoleMiddleware::class,
-        // 'permission' => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
-        // 'role_or_permission' => \Spatie\Permission\Middlewares\RoleOrPermissionMiddleware::class,
-
-        // Your custom middleware
         'is_admin' => \App\Http\Middleware\IsAdmin::class,
-        
     ];
-
-    // Other properties like $middlewareGroups, $middleware, etc., remain unchanged
 }

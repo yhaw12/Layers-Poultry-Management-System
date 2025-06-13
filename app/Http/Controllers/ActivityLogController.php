@@ -17,7 +17,7 @@ class ActivityLogController extends Controller
         $logs = UserActivityLog::query()
             ->when($request->input('search'), function ($query, $search) {
                 $query->where('action', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%");
+                      ->orWhere('details', 'like', "%{$search}%");
             })
             ->orderBy('created_at', 'desc')
             ->paginate(15);

@@ -219,13 +219,7 @@
                 </div>
             </button>
             <div id="insights" class="hidden opacity-0 transition-opacity duration-300 pl-8 space-y-1 mt-2">
-                <a href="{{ route('reports.index', ['type' => 'daily']) }}"
-                class="block p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 {{ request()->query('type') === 'daily' ? 'bg-gray-200 dark:bg-gray-800' : '' }}">Daily Report</a>
-                <a href="{{ route('reports.index', ['type' => 'weekly']) }}"
-                class="block p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 {{ request()->query('type') === 'weekly' ? 'bg-gray-200 dark:bg-gray-800' : '' }}">Weekly Report</a>
-                <a href="{{ route('reports.index', ['type' => 'monthly']) }}"
-                class="block p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 {{ request()->query('type') === 'monthly' ? 'bg-gray-200 dark:bg-gray-800' : '' }}">Monthly Report</a>
-                <a href="{{ route('reports.index', ['type' => 'custom']) }}"
+                      <a href="{{ route('reports.index', ['type' => 'custom']) }}"
                 class="block p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 {{ request()->query('type') === 'custom' ? 'bg-gray-200 dark:bg-gray-800' : '' }}">Custom Report</a>
                 <a href="{{ route('reports.index', ['type' => 'profitability']) }}"
                 class="block p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-800 {{ request()->query('type') === 'profitability' ? 'bg-gray-200 dark:bg-gray-800' : '' }}">Profitability</a>

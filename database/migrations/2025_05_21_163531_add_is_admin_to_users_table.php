@@ -1,28 +1,21 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace App\Http\Middleware;
 
-return new class extends Migration
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class IsAdmin
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function handle(Request $request, Closure $next)
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->boolean('is_admin')->default(false);
-        });
-    }
+        // Check if the user is authenticated and is an admin
+        if (Auth::check() && Auth::user()->isAdmin) {
+            return $next($request); // Proceed to the route handler
+        }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('users', function (Blueprint $table) {
-            //
-        });
+        // If not an admin, redirect with an error message
+        return redirect()->route('dashboard')->with('error', 'You do not have permission to perform this action.');
     }
-};
+}
