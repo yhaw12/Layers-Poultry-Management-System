@@ -88,8 +88,8 @@ Route::middleware('auth')->group(function () {
 
     // Reports Routes
     Route::prefix('reports')->name('reports.')->group(function () {
-    Route::get('/{type?}', [ReportController::class, 'index'])->name('index');
-    Route::post('/custom', [ReportController::class, 'generateCustom'])->name('custom.generate');
-    Route::get('/custom/pdf', [ReportController::class, 'generateCustomPDF'])->name('custom.pdf');
-   });
+    Route::match(['get', 'post'], '/{type?}', [ReportController::class, 'index'])->name('index');
+    Route::get('/custom', [ReportController::class, 'generateCustom'])->name('custom');
+    Route::get('/export', [ReportController::class, 'export'])->name('export');
+    });
 });

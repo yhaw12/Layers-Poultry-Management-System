@@ -95,6 +95,13 @@ class DashboardController extends Controller
             ->orderBy('pay_date')
             ->get();
 
+            // Fetch sales trend data, grouped by date
+        $salesTrend = Sale::whereBetween('sale_date', [now()->subDays(30), now()])
+            ->select(DB::raw('DATE(sale_date) as date'), DB::raw('SUM(total_amount) as value'))
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get();
+
         // Render the dashboard view with all data
         return view('dashboard', compact(
             'start',
@@ -113,7 +120,8 @@ class DashboardController extends Controller
             'eggTrend',
             'feedTrend',
             'payrollTrend',
-            'alerts'
+            'alerts',
+            'salesTrend'
         ));
     }
 

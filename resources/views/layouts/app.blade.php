@@ -15,9 +15,9 @@
 </head>
 <body class="bg-gray-100 text-gray-900 dark:bg-[#0a0a23] dark:text-white font-sans">
     <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
+    {{-- <div id="loading-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
         <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-    </div>
+    </div> --}}
     
     @auth
         <div class="flex h-screen relative">
@@ -88,7 +88,8 @@
     @endguest
 
     <!-- Scripts -->
-    <script src="{{ asset('js/chart.min.js') }}"></script>
+    <script src="{{ asset('js/chart.min.js') }}"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Global error handler for debugging
         window.onerror = function(message, source, lineno, colno, error) {
