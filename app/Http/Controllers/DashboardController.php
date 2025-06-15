@@ -49,9 +49,9 @@ class DashboardController extends Controller
         ->sum('crates') ?? 0;
 
         // Alerts for backup status
-        $alerts = Alert::whereNull('read_at')
-            ->whereIn('type', ['backup_success', 'backup_failed'])
-            ->get();
+        $alerts = auth()->user()->isAdmin() 
+            ? Alert::where('user_id', auth()->id())->whereNull('read_at')->get() 
+            : collect();
 
         // Monthly KPIs
         $metrics = [

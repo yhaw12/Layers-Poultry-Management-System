@@ -13,21 +13,14 @@ class UserController extends Controller
 {
     public function __construct()
     {
-        // Only guests can access login/register, all others must be authenticated
         $this->middleware('guest')->except('logout');
     }
 
-    /**
-     * Show login form
-     */
     public function showLoginForm()
     {
         return view('auth.login');
     }
 
-    /**
-     * Handle login request
-     */
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -38,15 +31,16 @@ class UserController extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            // Log login activity
+            /** @var User $user */
+            $user = Auth::user();
+
             UserActivityLog::create([
-                'user_id' => Auth::id(),
+                'user_id' => $user->id,
                 'action' => 'login',
-                'details' => 'User logged in', // Changed from 'description' to 'details'
+                'details' => 'User logged in',
             ]);
 
-            // Flash message
-            session()->flash('status', Auth::user()->is_admin ? 'Logged in as Admin.' : 'Login successful.');
+            session()->flash('status', $user->isAdmin() ? 'Logged in as Admin.' : 'Login successful.');
 
             return redirect()->intended(route('dashboard'));
         }
@@ -56,16 +50,12 @@ class UserController extends Controller
         ])->onlyInput('email');
     }
 
-    /**
-     * Logout the user
-     */
     public function logout(Request $request)
     {
-        // Log logout activity
         UserActivityLog::create([
             'user_id' => Auth::id(),
             'action' => 'logout',
-            'details' => 'User logged out', // Changed from 'description' to 'details'
+            'details' => 'User logged out',
         ]);
 
         Auth::logout();
@@ -75,17 +65,11 @@ class UserController extends Controller
         return redirect()->route('login');
     }
 
-    /**
-     * Show registration form
-     */
     public function showRegistrationForm()
     {
         return view('auth.register');
     }
 
-    /**
-     * Handle user registration
-     */
     public function register(Request $request)
     {
         $data = $request->validate([
@@ -94,22 +78,19 @@ class UserController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $isAdmin = $data['email'] === env('ADMIN_EMAIL', 'admin@example.com');
-
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'is_admin' => $isAdmin,
+            'is_admin' => false, // Normal users only
         ]);
 
         Auth::login($user);
 
-        // Log registration activity
         UserActivityLog::create([
             'user_id' => $user->id,
             'action' => 'register',
-            'details' => 'User registered' . ($isAdmin ? ' as admin' : ''), // Changed to 'details'
+            'details' => 'User registered',
         ]);
 
         return redirect()->route('dashboard');

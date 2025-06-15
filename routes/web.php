@@ -40,22 +40,17 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    // Authentication
-    Route::post('/logout', [UserController::class, 'logout'])->name('logout');
+     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 
-    // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/export', [DashboardController::class, 'exportPDF'])->name('dashboard.export');
 
-    // Activity Logs
-    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+    // Activity Logs (Admin Only)
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index')->middleware('is_admin');
 
     // Alerts (Admin Only)
-    Route::post('alerts/{alert}/read', function (App\Models\Alert $alert) {
-        $alert->update(['read_at' => now()]);
-        return redirect()->back()->with('success', 'Alert marked as read.');
-    })->name('alerts.read')->middleware('is_admin');
-
+    Route::post('alerts/{alert}/read', [ActivityLogController::class, 'read'])->name('alerts.read')->middleware('is_admin');
+    Route::post('/alerts/dismiss-all', [ActivityLogController::class, 'dismissAll'])->name('alerts.dismiss-all')->middleware('is_admin');
     // Resource Routes
     Route::resources([
         'birds' => BirdsController::class,
@@ -88,8 +83,8 @@ Route::middleware('auth')->group(function () {
 
     // Reports Routes
     Route::prefix('reports')->name('reports.')->group(function () {
-    Route::match(['get', 'post'], '/{type?}', [ReportController::class, 'index'])->name('index');
-    Route::get('/custom', [ReportController::class, 'generateCustom'])->name('custom');
-    Route::get('/export', [ReportController::class, 'export'])->name('export');
+        Route::match(['get', 'post'], '/{type?}', [ReportController::class, 'index'])->name('index');
+        Route::get('/custom', [ReportController::class, 'generateCustom'])->name('custom');
+        Route::get('/export', [ReportController::class, 'export'])->name('export');
     });
 });

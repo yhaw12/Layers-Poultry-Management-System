@@ -5,15 +5,19 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class IsAdmin
 {
     public function handle(Request $request, Closure $next)
     {
-        if (Auth::check() && Auth::user()->is_admin) {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if ($user && $user->isAdmin()) {
             return $next($request);
         }
 
-        return redirect()->route('dashboard')->with('error', 'Access denied. Admin only.');
+        abort(403, 'Unauthorized action.');
     }
 }

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Alert extends Model
 {
-    protected $fillable = ['message',  'read_at'];
+    protected $fillable = ['message', 'type', 'read_at', 'user_id'];
     protected $dates = ['read_at', 'created_at', 'updated_at'];
 
     public function user()
