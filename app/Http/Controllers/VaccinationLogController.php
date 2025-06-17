@@ -34,4 +34,10 @@ class VaccinationLogController extends Controller
     }
 
     // Add edit, update, destroy methods similarly
+     public function destroy($id)
+    {
+        $vaccine = VaccinationLog::findorFail($id);
+        $vaccine->delete();
+        return redirect()->route('vaccination-logs.index')->with('success', 'vaccines deleted successfully');
+    }
 }

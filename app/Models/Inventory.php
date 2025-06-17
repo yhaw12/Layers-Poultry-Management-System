@@ -10,4 +10,5 @@ class Inventory extends Model
     use SoftDeletes;
 
     protected $fillable = ['name', 'sku', 'qty'];
+    protected $dates = ['deleted_at'];
 }

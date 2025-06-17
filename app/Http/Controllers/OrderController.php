@@ -33,4 +33,10 @@ class OrderController extends Controller
     }
 
     // Add edit, update, destroy
+     public function destroy($id)
+    {
+        $order = Order::findorFail($id);
+        $order->delete();
+        return redirect()->route('order.index')->with('success', 'order deleted successfully');
+    }
 }

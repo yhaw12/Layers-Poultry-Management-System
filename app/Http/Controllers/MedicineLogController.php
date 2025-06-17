@@ -53,8 +53,9 @@ class MedicineLogController extends Controller
         return redirect()->route('medicine-logs.index')->with('success', 'Medicine log updated successfully');
     }
 
-    public function destroy(MedicineLog $medicineLog)
+    public function destroy( $id)
     {
+        $medicineLog = MedicineLog::findorFail($id);
         $medicineLog->delete();
         return redirect()->route('medicine-logs.index')->with('success', 'Medicine log deleted successfully');
     }

@@ -65,8 +65,9 @@ class MortalitiesController extends Controller
         return redirect()->route('mortalities.index')->with('success', 'Mortality record updated successfully.');
     }
 
-    public function destroy(Mortalities $mortality)
+    public function destroy($id)
     {
+        $mortality = Mortalities::findorFail($id);
         $mortality->delete();
         \App\Models\UserActivityLog::create([
             'user_id' => auth()->id,

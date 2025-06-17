@@ -19,6 +19,7 @@ use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -36,6 +37,15 @@ class DashboardController extends Controller
      */
     public function index(Request $request)
     {
+
+        $eggTrend = Cache::remember('egg_trend', 3600, function () {
+            return Egg::selectRaw('DATE(date_laid) as date, SUM(quantity) as total')
+                ->groupBy('date')
+                ->orderBy('date', 'desc')
+                ->limit(7)
+                ->get();
+        });
+
         // Date filter defaults to current month
         $start = $request->input('start_date', now()->startOfMonth()->toDateString());
         $end = $request->input('end_date', now()->endOfMonth()->toDateString());
@@ -118,7 +128,7 @@ class DashboardController extends Controller
             return view('dashboard.admin', compact(
                 'start', 'end', 'totalExpenses', 'totalIncome', 'profit',
                 'chicks', 'layers', 'broilers', 'metrics', 'mortalityRate', 'fcr',
-                'employees', 'payroll', 'eggTrend', 'feedTrend', 'salesTrend', 'payrollTrend', 'alerts'
+                'employees', 'payroll', 'eggTrend', 'feedTrend', 'salesTrend', 'payrollTrend', 'alerts','eggTrend'
             ));
         }
 

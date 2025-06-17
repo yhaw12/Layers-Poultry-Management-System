@@ -65,6 +65,10 @@
                                             @method('DELETE')
                                             <button type="submit" class="text-red-600 dark:text-red-400 hover:underline">Delete</button>
                                         </form>
+                                        <h1>Deleted Birds</h1>
+                                        @foreach ($birds as $bird)
+                                            <p>{{ $bird->breed }} | <a href="{{ route('birds.restore', $bird->id) }}">Restore</a></p>
+                                        @endforeach
                                     </td>
                                 </tr>
                             @endforeach

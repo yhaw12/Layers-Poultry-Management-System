@@ -81,12 +81,22 @@ Route::middleware('auth')->group(function () {
     Route::post('/payroll/generate', [PayrollController::class, 'generateMonthly'])->name('payroll.generate');
     Route::get('/payroll/export', [PayrollController::class, 'exportPDF'])->name('payroll.export');
     Route::get('/sales/{sale}/invoice', [SalesController::class, 'invoice'])->name('sales.invoice')->middleware('auth');
+    Route::get('/invoices', [SalesController::class, 'invoices'])->name('invoices.index')->middleware('auth');
 
-    
+    Route::post('/sales/{sale}/status', [SalesController::class, 'updateStatus'])->name('sales.updateStatus')->middleware('auth');
+
     // Reports Routes
     Route::prefix('reports')->name('reports.')->group(function () {
     Route::get('/export', [ReportController::class, 'export'])->name('export'); // Move this up
     Route::match(['get', 'post'], '/{type?}', [ReportController::class, 'index'])->name('index');
     Route::get('/custom', [ReportController::class, 'custom'])->name('custom');
    });
+
+
+   Route::middleware(['auth', 'permission:view-sales'])->group(function () {
+    Route::get('/sales', [App\Http\Controllers\SalesController::class, 'index'])->name('sales.index');
+});
+Route::middleware(['auth', 'permission:create-sales'])->group(function () {
+    Route::post('/sales', [App\Http\Controllers\SalesController::class, 'store'])->name('sales.store');
+});
 });

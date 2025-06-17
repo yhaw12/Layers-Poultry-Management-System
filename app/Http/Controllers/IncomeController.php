@@ -63,8 +63,9 @@ class IncomeController extends Controller
         return redirect()->route('income.index')->with('success', 'Income updated successfully');
     }
 
-    public function destroy(Income $income)
+    public function destroy($id)
     {
+        $income = Income::findorFail($id);
         $income->delete();
         return redirect()->route('income.index')->with('success', 'Income deleted successfully');
     }

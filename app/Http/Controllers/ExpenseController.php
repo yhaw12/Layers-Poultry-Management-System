@@ -96,9 +96,10 @@ class ExpenseController extends Controller
         return redirect()->route('expenses.index')->with('success', 'Expense updated successfully.');
     }
 
-    public function destroy(Expense $expense)
-    {
-        $expense->delete();
+    public function destroy($id)
+    {   
+        $expense = Expense::findorFail($id);
+        $expense->delete(); 
 
         UserActivityLog::create([
             'user_id' => auth()->id,

@@ -56,8 +56,9 @@ class ChicksController extends Controller
         return redirect()->route('chicks.index')->with('success', 'Chick batch updated successfully.');
     }
 
-    public function destroy(Chicks $chick)
+    public function destroy($id)
     {
+        $chick = Chicks::findOrFail($id);
         $chick->delete();
         return redirect()->route('chicks.index')->with('success', 'Chick batch deleted successfully.');
     }

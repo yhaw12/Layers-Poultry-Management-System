@@ -49,8 +49,9 @@ class InventoryController extends Controller
                          ->with('success', 'Inventory item updated.');
     }
 
-    public function destroy(Inventory $inventory)
+    public function destroy($id)
     {
+        $inventory = Inventory::findorFail($id);
         $inventory->delete();
         return back()->with('success', 'Item removed.');
     }

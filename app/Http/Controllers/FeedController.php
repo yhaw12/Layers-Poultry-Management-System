@@ -56,8 +56,9 @@ class FeedController extends Controller
         return redirect()->route('feed.index')->with('success', 'Feed updated successfully');
     }
 
-    public function destroy(Feed $feed)
-    {
+    public function destroy($id)
+    {   
+        $feed = Feed::findorFail($id);
         $feed->delete();
         return redirect()->route('feed.index')->with('success', 'Feed deleted successfully');
     }

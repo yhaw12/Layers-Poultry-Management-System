@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Sale extends Model
-{
+{   
+    use SoftDeletes;
     use HasFactory;
     protected $table = 'sales';
     protected $fillable = [
@@ -25,6 +27,7 @@ class Sale extends Model
         'total_amount' => 'decimal:2',
         'product_variant' => 'string'
     ];
+    protected $dates = ['deleted_at'];
 
     public function customer()
     {

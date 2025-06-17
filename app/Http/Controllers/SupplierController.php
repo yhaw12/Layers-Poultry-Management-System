@@ -31,4 +31,10 @@ class SupplierController extends Controller
     }
 
     // Add edit, update, destroy methods
+     public function destroy($id)
+    {
+        $supplier = Supplier::findorFail($id);
+        $supplier->delete();
+        return redirect()->route('suppliers.index')->with('success', 'suppliers deleted successfully');
+    }
 }

@@ -57,9 +57,22 @@ class BirdsController extends Controller
         return redirect()->route('birds.index')->with('success', 'Bird batch updated successfully.');
     }
 
-    public function destroy(Bird $bird)
-    {
+    public function destroy($id)
+    {   
+        $bird = Bird::findOrFail($id);
         $bird->delete();
         return redirect()->route('birds.index')->with('success', 'Bird batch deleted successfully.');
+    }
+    public function trashed()
+    {
+        $birds = Bird::onlyTrashed()->get();
+        return view('birds.trashed', compact('birds'));
+    }
+
+    public function restore($id)
+    {
+        $bird = Bird::withTrashed()->findOrFail($id);
+        $bird->restore();
+        return redirect()->route('birds.index')->with('success', 'Bird restored successfully.');
     }
 }
