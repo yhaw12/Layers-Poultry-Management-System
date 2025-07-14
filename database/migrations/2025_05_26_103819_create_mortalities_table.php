@@ -18,6 +18,7 @@ return new class extends Migration
                $table->integer('quantity');
                $table->string('cause')->nullable();
                $table->timestamps();
+               $table->softDeletes();
 
         });
     }

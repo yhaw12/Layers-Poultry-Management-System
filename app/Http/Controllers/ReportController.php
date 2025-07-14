@@ -39,16 +39,16 @@ class ReportController extends Controller
             ->orderBy('week', 'desc')
             ->get();
     } elseif ($reportType === 'monthly') {
-        $data['monthly'] = Egg::select(
-            DB::raw('YEAR(date_laid) as year'),
-            DB::raw('MONTH(date_laid) as month_num'),
-            DB::raw('SUM(sold_quantity) as total')
-        )
-            ->where('date_laid', '>=', now()->subMonths(6))
-            ->groupBy('year', 'month_num')
-            ->orderBy('year', 'desc')
-            ->orderBy('month_num', 'desc')
-            ->get();
+    $data['monthly'] = Egg::withTrashed()->select(
+        DB::raw('YEAR(date_laid) as year'),
+        DB::raw('MONTH(date_laid) as month_num'),
+        DB::raw('SUM(crates) as total')
+    )
+        ->where('date_laid', '>=', now()->subMonths(6))
+        ->groupBy('year', 'month_num')
+        ->orderBy('year', 'desc')
+        ->orderBy('month_num', 'desc')
+        ->get();
     } elseif ($reportType === 'custom') {
         $this->validate($request, [
             'start_date' => 'required|date',
@@ -83,22 +83,22 @@ class ReportController extends Controller
                 ->get();
         }
     } elseif ($reportType === 'profitability') {
-        $data['profitability'] = Bird::select(
-            'birds.id as bird_id',
-            'birds.breed',
-            DB::raw('COALESCE(SUM(sales.total_amount), 0) as sales'),
-            DB::raw('COALESCE(SUM(feeds.quantity * feeds.unit_price), 0) as feed_cost'),
-            DB::raw('COALESCE(SUM(expenses.amount), 0) as expenses'),
-            DB::raw('COALESCE(SUM(sales.total_amount), 0) - COALESCE(SUM(feeds.quantity * feeds.unit_price), 0) - COALESCE(SUM(expenses.amount), 0) as profit')
-        )
-            ->leftJoin('sales', function ($join) {
-                $join->on('birds.id', '=', 'sales.saleable_id')
-                    ->where('sales.saleable_type', '=', Bird::class);
-            })
-            ->leftJoin('feeds', 'birds.id', '=', 'feeds.bird_id')
-            ->leftJoin('expenses', 'birds.id', '=', 'expenses.bird_id')
-            ->groupBy('birds.id', 'birds.breed')
-            ->get();
+    $data['profitability'] = Bird::select(
+        'birds.id as bird_id',
+        'birds.breed',
+        DB::raw('COALESCE(SUM(sales.total_amount), 0) as sales'),
+        DB::raw('COALESCE(SUM(feed.quantity * feed.cost), 0) as feed_cost'),
+        DB::raw('COALESCE(SUM(expenses.amount), 0) as expenses'),
+        DB::raw('COALESCE(SUM(sales.total_amount), 0) - COALESCE(SUM(feed.quantity * feed.cost), 0) - COALESCE(SUM(expenses.amount), 0) as profit')
+    )
+        ->leftJoin('sales', function ($join) {
+            $join->on('birds.id', '=', 'sales.saleable_id')
+                ->where('sales.saleable_type', '=', Bird::class);
+        })
+        ->leftJoin('feed', 'birds.id', '=', 'feed.bird_id')
+        ->leftJoin('expenses', 'birds.id', '=', 'expenses.bird_id')
+        ->groupBy('birds.id', 'birds.breed')
+        ->get();
     }
 
     return $data;

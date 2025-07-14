@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('phone');
             $table->decimal('monthly_salary', 10, 2);
             $table->timestamps();
+             $table->softDeletes();
         });
 
     }

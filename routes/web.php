@@ -40,7 +40,7 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
+    Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/export', [DashboardController::class, 'exportPDF'])->name('dashboard.export');
@@ -51,6 +51,7 @@ Route::middleware('auth')->group(function () {
     // Alerts (Admin Only)
     Route::post('alerts/{alert}/read', [ActivityLogController::class, 'read'])->name('alerts.read')->middleware('is_admin');
     Route::post('/alerts/dismiss-all', [ActivityLogController::class, 'dismissAll'])->name('alerts.dismiss-all')->middleware('is_admin');
+
     // Resource Routes
     Route::resources([
         'birds' => BirdsController::class,
@@ -80,23 +81,22 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales/birds', [SalesController::class, 'birdSales'])->name('sales.birds');
     Route::post('/payroll/generate', [PayrollController::class, 'generateMonthly'])->name('payroll.generate');
     Route::get('/payroll/export', [PayrollController::class, 'exportPDF'])->name('payroll.export');
-    Route::get('/sales/{sale}/invoice', [SalesController::class, 'invoice'])->name('sales.invoice')->middleware('auth');
-    Route::get('/invoices', [SalesController::class, 'invoices'])->name('invoices.index')->middleware('auth');
-
-    Route::post('/sales/{sale}/status', [SalesController::class, 'updateStatus'])->name('sales.updateStatus')->middleware('auth');
+    Route::get('/sales/{sale}/invoice', [SalesController::class, 'invoice'])->name('sales.invoice');
+    Route::get('/invoices', [SalesController::class, 'invoices'])->name('invoices.index');
+    Route::post('/sales/{sale}/status', [SalesController::class, 'updateStatus'])->name('sales.updateStatus');
 
     // Reports Routes
     Route::prefix('reports')->name('reports.')->group(function () {
-    Route::get('/export', [ReportController::class, 'export'])->name('export'); // Move this up
-    Route::match(['get', 'post'], '/{type?}', [ReportController::class, 'index'])->name('index');
-    Route::get('/custom', [ReportController::class, 'custom'])->name('custom');
-   });
+        Route::get('/export', [ReportController::class, 'export'])->name('export');
+        Route::match(['get', 'post'], '/{type?}', [ReportController::class, 'index'])->name('index');
+        Route::get('/custom', [ReportController::class, 'custom'])->name('custom');
+    });
 
-
-   Route::middleware(['auth', 'permission:view-sales'])->group(function () {
-    Route::get('/sales', [App\Http\Controllers\SalesController::class, 'index'])->name('sales.index');
-});
-Route::middleware(['auth', 'permission:create-sales'])->group(function () {
-    Route::post('/sales', [App\Http\Controllers\SalesController::class, 'store'])->name('sales.store');
-});
+    // Permission-based Sales Routes
+    Route::middleware(['permission:view-sales'])->group(function () {
+        Route::get('/sales', [SalesController::class, 'index'])->name('sales.index');
+    });
+    Route::middleware(['permission:create-sales'])->group(function () {
+        Route::post('/sales', [SalesController::class, 'store'])->name('sales.store');
+    });
 });

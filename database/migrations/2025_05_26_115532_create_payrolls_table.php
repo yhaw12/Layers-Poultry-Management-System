@@ -19,6 +19,7 @@ class CreatePayrollsTable extends Migration
             $table->string('status')->default('pending'); // e.g., pending, paid
             $table->text('notes')->nullable();
             $table->timestamps();
+             $table->softDeletes();
         });
     }
 

@@ -17,6 +17,7 @@ return new class extends Migration
     $table->string('phone')->nullable();
     // $table->decimal('credit_limit', 10, 2)->default(0);
     $table->timestamps();
+    $table->softDeletes(); 
    });
     }
 

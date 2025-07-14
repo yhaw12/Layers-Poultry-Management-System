@@ -83,4 +83,6 @@ class FeedController extends Controller
         FeedConsumption::create($data);
         return redirect()->route('feed.consumption')->with('success', 'Feed consumption recorded successfully');
     }
+
+    
 }

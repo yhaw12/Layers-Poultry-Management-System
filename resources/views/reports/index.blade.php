@@ -98,66 +98,66 @@
 
             <!-- Monthly Report -->
             <div id="monthly-panel" class="tab-panel {{ $reportType === 'monthly' ? '' : 'hidden' }}">
-                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Monthly Egg Report</h2>
-                @if (empty($data['monthly']) || $data['monthly']->isEmpty())
-                    <p class="text-gray-600 dark:text-gray-400 text-center py-6">No egg data found for the last 6 months.</p>
-                @else
-                    <div class="mb-6 h-64">
-                        <canvas id="monthly-chart"></canvas>
-                    </div>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            new Chart(document.getElementById('monthly-chart'), {
-                                type: 'bar',
-                                data: {
-                                    labels: @json($data['monthly']->map(fn($row) => \Carbon\Carbon::create()->month($row->month_num)->format('F') . " {$row->year}")),
-                                    datasets: [{
-                                        label: 'Total Eggs',
-                                        data: @json($data['monthly']->pluck('total')),
-                                        backgroundColor: '#8b5cf6',
-                                        borderColor: '#7c3aed',
-                                        borderWidth: 1
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    scales: {
-                                        y: {
-                                            beginAtZero: true,
-                                            title: { display: true, text: 'Eggs' }
-                                        },
-                                        x: {
-                                            title: { display: true, text: 'Month' }
-                                        }
-                                    },
-                                    plugins: {
-                                        legend: { position: 'top' }
-                                    }
-                                }
-                            });
-                        });
-                    </script>
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead>
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Year</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Month</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Eggs</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            @foreach ($data['monthly'] as $row)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $row->year }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ \Carbon\Carbon::create()->month($row->month_num)->format('F') }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $row->total }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                @endif
-            </div>
+    <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Monthly Egg Report</h2>
+    @if (empty($data['monthly']) || $data['monthly']->isEmpty())
+        <p class="text-gray-600 dark:text-gray-400 text-center py-6">No egg data found for the last 6 months.</p>
+    @else
+        <div class="mb-6 h-64">
+            <canvas id="monthly-chart"></canvas>
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                new Chart(document.getElementById('monthly-chart'), {
+                    type: 'bar',
+                    data: {
+                        labels: @json($data['monthly']->map(fn($row) => \Carbon\Carbon::create()->month($row->month_num)->format('F') . " {$row->year}")),
+                        datasets: [{
+                            label: 'Total Crates',
+                            data: @json($data['monthly']->pluck('total')),
+                            backgroundColor: '#8b5cf6',
+                            borderColor: '#7c3aed',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Crates' }
+                            },
+                            x: {
+                                title: { display: true, text: 'Month' }
+                            }
+                        },
+                        plugins: {
+                            legend: { position: 'top' }
+                        }
+                    }
+                });
+            });
+        </script>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead>
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Year</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Month</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Crates</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                @foreach ($data['monthly'] as $row)
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ $row->year }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ \Carbon\Carbon::create()->month($row->month_num)->format('F') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ $row->total }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+</div>
 
 <!-- Analytics (Custom) Report -->
 <div id="custom-panel" class="tab-panel {{ $reportType === 'custom' ? '' : 'hidden' }}">

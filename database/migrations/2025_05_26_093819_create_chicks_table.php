@@ -19,6 +19,7 @@ class CreateChicksTable extends Migration
             $table->decimal('cost', 8, 2);
             $table->dateTime('synced_at')->nullable();
             $table->timestamps();
+             $table->softDeletes();
         });
     }
 

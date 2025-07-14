@@ -22,13 +22,11 @@ return new class extends Migration
             $table->date('entry_date');
             $table->dateTime('synced_at')->nullable();
             $table->timestamps();
+             $table->softDeletes();
         });
 
     }
 
-//     public function mortalities() {
-//     return $this->hasMany(Mortalities::class);
-// }
 
     /**
      * Reverse the migrations.

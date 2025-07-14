@@ -39,7 +39,7 @@ class DashboardController extends Controller
     {
 
         $eggTrend = Cache::remember('egg_trend', 3600, function () {
-            return Egg::selectRaw('DATE(date_laid) as date, SUM(quantity) as total')
+            return Egg::selectRaw('DATE(date_laid) as date, SUM(sold_quantity) as total')
                 ->groupBy('date')
                 ->orderBy('date', 'desc')
                 ->limit(7)

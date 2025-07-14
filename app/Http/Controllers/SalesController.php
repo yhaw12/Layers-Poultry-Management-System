@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreSaleRequest;
 use App\Models\Sale;
 use App\Models\Customer;
 use App\Models\Bird;
@@ -66,7 +67,7 @@ class SalesController extends Controller
     /**
      * Store a newly created sale in storage.
      */
-    public function store(Request $request)
+    public function store(StoreSaleRequest $request)
     {
         $validated = $request->validate([
             'customer_name' => 'required|string|max:255',
@@ -96,7 +97,8 @@ class SalesController extends Controller
             return back()->withErrors(['product_variant' => 'Product variant must be big, small, or cracked for egg sales.']);
         }
 
-        Sale::create($validated);
+        // Sale::create($validated);
+        Sale::create($request->validated());
 
         // Create alert with user_id
         Alert::create([

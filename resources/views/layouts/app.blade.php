@@ -75,7 +75,7 @@
                 </header>
 
                 <!-- Main Content Area -->
-                <main class="flex-1 overflow-y-auto container mx-auto px-4 py-6">
+                <main class="">
                     @yield('content')
                 </main>
             </div>

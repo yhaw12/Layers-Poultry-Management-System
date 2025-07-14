@@ -16,5 +16,8 @@ class Feed extends Model
     public function supplier() {
     return $this->belongsTo(Supplier::class);
     }
-    
+    public function bird()
+    {
+        return $this->belongsTo(Bird::class);
+    }
 }

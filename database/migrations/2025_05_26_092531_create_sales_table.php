@@ -15,9 +15,11 @@ class CreateSalesTable extends Migration
             $table->integer('quantity');
             $table->decimal('unit_price', 8, 2);
             $table->decimal('total_amount', 8, 2);
+              $table->enum('status', ['pending', 'paid', 'overdue'])->default('pending');
             $table->date('sale_date');
             $table->string('product_variant')->nullable();
             $table->timestamps();
+             $table->softDeletes();
         });
     }
 

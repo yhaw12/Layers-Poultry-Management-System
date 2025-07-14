@@ -17,7 +17,9 @@ class CreateFeedTable extends Migration
             $table->date('purchase_date');
             $table->decimal('cost', 10, 2);
             $table->timestamp('synced_at')->nullable();
+            $table->foreignId('bird_id')->nullable()->constrained('birds')->onDelete('set null');
             $table->timestamps();
+            $table->softDeletes();
 
         });
     }

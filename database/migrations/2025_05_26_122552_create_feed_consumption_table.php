@@ -16,6 +16,7 @@ class CreateFeedConsumptionTable extends Migration
             $table->timestamps();
 
             $table->foreign('feed_id')->references('id')->on('feed')->onDelete('cascade');
+            $table->softDeletes();
         });
     }
 

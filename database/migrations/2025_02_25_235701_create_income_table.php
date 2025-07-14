@@ -16,6 +16,7 @@ class CreateIncomeTable extends Migration
             $table->date('date');
             $table->timestamp('synced_at')->nullable();
             $table->timestamps();
+            $table->softDeletes(); 
         });
     }
 
