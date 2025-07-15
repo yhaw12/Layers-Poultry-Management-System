@@ -10,7 +10,7 @@
                 Add Employee
             </a>
         </div>
-        <p class="text-gray-600 dark:text-gray-400 mt-2">Total Payroll: {{ number_format($payrollTotal, 2) }} KES</p>
+        <p class="text-gray-600 dark:text-gray-400 mt-2">Total Payroll: {{ number_format($payrollTotal, 2) }} GHC</p>
     </section>
 
     <!-- Success Message -->
@@ -28,7 +28,7 @@
                 <thead>
                     <tr class="bg-gray-50 dark:bg-gray-800">
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Monthly Salary (KES)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Monthly Salary (GHC)</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Telephone</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                     </tr>

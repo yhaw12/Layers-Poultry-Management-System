@@ -15,7 +15,7 @@
                 @method('PUT')
                 <div>
                     <label for="date" class="block text-gray-700 dark:text-gray-300">Date</label>
-                    <input name="date" type="date" id="date" value="{{ old('date', $mortality->date->format('Y-m-d')) }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('date') border-red-500 @enderror" required>
+                    <input name="date" type="date" id="date" value="{{ old('date', $mortality->date) }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('date') border-red-500 @enderror" required>
                     @error('date')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError

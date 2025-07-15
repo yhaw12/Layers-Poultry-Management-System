@@ -11,7 +11,7 @@ class ChicksController extends Controller
     {
         $chicks = Chicks::paginate(10);
         $totalQuantity = Chicks::sum('quantity_bought') ?? 0;
-        return view('chicks.chicks', compact('chicks', 'totalQuantity'));
+        return view('chicks.index', compact('chicks', 'totalQuantity'));
     }
 
     public function create()

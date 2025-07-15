@@ -35,7 +35,7 @@
                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                     @forelse($mortalities as $mortality)
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $mortality->date->format('Y-m-d') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $mortality->date }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $mortality->quantity }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $mortality->cause ?? 'N/A' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap space-x-2">

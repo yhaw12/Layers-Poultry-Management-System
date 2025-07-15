@@ -26,7 +26,7 @@
                     @endError
                 </div>
                 <div>
-                    <label for="monthly_salary" class="block text-gray-700 dark:text-gray-300">Monthly Salary (KES)</label>
+                    <label for="monthly_salary" class="block text-gray-700 dark:text-gray-300">Monthly Salary (GHC)</label>
                     <input name="monthly_salary" type="number" step="0.01" id="monthly_salary" value="{{ old('monthly_salary', $employee->monthly_salary) }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('monthly_salary') border-red-500 @enderror" min="0" required>
                     @error('monthly_salary')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>

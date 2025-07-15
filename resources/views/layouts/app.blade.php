@@ -15,11 +15,6 @@
     </style>
 </head>
 <body class="bg-gray-100 text-gray-900 dark:bg-[#0a0a23] dark:text-white font-sans">
-    <!-- Loading Overlay -->
-    {{-- <div id="loading-overlay" class="fixed inset-0 bg-white dark:bg-gray-900 flex items-center justify-center z-50">
-        <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-    </div> --}}
-    
     @auth
         <div class="flex h-screen relative">
             <!-- Overlay for mobile -->
@@ -31,7 +26,7 @@
             </aside>
 
             <!-- Main Area -->
-            <div class="flex-1 flex flex-col">
+            <div class="flex-1 flex flex-col h-full">
                 <!-- Header -->
                 <header class="bg-white shadow-md dark:bg-[#0a0a23] dark:text-white">
                     <nav class="p-4">
@@ -75,8 +70,10 @@
                 </header>
 
                 <!-- Main Content Area -->
-                <main class="">
-                    @yield('content')
+                <main class="flex-1 overflow-y-auto">
+                    <div class="h-full">
+                        @yield('content')
+                    </div>
                 </main>
             </div>
         </div>
@@ -107,7 +104,6 @@
             const mobileBtn = document.getElementById('mobile-menu-button');
             const sidebar = document.querySelector('.sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            const loadingOverlay = document.getElementById('loading-overlay');
 
             let isDark = stored === 'true' ? true : (stored === 'false' ? false : window.matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -152,13 +148,6 @@
                             window.expandedSubmenu = null;
                         }
                     }
-                });
-            }
-
-            // Hide loading overlay after page load
-            if (loadingOverlay) {
-                window.addEventListener('load', () => {
-                    loadingOverlay.style.display = 'none';
                 });
             }
         })();

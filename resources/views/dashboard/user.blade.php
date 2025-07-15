@@ -1,3 +1,4 @@
+{{-- dashboard / user.blade.php --}}
 @extends('layouts.app')
 
 @section('content')
