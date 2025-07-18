@@ -21,7 +21,7 @@
             <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
 
             <!-- Sidebar -->
-            <aside class="sidebar w-64 bg-gray-100 dark:bg-gray-900 shadow-md h-screen fixed top-0 left-0 transform -translate-x-full md:translate-x-0 md:static z-20 transition-transform duration-300 ease-in-out">
+            <aside class="sidebar bg-gray-100 dark:bg-gray-900 shadow-md h-screen fixed top-0 left-0 transform -translate-x-full md:translate-x-0 md:static z-20 transition-transform duration-300 ease-in-out">
                 @include('partials.sidebar')
             </aside>
 
@@ -39,7 +39,7 @@
                             </button>
 
                             <!-- Navigation links -->
-                            @if(auth()->user()->is_admin)
+                            @if(auth()->user()->hasRole('admin'))
                                 <a href="{{ route('income.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Income</a>
                             @endif
 
@@ -60,9 +60,9 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
-                                Logged in as: 
+                                Logged in as:
                                 <span class="text-blue-800 font-semibold">
-                                    {{ auth()->user()->is_admin ? 'Admin' : 'User' }}
+                                    {{ auth()->user()->hasRole('admin') ? 'Admin' : 'User' }}
                                 </span>
                             </div>
                         </div>
@@ -86,7 +86,7 @@
     @endguest
 
     <!-- Scripts -->
-    <script src="{{ asset('js/chart.min.js') }}"></script> 
+    <script src="{{ asset('js/chart.min.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Global error handler for debugging

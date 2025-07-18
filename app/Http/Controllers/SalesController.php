@@ -21,11 +21,11 @@ class SalesController extends Controller
     public function __construct()
     {
         // Apply permission middleware to relevant methods
-        $this->middleware('permission:view-sales')->only(['index', 'sales', 'birdSales', 'invoices']);
-        $this->middleware('permission:edit-sales')->only(['create', 'store', 'edit', 'update']);
-        $this->middleware('permission:delete-sales')->only('destroy');
-        $this->middleware('permission:email-invoices')->only('emailInvoice');
-        $this->middleware('permission:update-invoice-status')->only('updateStatus');
+        // $this->middleware('permission:view-sales')->only(['index', 'sales', 'birdSales', 'invoices']);
+        // $this->middleware('permission:edit-sales')->only(['create', 'store', 'edit', 'update']);
+        // $this->middleware('permission:delete-sales')->only('destroy');
+        // $this->middleware('permission:email-invoices')->only('emailInvoice');
+        // $this->middleware('permission:update-invoice-status')->only('updateStatus');
     }
     public function index()
     {
@@ -183,6 +183,12 @@ class SalesController extends Controller
         return view('sales.birds', compact('sales', 'totalSales', 'totalQuantity'));
     }
 
+
+    // public function invoiceShow()
+    // [
+    //     return view('sales.invoice');
+    // ]
+
     /**
      * Generate and download the invoice PDF for a sale.
      */
@@ -214,6 +220,9 @@ class SalesController extends Controller
         // Download PDF
         return $pdf->download($filename);
     }
+
+
+
      public function invoices()
     {
         $sales = Sale::with('customer', 'saleable')
@@ -221,6 +230,10 @@ class SalesController extends Controller
             ->paginate(10);
         return view('invoices.index', compact('sales'));
     }
+
+
+
+
     public function updateStatus(Sale $sale)
     {
         $sale->update(['status' => 'paid']);

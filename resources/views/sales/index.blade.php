@@ -35,7 +35,7 @@
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ number_format($sale->total_amount, 2) }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $sale->sale_date->format('Y-m-d') }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <a href="{{ route('sales.invoice', $sale) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Invoice</a>
+                                <a href="{{ route('invoices.index', $sale) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Invoice</a>
                                 <a href="{{ route('sales.edit', $sale) }}" class="text-blue-600 dark:text-blue-400 hover:underline ml-4">Edit</a>
                                 <form action="{{ route('sales.destroy', $sale) }}" method="POST" class="inline">
                                     @csrf

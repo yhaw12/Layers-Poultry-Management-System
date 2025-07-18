@@ -37,7 +37,6 @@ class DashboardController extends Controller
      */
     public function index(Request $request)
     {
-
         $eggTrend = Cache::remember('egg_trend', 3600, function () {
             return Egg::selectRaw('DATE(date_laid) as date, SUM(sold_quantity) as total')
                 ->groupBy('date')
@@ -58,7 +57,7 @@ class DashboardController extends Controller
             abort(401, 'Unauthorized');
         }
 
-        $isAdmin = $user->isAdmin();
+        $isAdmin = $user->hasRole('admin');
 
         // Common data for all users
         $chicks = Chicks::sum('quantity_bought') ?? 0;
@@ -125,10 +124,10 @@ class DashboardController extends Controller
 
             $alerts = Alert::where('user_id', $user->id)->whereNull('read_at')->take(50)->get();
 
-            return view('dashboard.admin', compact(
+            return view('dashboard.index', compact(
                 'start', 'end', 'totalExpenses', 'totalIncome', 'profit',
                 'chicks', 'layers', 'broilers', 'metrics', 'mortalityRate', 'fcr',
-                'employees', 'payroll', 'eggTrend', 'feedTrend', 'salesTrend', 'payrollTrend', 'alerts','eggTrend'
+                'employees', 'payroll', 'eggTrend', 'feedTrend', 'salesTrend', 'payrollTrend', 'alerts'
             ));
         }
 
@@ -149,7 +148,7 @@ class DashboardController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
+        if (!$user || !$user->hasRole('admin')) {
             abort(403, 'Unauthorized');
         }
 

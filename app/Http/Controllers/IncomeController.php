@@ -69,4 +69,13 @@ class IncomeController extends Controller
         $income->delete();
         return redirect()->route('income.index')->with('success', 'Income deleted successfully');
     }
+
+
+//     public function transactions(Customer $customer)
+// {
+//     $sales = Sale::where('customer_id', $customer->id)->with('saleable')->paginate(10);
+//     return view('customers.transactions', compact('customer', 'sales'));
+// }
+
+// Route::get('/customers/{customer}/transactions', [CustomerController::class, 'transactions'])->name('customers.transactions');
 }

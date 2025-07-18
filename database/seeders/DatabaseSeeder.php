@@ -33,7 +33,7 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         // Call UserSeeder
-        $this->call(UserSeeder::class);
+        $this->call(RolesAndPermissionsSeeder::class);
 
         // Create additional random users
         UserFactory::new()->count(10)->create();
@@ -42,13 +42,13 @@ class DatabaseSeeder extends Seeder
         $suppliers = SupplierFactory::new()->count(10)->create();
 
         // Create Birds
-        $birds = BirdFactory::new()->count(500)->create();
+        $birds = BirdFactory::new()->count(5000)->create();
 
         // Create Chicks
-        ChickFactory::new()->count(30)->create();
+        ChickFactory::new()->count(5024)->create();
 
         // Create Eggs
-        $eggs = EggFactory::new()->count(900)->create();
+        $eggs = EggFactory::new()->count(90000)->create();
 
         // Create Feed
         $feeds = FeedFactory::new()->count(50)->create();
@@ -107,7 +107,7 @@ class DatabaseSeeder extends Seeder
         }
 
         // Create Alerts
-        AlertFactory::new()->count(10)->create();
+        AlertFactory::new()->count(15)->create();
 
         // Create Activity Logs
         UserActivityLogFactory::new()->count(50)->create();

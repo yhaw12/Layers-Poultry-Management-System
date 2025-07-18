@@ -8,12 +8,41 @@ use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
+    }
+
+    public function register(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+        ]);
+
+        $role = str_contains(strtolower($data['name']), 'admin') || str_contains(strtolower($data['email']), 'admin') ? 'admin' : 'user';
+        $user->assignRole($role);
+
+        Auth::login($user);
+
+        UserActivityLog::create([
+            'user_id' => $user->id,
+            'action' => 'register',
+            'details' => 'User registered',
+        ]);
+
+        return redirect()->route('dashboard');
     }
 
     public function showLoginForm()
@@ -40,7 +69,7 @@ class UserController extends Controller
                 'details' => 'User logged in',
             ]);
 
-            session()->flash('status', $user->is_admin ? 'Logged in as Admin.' : 'Login successful.');
+            session()->flash('status', $user->hasRole('admin') ? 'Logged in as Admin.' : 'Login successful.');
 
             return redirect()->intended(route('dashboard'));
         }
@@ -70,31 +99,9 @@ class UserController extends Controller
         return view('auth.register');
     }
 
-    public function register(Request $request)
+    public function assignRole(Request $request, User $user)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
-
-        $isAdmin = str_contains(strtolower($data['name']), 'admin') || str_contains(strtolower($data['email']), 'admin');
-
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'is_admin' => $isAdmin,
-        ]);
-
-        Auth::login($user);
-
-        UserActivityLog::create([
-            'user_id' => $user->id,
-            'action' => 'register',
-            'details' => 'User registered',
-        ]);
-
-        return redirect()->route('dashboard');
+        $user->assignRole($request->role);
+        return redirect()->back()->with('success', 'Role assigned.');
     }
 }

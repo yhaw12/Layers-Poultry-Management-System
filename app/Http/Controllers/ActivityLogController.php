@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Alert;
+use App\Models\AlertRule;
 use App\Models\User;
 use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ class ActivityLogController extends Controller
 {
     public function __construct()
     {
-        $this->middleware(['auth', 'is_admin']);
+        $this->middleware(['auth', 'role:admin']);
     }
 
     public function index(Request $request)
@@ -38,7 +39,6 @@ class ActivityLogController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Log::info('Marking alert as read', ['alert_id' => $alert->id, 'user_id' => $user->id]);
         $alert->update(['read_at' => now()]);
         return redirect()->back()->with('success', 'Alert marked as read.');
     }
@@ -49,7 +49,7 @@ class ActivityLogController extends Controller
             /** @var User $user */
             $user = Auth::user();
 
-            Log::info('Dismiss all alerts attempt', ['user_id' => $user->id, 'is_admin' => $user->isAdmin()]);
+            Log::info('Dismiss all alerts attempt', ['user_id' => $user->id, 'is_admin' => $user->hasRole('admin')]);
             $count = Alert::where('user_id', $user->id)->whereNull('read_at')->count();
             if ($count === 0) {
                 Log::info('No unread alerts to dismiss', ['user_id' => $user->id]);
@@ -66,5 +66,16 @@ class ActivityLogController extends Controller
             ]);
             return redirect()->back()->with('error', 'Failed to dismiss alerts: ' . $e->getMessage());
         }
+    }
+
+    public function createCustom(Request $request)
+    {
+        $validated = $request->validate([
+            'condition' => 'required|string',
+            'message' => 'required|string',
+        ]);
+
+        AlertRule::create(array_merge($validated, ['user_id' => auth()->id()]));
+        return redirect()->back()->with('success', 'Custom alert created.');
     }
 }

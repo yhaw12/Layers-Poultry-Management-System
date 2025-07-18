@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Alert;
 use App\Models\Inventory;
 use Illuminate\Http\Request;
 
@@ -55,4 +56,19 @@ class InventoryController extends Controller
         $inventory->delete();
         return back()->with('success', 'Item removed.');
     }
+
+    // public function lowStock()
+    // {
+    //     $lowItems = Inventory::where('qty', '<', 10)->get(); // Threshold example
+    //     foreach ($lowItems as $item) {
+    //         Alert::create([
+    //             'message' => "Low stock for {$item->name} (Qty: {$item->qty})",
+    //             'type' => 'inventory',
+    //             'user_id' => auth()->id() ?? 1,
+    //         ]);
+    //     }
+    //     return view('inventory.low-stock', compact('lowItems'));
+    // }
+
+    // Route::get('/alerts/low-stock', [InventoryController::class, 'lowStock'])->name('alerts.low-stock');
 }

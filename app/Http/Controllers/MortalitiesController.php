@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Alert;
 use App\Models\Mortalities;
 use App\Models\Bird;
 use Illuminate\Http\Request;
@@ -77,4 +78,19 @@ class MortalitiesController extends Controller
 
         return redirect()->route('mortalities.index')->with('success', 'Mortality record deleted successfully.');
     }
+
+    // public function healthIssues()
+    // {
+    //     $highMortality = Mortalities::where('quantity', '>', 5)->get(); // Threshold example
+    //     foreach ($highMortality as $record) {
+    //         Alert::create([
+    //             'message' => "High mortality: {$record->quantity} birds on {$record->date}",
+    //             'type' => 'health',
+    //             'user_id' => auth()->id() ?? 1,
+    //         ]);
+    //     }
+    //     return view('mortalities.health-issues', compact('highMortality'));
+    // }
+    
+    // Route::get('/alerts/health-issues', [MortalitiesController::class, 'healthIssues'])->name('alerts.health-issues');
 }

@@ -8,6 +8,7 @@ use App\Models\Sale;
 use App\Models\Expense;
 use App\Models\Bird;
 use App\Models\Feed;
+use App\Models\Income;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -143,4 +144,32 @@ class ReportController extends Controller
     {
         return $this->index($request);
     }
+
+    // public function profitLoss(Request $request)
+    // {
+    //     $start = $request->input('start_date', now()->startOfMonth()->toDateString());
+    //     $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+
+    //     $totalIncome = Income::whereBetween('date', [$start, $end])->sum('amount');
+    //     $totalExpenses = Expense::whereBetween('date', [$start, $end])->sum('amount');
+    //     $profitLoss = $totalIncome - $totalExpenses;
+
+    //     return view('finance.profit-loss', compact('totalIncome', 'totalExpenses', 'profitLoss', 'start', 'end'));
+    // }
+
+    // Route::get('/finance/profit-loss', [FinanceController::class, 'profitLoss'])->name('finance.profit-loss');
+
+
+//     public function forecast()
+// {
+//     $pastIncome = Income::where('date', '>=', now()->subMonths(6))->sum('amount') / 6;
+//     $pastExpenses = Expense::where('date', '>=', now()->subMonths(6))->sum('amount') / 6;
+//     $forecastedIncome = $pastIncome * 1.05; // 5% growth assumption
+//     $forecastedExpenses = $pastExpenses * 1.03; // 3% increase assumption
+
+//     return view('finance.forecast', compact('forecastedIncome', 'forecastedExpenses'));
+// }
+
+
+// Route::get('/finance/forecast', [FinanceController::class, 'forecast'])->name('finance.forecast');
 }

@@ -55,11 +55,11 @@ class EventServiceProvider extends ServiceProvider
         Expense::observe(ExpenseObserver::class);
         Income::observe(IncomeObserver::class);
         Chicks::observe(ChicksObserver::class);
-        Bird::observe(BirdObserver::class);
+        // Bird::observe(BirdObserver::class);
         Mortalities::observe(MortalitiesObserver::class);
-        Egg::observe(EggObserver::class);
+        // Egg::observe(EggObserver::class);
         Feed::observe(FeedObserver::class);
-        Sale::observe(SaleObserver::class); 
+        // Sale::observe(SaleObserver::class); 
         Customer::observe(CustomerObserver::class);
     }
 

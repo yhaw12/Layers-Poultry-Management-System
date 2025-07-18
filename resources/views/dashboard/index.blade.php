@@ -1,5 +1,3 @@
-{{-- dashboard / admin.blade.php --}}
-
 @extends('layouts.app')
 
 @section('content')
@@ -26,66 +24,70 @@
         </div>
     </form>
 
-    <!-- Alerts -->
-    @if(auth()->user()->isAdmin() && $alerts->isNotEmpty())
-        <section id="alerts-section" class="mb-6">
-            <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
-                @if (session('error'))
-                    <div class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-4 rounded-2xl mb-4">
-                        {{ session('error') }}
-                    </div>
-                @endif
-                @if (session('success'))
-                    <div class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 p-4 rounded-2xl mb-4">
-                        {{ session('success') }}
-                    </div>
-                @endif
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">System Alerts</h3>
-                    <form action="{{ route('alerts.dismiss-all') }}" method="POST" class="inline">
-                        @csrf
-                        <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium">
-                            Dismiss All
-                        </button>
-                    </form>
-                </div>
-                @foreach($alerts as $alert)
-                    <div class="p-4 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-2xl mb-2">
-                        {{ $alert->message }}
-                        <form action="{{ route('alerts.read', $alert) }}" method="POST" class="inline">
+    <!-- Alerts (Admin Only) -->
+    @role('admin')
+        @if($alerts->isNotEmpty())
+            <section id="alerts-section" class="mb-6">
+                <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
+                    @if (session('error'))
+                        <div class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-4 rounded-2xl mb-4">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+                    @if (session('success'))
+                        <div class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 p-4 rounded-2xl mb-4">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">System Alerts</h3>
+                        <form action="{{ route('alerts.dismiss-all') }}" method="POST" class="inline">
                             @csrf
-                            <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline">Mark as Read</button>
+                            <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium">
+                                Dismiss All
+                            </button>
                         </form>
+                    </div>
+                    @foreach($alerts as $alert)
+                        <div class="p-4 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-2xl mb-2">
+                            {{ $alert->message }}
+                            <form action="{{ route('alerts.read', $alert) }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline">Mark as Read</button>
+                            </form>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+    @endrole
+
+    <!-- Summary Section (Admin or Permission-Based) -->
+    @can('manage finances')
+        <section>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Summary</h2>
+            @php
+                $cards = [
+                    ['label'=>'Expenses','value'=>$totalExpenses??0,'icon'=>'💸','color'=>'red'],
+                    ['label'=>'Income','value'=>$totalIncome??0,'icon'=>'💰','color'=>'green'],
+                    ['label'=>'Profit','value'=>$profit??0,'icon'=>'📈','color'=>($profit??0)>=0?'green':'red'],
+                ];
+            @endphp
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                @foreach($cards as $card)
+                    <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md hover:shadow-xl transition-transform hover:-translate-y-1">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-semibold text-gray-700 dark:text-gray-200">{{ $card['label'] }}</h3>
+                            <span class="text-2xl text-{{ $card['color'] }}-500">{{ $card['icon'] }}</span>
+                        </div>
+                        <p class="text-3xl font-bold text-{{ $card['color'] }}-600 dark:text-{{ $card['color'] }}-400 mt-4">
+                            {{ number_format($card['value'], 2) }}
+                        </p>
                     </div>
                 @endforeach
             </div>
         </section>
-    @endif
-
-    <!-- Summary Section -->
-    <section>
-        <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Summary</h2>
-        @php
-            $cards = [
-                ['label'=>'Expenses','value'=>$totalExpenses??0,'icon'=>'💸','color'=>'red'],
-                ['label'=>'Income','value'=>$totalIncome??0,'icon'=>'💰','color'=>'green'],
-                ['label'=>'Profit','value'=>$profit??0,'icon'=>'📈','color'=>($profit??0)>=0?'green':'red'],
-            ];
-        @endphp
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            @foreach($cards as $card)
-                <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md hover:shadow-xl transition-transform hover:-translate-y-1">
-                    <div class="flex items-center justify-between">
-                        <h3 class="font-semibold text-gray-700 dark:text-gray-200">{{ $card['label'] }}</h3>
-                        <span class="text-2xl text-{{ $card['color'] }}-500">{{ $card['icon'] }}</span>
-                    </div>
-                    <p class="text-3xl font-bold text-{{ $card['color'] }}-600 dark:text-{{ $card['color'] }}-400 mt-4">
-                        {{ number_format($card['value'], 2) }}
-                    </p>
-                </div>
-            @endforeach
-        </div>
-    </section>
+    @endcan
 
     <!-- KPIs Section -->
     <section>
@@ -118,13 +120,25 @@
                 <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-3">{{ $group }}</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     @foreach($kpis as $item)
-                        <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow hover:shadow-lg transition-transform">
-                            <div class="flex items-center justify-between">
-                                <h4 class="text-gray-700 dark:text-gray-300 font-medium">{{ $item['label'] }}</h4>
-                                <span class="text-2xl">{{ $item['icon'] }}</span>
+                        @if($group === 'Operations' && in_array($item['label'], ['Employees', 'Payroll', 'Sales', 'Customers']))
+                            @role('admin')
+                                <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow hover:shadow-lg transition-transform">
+                                    <div class="flex items-center justify-between">
+                                        <h4 class="text-gray-700 dark:text-gray-300 font-medium">{{ $item['label'] }}</h4>
+                                        <span class="text-2xl">{{ $item['icon'] }}</span>
+                                    </div>
+                                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2">{{ $item['value'] }}</p>
+                                </div>
+                            @endrole
+                        @else
+                            <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow hover:shadow-lg transition-transform">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-gray-700 dark:text-gray-300 font-medium">{{ $item['label'] }}</h4>
+                                    <span class="text-2xl">{{ $item['icon'] }}</span>
+                                </div>
+                                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2">{{ $item['value'] }}</p>
                             </div>
-                            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2">{{ $item['value'] }}</p>
-                        </div>
+                        @endif
                     @endforeach
                 </div>
             </div>
@@ -159,17 +173,19 @@
                 <canvas id="feedTrend" class="w-full"></canvas>
             </div>
 
-            <!-- Sales Trend -->
-            <div class="bg-white dark:bg-[#1a1a3a] p-4 rounded-2xl shadow">
-                <div class="flex items-center justify-between mb-2">
-                    <h4 class="font-medium dark:text-gray-200">Sales Trend</h4>
-                    <select id="salesChartType" onchange="updateSalesChart()" class="dark:bg-gray-800 dark:text-white p-2 rounded">
-                        <option value="line">Line</option>
-                        <option value="bar">Bar</option>
-                    </select>
+            <!-- Sales Trend (Admin Only) -->
+            @role('admin')
+                <div class="bg-white dark:bg-[#1a1a3a] p-4 rounded-2xl shadow">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-medium dark:text-gray-200">Sales Trend</h4>
+                        <select id="salesChartType" onchange="updateSalesChart()" class="dark:bg-gray-800 dark:text-white p-2 rounded">
+                            <option value="line">Line</option>
+                            <option value="bar">Bar</option>
+                        </select>
+                    </div>
+                    <canvas id="salesTrend" class="w-full"></canvas>
                 </div>
-                <canvas id="salesTrend" class="w-full"></canvas>
-            </div>
+            @endrole
         </div>
     </section>
 </div>
@@ -232,7 +248,6 @@
         });
     }
 
-    // Initial draws
     @if (isset($eggTrend) && $eggTrend->isNotEmpty())
         updateEggChart();
     @else
@@ -248,56 +263,9 @@
     @if (isset($salesTrend) && $salesTrend->isNotEmpty())
         updateSalesChart();
     @else
-        document.getElementById('salesTrend').parentElement.insertAdjacentHTML('beforeend', '<p class="text-gray-600 dark:text-gray-400 text-center py-4">No sales data available.</p>');
+        @role('admin')
+            document.getElementById('salesTrend').parentElement.insertAdjacentHTML('beforeend', '<p class="text-gray-600 dark:text-gray-400 text-center py-4">No sales data available.</p>');
+        @endrole
     @endif
-
-    // Dismiss All Alerts
-    document.getElementById('dismiss-all-alerts')?.addEventListener('click', function() {
-        const section = document.getElementById('alerts-section');
-        const errorDiv = document.getElementById('alert-error');
-        if (section && errorDiv) {
-            section.style.display = 'none'; // Hide the alerts section
-            // Send AJAX request to mark all alerts as read
-            fetch('{{ route('alerts.dismiss-all') }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => {
-                console.log('Response Status:', response.status);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.text().then(text => {
-                    try {
-                        return JSON.parse(text);
-                    } catch (e) {
-                        console.error('Invalid JSON:', text);
-                        throw new Error('Invalid JSON response');
-                    }
-                });
-            })
-            .then(data => {
-                console.log('Response Data:', data);
-                if (data.success) {
-                    console.log('All alerts marked as read successfully.');
-                } else {
-                    console.error('Failed to dismiss alerts:', data.message);
-                    section.style.display = 'block'; // Re-show section
-                    errorDiv.classList.remove('hidden');
-                    errorDiv.textContent = data.message || 'Failed to dismiss alerts.';
-                }
-            })
-            .catch(error => {
-                console.error('Fetch Error:', error.message);
-                section.style.display = 'block'; // Re-show section
-                errorDiv.classList.remove('hidden');
-                errorDiv.textContent = 'An error occurred while dismissing alerts: ' + error.message;
-            });
-        }
-    });
 </script>
 @endsection
