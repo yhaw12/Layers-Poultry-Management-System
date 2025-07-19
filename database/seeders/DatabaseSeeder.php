@@ -48,7 +48,7 @@ class DatabaseSeeder extends Seeder
         ChickFactory::new()->count(5024)->create();
 
         // Create Eggs
-        $eggs = EggFactory::new()->count(90000)->create();
+        $eggs = EggFactory::new()->count(2000)->create();
 
         // Create Feed
         $feeds = FeedFactory::new()->count(50)->create();

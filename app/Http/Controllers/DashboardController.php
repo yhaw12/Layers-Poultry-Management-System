@@ -29,12 +29,6 @@ class DashboardController extends Controller
         $this->middleware('auth');
     }
 
-    /**
-     * Display the dashboard with key metrics and trends.
-     *
-     * @param Request $request
-     * @return \Illuminate\View\View
-     */
     public function index(Request $request)
     {
         $eggTrend = Cache::remember('egg_trend', 3600, function () {
@@ -94,6 +88,18 @@ class DashboardController extends Controller
             ->take(50)
             ->get();
 
+        // Initialize $salesTrend for all users
+        $salesTrend = collect([]); // Empty collection for non-admins
+        $payrollTrend = collect([]);
+        $alerts = collect([]);
+        $totalExpenses = 0;
+        $totalIncome = 0;
+        $profit = 0;
+        $employees = 0;
+        $payroll = 0;
+        $metrics['sales'] = 0;
+        $metrics['customers'] = 0;
+
         // Admin-only data
         if ($isAdmin) {
             $totalExpenses = Expense::whereBetween('date', $period)->sum('amount') ?? 0;
@@ -123,27 +129,15 @@ class DashboardController extends Controller
                 ->get();
 
             $alerts = Alert::where('user_id', $user->id)->whereNull('read_at')->take(50)->get();
-
-            return view('dashboard.index', compact(
-                'start', 'end', 'totalExpenses', 'totalIncome', 'profit',
-                'chicks', 'layers', 'broilers', 'metrics', 'mortalityRate', 'fcr',
-                'employees', 'payroll', 'eggTrend', 'feedTrend', 'salesTrend', 'payrollTrend', 'alerts'
-            ));
         }
 
-        // Non-admin view
-        return view('dashboard.user', compact(
-            'start', 'end', 'chicks', 'layers', 'broilers',
-            'metrics', 'mortalityRate', 'fcr', 'eggTrend', 'feedTrend'
+        return view('dashboard.index', compact(
+            'start', 'end', 'totalExpenses', 'totalIncome', 'profit',
+            'chicks', 'layers', 'broilers', 'metrics', 'mortalityRate', 'fcr',
+            'employees', 'payroll', 'eggTrend', 'feedTrend', 'salesTrend', 'payrollTrend', 'alerts'
         ));
     }
 
-    /**
-     * Export the dashboard data as a PDF.
-     *
-     * @param Request $request
-     * @return \Symfony\Component\HttpFoundation\StreamedResponse
-     */
     public function exportPDF(Request $request)
     {
         /** @var User $user */

@@ -41,7 +41,7 @@ Route::middleware('guest')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Admin‑Only Routes (under /admin, named admin.*)
+| Admin-Only Routes (under /admin, named admin.*)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'role:admin'])
@@ -62,7 +62,7 @@ Route::middleware(['auth', 'role:admin'])
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated Routes (all logged‑in users)
+| Authenticated Routes (all logged-in users)
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
@@ -77,7 +77,7 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------
-    | Re‑expose alerts routes under their old names so your views
+    | Re-expose alerts routes under their old names so your views
     | calling route('alerts.dismiss-all') still work.
     |--------------------------------------------------------------
     */
@@ -128,11 +128,13 @@ Route::middleware('auth')->group(function () {
 
     Route::post('sales/{sale}/status', [SalesController::class, 'updateStatus'])
          ->name('sales.updateStatus');
-
-    Route::get('invoices',             [SalesController::class, 'invoices'])
-         ->name('invoices.index');
     Route::get('sales/{sale}/invoice', [SalesController::class, 'invoice'])
          ->name('sales.invoice');
+    Route::get('sales/{sale}/email', [SalesController::class, 'emailInvoice'])
+         ->name('sales.emailInvoice');
+
+    Route::get('invoices', [SalesController::class, 'invoices'])
+         ->name('invoices.index');
 
     Route::post('payroll/generate', [PayrollController::class, 'generateMonthly'])
          ->name('payroll.generate');
@@ -169,5 +171,6 @@ Route::middleware('auth')->group(function () {
          ->name('alerts.custom.create')
          ->middleware('role:admin');
 
-    Route::post('/users/{user}/toggle-permission', [AdminUserController::class, 'togglePermission'])->name('users.toggle-permission');
+    Route::post('/users/{user}/toggle-permission', [AdminUserController::class, 'togglePermission'])
+         ->name('users.toggle-permission');
 });

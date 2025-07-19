@@ -6,7 +6,11 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Str;
+
+
 
 class AdminUserController extends Controller
 {
@@ -44,8 +48,16 @@ class AdminUserController extends Controller
 
     public function edit(User $user)
     {
-        $roles = Role::all();
-        return view('admin.users.edit', compact('user', 'roles'));
+          $roles = Role::all();
+
+    // Load & group permissions by prefix (bird, feed, etc.)
+    $permissions = Permission::all()
+        ->groupBy(fn($perm) => Str::before($perm->name, '_') ?: 'general');
+
+    return view(
+        'admin.users.edit',
+        compact('user', 'roles', 'permissions')
+    );
     }
 
     public function update(Request $request, User $user)

@@ -1,3 +1,5 @@
+{{-- sales.birds --}}
+
 @extends('layouts.app')
 
 @section('content')

@@ -22,11 +22,13 @@
         <!-- Tabs Navigation -->
         <div class="mb-8">
             <nav class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700" role="tablist">
-                @foreach (['weekly', 'monthly', 'custom', 'profitability'] as $tab)
+                @foreach (['weekly', 'monthly', 'custom', 'profitability', 'profit-loss', 'forecast'] as $tab)
                     <button data-tab="{{ $tab }}"
                             class="tab-btn px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-200 {{ $reportType === $tab ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800' }}"
                             role="tab" aria-selected="{{ $reportType === $tab ? 'true' : 'false' }}"
-                            aria-controls="{{ $tab }}-panel">{{ $tab === 'custom' ? 'Analytics' : ucfirst($tab) }}</button>
+                            aria-controls="{{ $tab }}-panel">
+                            {{ $tab === 'custom' ? 'Analytics' : ucfirst(str_replace('-', ' ', $tab)) }}
+                    </button>
                 @endforeach
             </nav>
         </div>
@@ -98,407 +100,452 @@
 
             <!-- Monthly Report -->
             <div id="monthly-panel" class="tab-panel {{ $reportType === 'monthly' ? '' : 'hidden' }}">
-    <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Monthly Egg Report</h2>
-    @if (empty($data['monthly']) || $data['monthly']->isEmpty())
-        <p class="text-gray-600 dark:text-gray-400 text-center py-6">No egg data found for the last 6 months.</p>
-    @else
-        <div class="mb-6 h-64">
-            <canvas id="monthly-chart"></canvas>
-        </div>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                new Chart(document.getElementById('monthly-chart'), {
-                    type: 'bar',
-                    data: {
-                        labels: @json($data['monthly']->map(fn($row) => \Carbon\Carbon::create()->month($row->month_num)->format('F') . " {$row->year}")),
-                        datasets: [{
-                            label: 'Total Crates',
-                            data: @json($data['monthly']->pluck('total')),
-                            backgroundColor: '#8b5cf6',
-                            borderColor: '#7c3aed',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: { display: true, text: 'Crates' }
-                            },
-                            x: {
-                                title: { display: true, text: 'Month' }
-                            }
-                        },
-                        plugins: {
-                            legend: { position: 'top' }
-                        }
-                    }
-                });
-            });
-        </script>
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead>
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Year</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Month</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Crates</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                @foreach ($data['monthly'] as $row)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ $row->year }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ \Carbon\Carbon::create()->month($row->month_num)->format('F') }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ $row->total }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
-</div>
-
-<!-- Analytics (Custom) Report -->
-<div id="custom-panel" class="tab-panel {{ $reportType === 'custom' ? '' : 'hidden' }}">
-    <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Analytics Report</h2>
-    <form id="custom-report-form" method="GET" action="{{ route('reports.custom') }}" class="space-y-4">
-        @csrf
-        <input type="hidden" name="type" value="custom">
-        <div>
-            <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</label>
-            <input type="date" id="start_date" name="start_date" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 shadow-sm">
-            @error('start_date')
-                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-        <div>
-            <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">End Date</label>
-            <input type="date" id="end_date" name="end_date" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 shadow-sm">
-            @error('end_date')
-                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Metrics</label>
-            <div class="mt-1 space-y-2">
-                <div>
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" name="metrics[]" value="eggs" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
-                        <span class="ml-2 text-gray-700 dark:text-gray-300">Eggs</span>
-                    </label>
-                </div>
-                <div>
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" name="metrics[]" value="sales" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
-                        <span class="ml-2 text-gray-700 dark:text-gray-300">Sales</span>
-                    </label>
-                </div>
-                <div>
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" name="metrics[]" value="expenses" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
-                        <span class="ml-2 text-gray-700 dark:text-gray-300">Expenses</span>
-                    </label>
-                </div>
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Monthly Egg Report</h2>
+                @if (empty($data['monthly']) || $data['monthly']->isEmpty())
+                    <p class="text-gray-600 dark:text-gray-400 text-center py-6">No egg data found for the last 6 months.</p>
+                @else
+                    <div class="mb-6 h-64">
+                        <canvas id="monthly-chart"></canvas>
+                    </div>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            new Chart(document.getElementById('monthly-chart'), {
+                                type: 'bar',
+                                data: {
+                                    labels: @json($data['monthly']->map(fn($row) => \Carbon\Carbon::create()->month($row->month_num)->format('F') . " {$row->year}")),
+                                    datasets: [{
+                                        label: 'Total Crates',
+                                        data: @json($data['monthly']->pluck('total')),
+                                        backgroundColor: '#8b5cf6',
+                                        borderColor: '#7c3aed',
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            title: { display: true, text: 'Crates' }
+                                        },
+                                        x: {
+                                            title: { display: true, text: 'Month' }
+                                        }
+                                    },
+                                    plugins: {
+                                        legend: { position: 'top' }
+                                    }
+                                }
+                            });
+                        });
+                    </script>
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead>
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Year</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Month</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Crates</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            @foreach ($data['monthly'] as $row)
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">{{ $row->year }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">{{ \Carbon\Carbon::create()->month($row->month_num)->format('F') }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">{{ $row->total }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
             </div>
-            @error('metrics')
-                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-        <div>
-            <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50" id="submit-btn">
-                <span>Generate Report</span>
-                <svg id="loading-spinner" class="hidden w-5 h-5 ml-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"></path>
-                </svg>
-            </button>
-        </div>
-    </form>
-    @if (!empty($data['eggs']) || !empty($data['sales']) || !empty($data['expenses']))
-        <div class="mt-8">
-            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Analytics Report Results</h3>
-            @if (!empty($data['eggs']))
-                <div class="mb-6">
-                    <h4 class="text-lg font-medium text-gray-900 dark:text-white">Eggs</h4>
-                    <div class="h-64">
-                        <canvas id="eggs-chart"></canvas>
-                    </div>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            new Chart(document.getElementById('eggs-chart'), {
-                                type: 'line',
-                                data: {
-                                    labels: @json($data['eggs']->pluck('date_laid')),
-                                    datasets: [{
-                                        label: 'Egg Quantity',
-                                        data: @json($data['eggs']->pluck('quantity')->map(fn($q) => $q ?? 1)),
-                                        borderColor: '#f59e0b',
-                                        backgroundColor: 'rgba(245, 158, 11, 0.2)',
-                                        fill: true
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    scales: {
-                                        y: { beginAtZero: true, title: { display: true, text: 'Quantity' } },
-                                        x: { title: { display: true, text: 'Date' } }
-                                    },
-                                    plugins: { legend: { position: 'top' } }
-                                }
-                            });
-                        });
-                    </script>
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 mt-4">
-                        <thead>
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date Laid</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quantity</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            @foreach ($data['eggs'] as $egg)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $egg->date_laid }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $egg->quantity ?? 1 }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
-            @if (!empty($data['sales']))
-                <div class="mb-6">
-                    <h4 class="text-lg font-medium text-gray-900 dark:text-white">Sales</h4>
-                    <div class="h-64">
-                        <canvas id="sales-chart"></canvas>
-                    </div>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            new Chart(document.getElementById('sales-chart'), {
-                                type: 'bar',
-                                data: {
-                                    labels: @json($data['sales']->pluck('sale_date')),
-                                    datasets: [{
-                                        label: 'Total Sales ($)',
-                                        data: @json($data['sales']->pluck('total_amount')),
-                                        backgroundColor: '#ef4444',
-                                        borderColor: '#dc2626',
-                                        borderWidth: 1
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    scales: {
-                                        y: { beginAtZero: true, title: { display: true, text: 'Amount ($)' } },
-                                        x: { title: { display: true, text: 'Date' } }
-                                    },
-                                    plugins: { legend: { position: 'top' } }
-                                }
-                            });
-                        });
-                    </script>
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 mt-4">
-                        <thead>
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quantity</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            @foreach ($data['sales'] as $sale)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $sale->sale_date }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $sale->customer->name ?? 'N/A' }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $sale->saleable ? class_basename($sale->saleable) . ' #' . $sale->saleable->id : 'N/A' }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $sale->quantity }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">${{ number_format($sale->total_amount, 2) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
-            @if (!empty($data['expenses']))
-                <div class="mb-6">
-                    <h4 class="text-lg font-medium text-gray-900 dark:text-white">Expenses</h4>
-                    <div class="h-64">
-                        <canvas id="expenses-chart"></canvas>
-                    </div>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            new Chart(document.getElementById('expenses-chart'), {
-                                type: 'bar',
-                                data: {
-                                    labels: @json($data['expenses']->pluck('date')),
-                                    datasets: [{
-                                        label: 'Total Expenses ($)',
-                                        data: @json($data['expenses']->pluck('amount')),
-                                        backgroundColor: '#f97316',
-                                        borderColor: '#ea580c',
-                                        borderWidth: 1
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    scales: {
-                                        y: { beginAtZero: true, title: { display: true, text: 'Amount ($)' } },
-                                        x: { title: { display: true, text: 'Date' } }
-                                    },
-                                    plugins: { legend: { position: 'top' } }
-                                }
-                            });
-                        });
-                    </script>
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 mt-4">
-                        <thead>
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            @foreach ($data['expenses'] as $expense)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $expense->date }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $expense->description ?? 'N/A' }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">${{ number_format($expense->amount, 2) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
-        </div>
-    @endif
-</div>
 
-<!-- Profitability Report -->
-<div id="profitability-panel" class="tab-panel {{ $reportType === 'profitability' ? '' : 'hidden' }}">
-    <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Profitability Report</h2>
-    @if (empty($data['profitability']) || $data['profitability']->isEmpty())
-        <p class="text-gray-600 dark:text-gray-400 text-center py-6">No profitability data found.</p>
-    @else
-        <div class="mb-6 h-64">
-            <canvas id="profitability-chart"></canvas>
-        </div>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                new Chart(document.getElementById('profitability-chart'), {
-                    type: 'bar',
-                    data: {
-                        labels: @json($data['profitability']->pluck('breed')),
-                        datasets: [
-                            {
-                                label: 'Sales ($)',
-                                data: @json($data['profitability']->pluck('sales')),
-                                backgroundColor: '#10b981'
-                            },
-                            {
-                                label: 'Feed Cost ($)',
-                                data: @json($data['profitability']->pluck('feed_cost')),
-                                backgroundColor: '#f97316'
-                            },
-                            {
-                                label: 'Expenses ($)',
-                                data: @json($data['profitability']->pluck('expenses')),
-                                backgroundColor: '#ef4444'
-                            },
-                            {
-                                label: 'Profit ($)',
-                                data: @json($data['profitability']->pluck('profit')),
-                                backgroundColor: '#3b82f6'
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { beginAtZero: true, title: { display: true, text: 'Amount ($)' } },
-                            x: { title: { display: true, text: 'Breed' } }
-                        },
-                        plugins: { legend: { position: 'top' } }
-                    }
-                });
-            });
-        </script>
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead>
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bird ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Breed</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sales ($)</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Feed Cost ($)</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expenses ($)</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profit ($)</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                @foreach ($data['profitability'] as $row)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ $row->bird_id }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ $row->breed }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ number_format($row->sales, 2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ number_format($row->feed_cost, 2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ number_format($row->expenses, 2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap {{ $row->profit >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                            {{ number_format($row->profit, 2) }}
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
-</div>
+            <!-- Analytics (Custom) Report -->
+            <div id="custom-panel" class="tab-panel {{ $reportType === 'custom' ? '' : 'hidden' }}">
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Analytics Report</h2>
+                <form id="custom-report-form" method="GET" action="{{ route('reports.custom') }}" class="space-y-4">
+                    @csrf
+                    <input type="hidden" name="type" value="custom">
+                    <div>
+                        <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</label>
+                        <input type="date" id="start_date" name="start_date" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                        @error('start_date')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">End Date</label>
+                        <input type="date" id="end_date" name="end_date" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                        @error('end_date')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Metrics</label>
+                        <div class="mt-1 space-y-2">
+                            <div>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="metrics[]" value="eggs" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-gray-700 dark:text-gray-300">Eggs</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="metrics[]" value="sales" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-gray-700 dark:text-gray-300">Sales</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" name="metrics[]" value="expenses" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-gray-700 dark:text-gray-300">Expenses</span>
+                                </label>
+                            </div>
+                        </div>
+                        @error('metrics')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50" id="submit-btn">
+                            <span>Generate Report</span>
+                            <svg id="loading-spinner" class="hidden w-5 h-5 ml-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8h8a8 8 0 01-8 8 8 8 0 01-8-8z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+                @if (!empty($data['eggs']) || !empty($data['sales']) || !empty($data['expenses']))
+                    <div class="mt-8">
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Analytics Report Results</h3>
+                        @if (!empty($data['eggs']))
+                            <div class="mb-6">
+                                <h4 class="text-lg font-medium text-gray-900 dark:text-white">Eggs</h4>
+                                <div class="h-64">
+                                    <canvas id="eggs-chart"></canvas>
+                                </div>
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        new Chart(document.getElementById('eggs-chart'), {
+                                            type: 'line',
+                                            data: {
+                                                labels: @json($data['eggs']->pluck('date_laid')),
+                                                datasets: [{
+                                                    label: 'Egg Quantity',
+                                                    data: @json($data['eggs']->pluck('quantity')->map(fn($q) => $q ?? 1)),
+                                                    borderColor: '#f59e0b',
+                                                    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                                                    fill: true
+                                                }]
+                                            },
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                scales: {
+                                                    y: { beginAtZero: true, title: { display: true, text: 'Quantity' } },
+                                                    x: { title: { display: true, text: 'Date' } }
+                                                },
+                                                plugins: { legend: { position: 'top' } }
+                                            }
+                                        });
+                                    });
+                                </script>
+                                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 mt-4">
+                                    <thead>
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date Laid</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quantity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                        @foreach ($data['eggs'] as $egg)
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap">{{ $egg->date_laid }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">{{ $egg->quantity ?? 1 }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                        @if (!empty($data['sales']))
+                            <div class="mb-6">
+                                <h4 class="text-lg font-medium text-gray-900 dark:text-white">Sales</h4>
+                                <div class="h-64">
+                                    <canvas id="sales-chart"></canvas>
+                                </div>
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        new Chart(document.getElementById('sales-chart'), {
+                                            type: 'bar',
+                                            data: {
+                                                labels: @json($data['sales']->pluck('sale_date')),
+                                                datasets: [{
+                                                    label: 'Total Sales ($)',
+                                                    data: @json($data['sales']->pluck('total_amount')),
+                                                    backgroundColor: '#ef4444',
+                                                    borderColor: '#dc2626',
+                                                    borderWidth: 1
+                                                }]
+                                            },
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                scales: {
+                                                    y: { beginAtZero: true, title: { display: true, text: 'Amount ($)' } },
+                                                    x: { title: { display: true, text: 'Date' } }
+                                                },
+                                                plugins: { legend: { position: 'top' } }
+                                            }
+                                        });
+                                    });
+                                </script>
+                                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 mt-4">
+                                    <thead>
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quantity</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                        @foreach ($data['sales'] as $sale)
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap">{{ $sale->sale_date }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">{{ $sale->customer->name ?? 'N/A' }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">{{ $sale->saleable ? class_basename($sale->saleable) . ' #' . $sale->saleable->id : 'N/A' }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">{{ $sale->quantity }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">${{ number_format($sale->total_amount, 2) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                        @if (!empty($data['expenses']))
+                            <div class="mb-6">
+                                <h4 class="text-lg font-medium text-gray-900 dark:text-white">Expenses</h4>
+                                <div class="h-64">
+                                    <canvas id="expenses-chart"></canvas>
+                                </div>
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        new Chart(document.getElementById('expenses-chart'), {
+                                            type: 'bar',
+                                            data: {
+                                                labels: @json($data['expenses']->pluck('date')),
+                                                datasets: [{
+                                                    label: 'Total Expenses ($)',
+                                                    data: @json($data['expenses']->pluck('amount')),
+                                                    backgroundColor: '#f97316',
+                                                    borderColor: '#ea580c',
+                                                    borderWidth: 1
+                                                }]
+                                            },
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                scales: {
+                                                    y: { beginAtZero: true, title: { display: true, text: 'Amount ($)' } },
+                                                    x: { title: { display: true, text: 'Date' } }
+                                                },
+                                                plugins: { legend: { position: 'top' } }
+                                            }
+                                        });
+                                    });
+                                </script>
+                                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 mt-4">
+                                    <thead>
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                        @foreach ($data['expenses'] as $expense)
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap">{{ $expense->date }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">{{ $expense->description ?? 'N/A' }}</td>
+                                                <td class="px-6 py-4 whitespace-nowrap">${{ number_format($expense->amount, 2) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+            </div>
+
+            <!-- Profitability Report -->
+            <div id="profitability-panel" class="tab-panel {{ $reportType === 'profitability' ? '' : 'hidden' }}">
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Profitability Report</h2>
+                @if (empty($data['profitability']) || $data['profitability']->isEmpty())
+                    <p class="text-gray-600 dark:text-gray-400 text-center py-6">No profitability data found.</p>
+                @else
+                    <div class="mb-6 h-64">
+                        <canvas id="profitability-chart"></canvas>
+                    </div>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            new Chart(document.getElementById('profitability-chart'), {
+                                type: 'bar',
+                                data: {
+                                    labels: @json($data['profitability']->pluck('breed')),
+                                    datasets: [
+                                        {
+                                            label: 'Sales ($)',
+                                            data: @json($data['profitability']->pluck('sales')),
+                                            backgroundColor: '#10b981'
+                                        },
+                                        {
+                                            label: 'Feed Cost ($)',
+                                            data: @json($data['profitability']->pluck('feed_cost')),
+                                            backgroundColor: '#f97316'
+                                        },
+                                        {
+                                            label: 'Expenses ($)',
+                                            data: @json($data['profitability']->pluck('expenses')),
+                                            backgroundColor: '#ef4444'
+                                        },
+                                        {
+                                            label: 'Profit ($)',
+                                            data: @json($data['profitability']->pluck('profit')),
+                                            backgroundColor: '#3b82f6'
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        y: { beginAtZero: true, title: { display: true, text: 'Amount ($)' } },
+                                        x: { title: { display: true, text: 'Breed' } }
+                                    },
+                                    plugins: { legend: { position: 'top' } }
+                                }
+                            });
+                        });
+                    </script>
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead>
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bird ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Breed</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sales ($)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Feed Cost ($)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expenses ($)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profit ($)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            @foreach ($data['profitability'] as $row)
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">{{ $row->bird_id }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">{{ $row->breed }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">{{ number_format($row->sales, 2) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">{{ number_format($row->feed_cost, 2) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">{{ number_format($row->expenses, 2) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap {{ $row->profit >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                        {{ number_format($row->profit, 2) }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
+
+            <!-- Profit and Loss Report -->
+            @role('admin')
+            <div id="profit-loss-panel" class="tab-panel {{ $reportType === 'profit-loss' ? '' : 'hidden' }}">
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Profit and Loss Report</h2>
+                <form method="GET" action="{{ route('reports.index', ['type' => 'profit-loss']) }}" class="mb-6">
+                    <div class="flex flex-wrap items-end gap-4">
+                        <div class="flex-1">
+                            <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</label>
+                            <input type="date" id="start_date" name="start_date" value="{{ $data['profit_loss']['start'] ?? now()->startOfMonth()->toDateString() }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                        </div>
+                        <div class="flex-1">
+                            <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">End Date</label>
+                            <input type="date" id="end_date" name="end_date" value="{{ $data['profit_loss']['end'] ?? now()->endOfMonth()->toDateString() }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                        </div>
+                        <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Filter</button>
+                    </div>
+                </form>
+                @if (!empty($data['profit_loss']))
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Total Income</h3>
+                            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ number_format($data['profit_loss']['total_income'], 2) }}</p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Total Expenses</h3>
+                            <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ number_format($data['profit_loss']['total_expenses'], 2) }}</p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Profit/Loss</h3>
+                            <p class="text-2xl font-bold {{ $data['profit_loss']['profit_loss'] >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                                {{ number_format($data['profit_loss']['profit_loss'], 2) }}
+                            </p>
+                        </div>
+                    </div>
+                @else
+                    <p class="text-gray-600 dark:text-gray-400 text-center py-6">No data found for the selected period.</p>
+                @endif
+            </div>
+            @endrole
+
+            <!-- Forecast Report -->
+            @role('admin')
+            <div id="forecast-panel" class="tab-panel {{ $reportType === 'forecast' ? '' : 'hidden' }}">
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Financial Forecast</h2>
+                @if (!empty($data['forecast']))
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Forecasted Income</h3>
+                            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ number_format($data['forecast']['forecasted_income'], 2) }}</p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Forecasted Expenses</h3>
+                            <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ number_format($data['forecast']['forecasted_expenses'], 2) }}</p>
+                        </div>
+                    </div>
+                @else
+                    <p class="text-gray-600 dark:text-gray-400 text-center py-6">No forecast data available.</p>
+                @endif
+            </div>
+            @endrole
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const tabs = document.querySelectorAll('.tab-btn');
-            const panels = document.querySelectorAll('.tab-panel');
+            const exportBtn = document.getElementById('export-btn');
+            const exportDropdown = document.getElementById('export-dropdown');
+            const exportOptions = exportDropdown.querySelectorAll('button');
 
+            // Tab switching with page reload
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const tabType = tab.getAttribute('data-tab');
-                    // Update URL
                     const url = new URL(window.location);
                     url.searchParams.set('type', tabType);
-                    window.history.pushState({}, '', url);
-                    // Update active tab
-                    tabs.forEach(t => {
-                        t.classList.remove('bg-blue-600', 'text-white');
-                        t.classList.add('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-100', 'dark:hover:bg-gray-800');
-                        t.setAttribute('aria-selected', 'false');
-                    });
-                    tab.classList.add('bg-blue-600', 'text-white');
-                    tab.classList.remove('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-100', 'dark:hover:bg-gray-800');
-                    tab.setAttribute('aria-selected', 'true');
-                    // Show/hide panels
-                    panels.forEach(panel => {
-                        panel.classList.add('hidden');
-                        if (panel.id === `${tabType}-panel`) {
-                            panel.classList.remove('hidden');
-                        }
-                    });
+                    window.location.href = url.toString(); // Reload page with new type
                 });
             });
 
             // Export Dropdown
-            const exportBtn = document.getElementById('export-btn');
-            const exportDropdown = document.getElementById('export-dropdown');
-            const exportOptions = exportDropdown.querySelectorAll('button');
             exportBtn.addEventListener('click', () => {
                 exportDropdown.classList.toggle('hidden');
             });
+
             exportOptions.forEach(option => {
                 option.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -523,6 +570,7 @@
                     }
                 });
             });
+
             // Close dropdown when clicking outside
             document.addEventListener('click', (e) => {
                 if (!exportBtn.contains(e.target) && !exportDropdown.contains(e.target)) {

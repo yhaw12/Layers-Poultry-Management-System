@@ -7,9 +7,10 @@
     <title>Poultry Tracker</title>
     @vite('resources/css/app.css')
     <style>
-        @media (max-width: 768px) {
+        @media (max-width: 767px) {
             .sidebar.expanded {
                 transform: translateX(0);
+                opacity: 1;
             }
         }
     </style>
@@ -18,10 +19,10 @@
     @auth
         <div class="flex h-screen relative">
             <!-- Overlay for mobile -->
-            <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
+            <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden"></div>
 
             <!-- Sidebar -->
-            <aside class="sidebar bg-gray-100 dark:bg-gray-900 shadow-md h-screen fixed top-0 left-0 transform -translate-x-full md:translate-x-0 md:static z-20 transition-transform duration-300 ease-in-out">
+            <aside class="sidebar bg-white dark:bg-gray-900 shadow-lg h-screen fixed top-0 left-0 transform -translate-x-full md:translate-x-0 md:static z-50 transition-transform duration-300 ease-in-out" style="opacity: 1;">
                 @include('partials.sidebar')
             </aside>
 
@@ -32,8 +33,8 @@
                     <nav class="p-4">
                         <div class="container mx-auto flex items-center gap-6">
                             <!-- Mobile menu button -->
-                            <button id="mobile-menu-button" class="md:hidden p-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <button id="mobile-menu-button" class="md:hidden p-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
                             </button>
@@ -46,7 +47,7 @@
                             <div class="flex-1"></div>
 
                             <!-- Dark Mode Toggle -->
-                            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition" aria-label="Toggle dark mode">
+                            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle dark mode">
                                 <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M17.293 13.293A8 8 0 116.707 2.707a6 6 0 1010.586 10.586z"/>
                                 </svg>
@@ -55,14 +56,14 @@
                                 </svg>
                             </button>
 
-                            <!-- User Role -->
+                            <!-- User Name -->
                             <div class="text-gray-600 font-medium text-sm flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                                 Logged in as:
                                 <span class="text-blue-800 font-semibold">
-                                    {{ auth()->user()->hasRole('admin') ? 'Admin' : 'User' }}
+                                    {{ auth()->user()->name ?? 'Unknown User' }}
                                 </span>
                             </div>
                         </div>
@@ -94,16 +95,13 @@
             console.error(`Error: ${message} at ${source}:${lineno}:${colno}`, error);
         };
 
-        // Dark Mode Script and Sidebar Toggle
+        // Dark Mode Script
         (function() {
             const themeToggle = document.getElementById('theme-toggle');
             const iconMoon = document.getElementById('icon-moon');
             const iconSun = document.getElementById('icon-sun');
             const root = document.documentElement;
             const stored = localStorage.getItem('darkMode');
-            const mobileBtn = document.getElementById('mobile-menu-button');
-            const sidebar = document.querySelector('.sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
 
             let isDark = stored === 'true' ? true : (stored === 'false' ? false : window.matchMedia('(prefers-color-scheme: dark)').matches);
 
@@ -128,29 +126,8 @@
                     applyTheme();
                 });
             }
-
-            if (mobileBtn && sidebar && overlay) {
-                mobileBtn.addEventListener('click', () => {
-                    sidebar.classList.toggle('expanded');
-                    overlay.classList.toggle('hidden');
-                });
-
-                overlay.addEventListener('click', () => {
-                    sidebar.classList.remove('expanded');
-                    overlay.classList.add('hidden');
-                    if (window.expandedSubmenu) {
-                        const prevSubmenu = document.getElementById(window.expandedSubmenu);
-                        const prevBtn = document.querySelector(`[data-target="${window.expandedSubmenu}"]`);
-                        if (prevSubmenu && prevBtn) {
-                            prevSubmenu.classList.add('hidden');
-                            prevBtn.querySelector('.plus-icon')?.classList.remove('hidden');
-                            prevBtn.querySelector('.minus-icon')?.classList.add('hidden');
-                            window.expandedSubmenu = null;
-                        }
-                    }
-                });
-            }
         })();
     </script>
+    @stack('scripts')
 </body>
 </html>

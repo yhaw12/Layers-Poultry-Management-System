@@ -23,24 +23,24 @@
                     @foreach($sales as $sale)
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $sale->id }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $sale->customer->name }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $sale->sale_date->format('Y-m-d') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $sale->customer->name ?? 'Unknown' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $sale->sale_date->format('F j, Y') }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ number_format($sale->total_amount, 2) }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
-                                <span class="px-2 py-1 rounded {{ $sale->status == 'paid' ? 'bg-green-100 text-green-800' : ($sale->status == 'overdue' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">
-                                    {{ ucfirst($sale->status) }}
-                                </span>
+                                <form action="{{ route('sales.updateStatus', $sale->id) }}" method="POST" class="inline">
+                                    @csrf
+                                    <select name="status" class="border rounded p-1 dark:bg-gray-800 dark:border-gray-600 dark:text-white" onchange="if(confirm('Change invoice status to ' + this.value + '?')) this.form.submit()">
+                                        <option value="pending" {{ $sale->status == 'pending' ? 'selected' : '' }}>Pending</option>
+                                        <option value="paid" {{ $sale->status == 'paid' ? 'selected' : '' }}>Paid</option>
+                                        <option value="overdue" {{ $sale->status == 'overdue' ? 'selected' : '' }}>Overdue</option>
+                                    </select>
+                                </form>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap space-x-2">
                                 <a href="{{ route('sales.invoice', ['sale' => $sale->id, 'preview' => 1]) }}" class="text-indigo-600 hover:underline dark:text-indigo-400">Preview</a>
                                 <a href="{{ route('sales.invoice', $sale->id) }}" class="text-blue-600 hover:underline dark:text-blue-400">Download PDF</a>
                                 @can('email-invoices')
                                     <a href="{{ route('sales.emailInvoice', $sale->id) }}" class="text-purple-600 hover:underline dark:text-purple-400">Email</a>
-                                @endcan
-                                @can('update-invoice-status')
-                                    @if($sale->status != 'paid')
-                                        <a href="{{ route('sales.updateStatus', $sale->id) }}" class="text-green-600 hover:underline dark:text-green-400">Mark Paid</a>
-                                    @endif
                                 @endcan
                             </td>
                         </tr>

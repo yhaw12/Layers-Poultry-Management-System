@@ -1,3 +1,4 @@
+{{-- sales.create --}}
 @extends('layouts.app')
 
 @section('content')

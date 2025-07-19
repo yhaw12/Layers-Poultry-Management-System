@@ -16,7 +16,7 @@ return new class extends Migration
     // $table->foreignId('bird_id')->constrained()->onDelete('cascade');
     $table->string('vaccine_name');
     $table->date('date_administered');
-    $table->date('next_vaccination_date')->nullable()->after('date_administered');
+    $table->date('next_vaccination_date')->nullable();
     $table->text('notes')->nullable();
     $table->timestamps();
      $table->softDeletes();

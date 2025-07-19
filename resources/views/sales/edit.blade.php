@@ -1,3 +1,4 @@
+{{-- sales.edit --}}
 @extends('layouts.app')
 
 @section('content')

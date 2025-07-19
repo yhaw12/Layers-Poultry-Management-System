@@ -1,4 +1,3 @@
-{{-- index_pdf.blade.php--}}
 <!DOCTYPE html>
 <html>
 <head>
@@ -139,12 +138,27 @@
                         <td>{{ $row->bird_id }}</td>
                         <td>{{ $row->breed }}</td>
                         <td>{{ number_format($row->sales, 2) }}</td>
+
                         <td>{{ number_format($row->feed_cost, 2) }}</td>
                         <td>{{ number_format($row->expenses, 2) }}</td>
                         <td>{{ number_format($row->profit, 2) }}</td>
                     </tr>
                 @endforeach
             </tbody>
+        </table>
+    @elseif ($type === 'profit-loss' && !empty($data['profit_loss']))
+        <h2>Profit and Loss Report</h2>
+        <p>Period: {{ $data['profit_loss']['start'] }} to {{ $data['profit_loss']['end'] }}</p>
+        <table>
+            <tr><th>Total Income</th><td>{{ number_format($data['profit_loss']['total_income'], 2) }}</td></tr>
+            <tr><th>Total Expenses</th><td>{{ number_format($data['profit_loss']['total_expenses'], 2) }}</td></tr>
+            <tr><th>Profit/Loss</th><td>{{ number_format($data['profit_loss']['profit_loss'], 2) }}</td></tr>
+        </table>
+    @elseif ($type === 'forecast' && !empty($data['forecast']))
+        <h2>Financial Forecast</h2>
+        <table>
+            <tr><th>Forecasted Income</th><td>{{ number_format($data['forecast']['forecasted_income'], 2) }}</td></tr>
+            <tr><th>Forecasted Expenses</th><td>{{ number_format($data['forecast']['forecasted_expenses'], 2) }}</td></tr>
         </table>
     @endif
 </body>
