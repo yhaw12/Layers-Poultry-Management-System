@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSaleRequest;
 use App\Models\Sale;
+use App\Models\Payment;
 use App\Models\Customer;
 use App\Models\Bird;
 use App\Models\Egg;
@@ -12,20 +13,19 @@ use App\Models\UserActivityLog;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use App\Mail\InvoiceMail;
+use Carbon\Carbon;
 
 class SalesController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('permission:view-sales')->only(['index', 'sales', 'birdSales', 'invoices']);
-        $this->middleware('permission:edit-sales')->only(['create', 'store', 'edit', 'update']);
-        $this->middleware('permission:delete-sales')->only('destroy');
-        $this->middleware('permission:email-invoices')->only('emailInvoice');
-        $this->middleware('permission:update-invoice-status')->only('updateStatus');
-    }
+    // public function __construct()
+    // {
+    //     $this->middleware(['auth', 'permission:view-sales'])->only(['index', 'sales', 'birdSales', 'invoices']);
+    //     $this->middleware(['auth', 'permission:edit-sales'])->only(['create', 'store', 'edit', 'update']);
+    //     $this->middleware(['auth', 'permission:delete-sales'])->only('destroy');
+    //     $this->middleware(['auth', 'permission:email-invoices'])->only('emailInvoice');
+    //     $this->middleware(['auth', 'permission:update-invoice-status'])->only(['updateStatus', 'recordPayment']);
+    // }
 
     /**
      * Display a listing of all sales.
@@ -72,6 +72,25 @@ class SalesController extends Controller
     }
 
     /**
+     * Display the invoices listing with filters.
+     */
+    public function invoices(Request $request)
+    {
+        $query = Sale::with('customer');
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+        if ($request->start_date) {
+            $query->where('sale_date', '>=', $request->start_date);
+        }
+        if ($request->end_date) {
+            $query->where('sale_date', '<=', $request->end_date);
+        }
+        $sales = $query->orderBy('sale_date', 'desc')->paginate(10)->appends($request->query());
+        return view('invoices.index', compact('sales'));
+    }
+
+    /**
      * Show the form for creating a new sale.
      */
     public function create()
@@ -105,11 +124,15 @@ class SalesController extends Controller
         // Handle customer creation or retrieval
         $customer = Customer::firstOrCreate(
             ['name' => $validated['customer_name']],
-            ['phone' => $validated['customer_phone'] ?? '']
+            ['phone' => $validated['customer_phone'] ?? '', 'email' => $validated['customer_email'] ?? '']
         );
 
+        // Calculate total and set default due date (Net 7 days)
         $validated['customer_id'] = $customer->id;
         $validated['total_amount'] = $validated['quantity'] * $validated['unit_price'];
+        $validated['due_date'] = $validated['due_date'] ?? Carbon::parse($validated['sale_date'])->addDays(7);
+        $validated['paid_amount'] = 0;
+        $validated['status'] = 'pending';
 
         $sale = Sale::create($validated);
 
@@ -142,8 +165,8 @@ class SalesController extends Controller
      */
     public function edit(Sale $sale)
     {
-        $birds = Bird::where('quantity', '>', 0)->get();
-        $eggs = Egg::where('crates', '>', 0)->get();
+        $birds = Bird::where('quantity', '>', 0)->orWhere('id', $sale->saleable_id)->get();
+        $eggs = Egg::where('crates', '>', 0)->orWhere('id', $sale->saleable_id)->get();
         $customers = Customer::orderBy('name')->get();
         return view('sales.edit', compact('sale', 'birds', 'eggs', 'customers'));
     }
@@ -156,12 +179,14 @@ class SalesController extends Controller
         $validated = $request->validate([
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'nullable|string|max:20',
+            'customer_email' => 'nullable|email|max:255',
             'saleable_type' => 'required|in:App\Models\Bird,App\Models\Egg',
             'saleable_id' => 'required|integer',
             'product_variant' => 'required|in:big,small,cracked,broiler,layer',
             'quantity' => 'required|integer|min:1',
             'unit_price' => 'required|numeric|min:0',
             'sale_date' => 'required|date',
+            'due_date' => 'nullable|date|after_or_equal:sale_date',
         ]);
 
         // Validate stock availability (accounting for original quantity)
@@ -183,14 +208,12 @@ class SalesController extends Controller
         // Handle customer creation or retrieval
         $customer = Customer::firstOrCreate(
             ['name' => $validated['customer_name']],
-            ['phone' => $validated['customer_phone'] ?? '']
+            ['phone' => $validated['customer_phone'] ?? '', 'email' => $validated['customer_email'] ?? '']
         );
 
-        $validated['customer_id'] = $customer->id;
-        $validated['total_amount'] = $validated['quantity'] * $validated['unit_price'];
-
         // Update stock
-        if ($quantityDiff != 0) {
+        if ($quantityDiff != 0 || $sale->saleable_id != $validated['saleable_id'] || $sale->saleable_type != $validated['saleable_type']) {
+            // Restore original stock
             if ($sale->saleable_type === 'App\Models\Bird') {
                 $originalBird = Bird::find($sale->saleable_id);
                 if ($originalBird) {
@@ -203,6 +226,7 @@ class SalesController extends Controller
                 }
             }
 
+            // Deduct new stock
             if ($validated['saleable_type'] === 'App\Models\Bird') {
                 $bird = Bird::find($validated['saleable_id']);
                 if ($bird) {
@@ -216,7 +240,13 @@ class SalesController extends Controller
             }
         }
 
+        // Update sale
+        $validated['customer_id'] = $customer->id;
+        $validated['total_amount'] = $validated['quantity'] * $validated['unit_price'];
+        $validated['due_date'] = $validated['due_date'] ?? ($sale->due_date ?? Carbon::parse($validated['sale_date'])->addDays(7));
+
         $sale->update($validated);
+        $sale->updatePaymentStatus(); // Update status based on payments
 
         // Log activity
         UserActivityLog::create([
@@ -231,9 +261,12 @@ class SalesController extends Controller
     /**
      * Remove the specified sale from storage.
      */
-    public function destroy($id)
+    public function destroy(Sale $sale)
     {
-        $sale = Sale::findOrFail($id);
+        // Prevent deletion if payments exist
+        if ($sale->payments()->exists()) {
+            return redirect()->route('sales.index')->with('error', 'Cannot delete sale with associated payments.');
+        }
 
         // Restore stock
         if ($sale->saleable_type === 'App\Models\Bird') {
@@ -260,43 +293,32 @@ class SalesController extends Controller
     }
 
     /**
-     * Display the invoices listing.
-     */
-    public function invoices()
-    {
-        $sales = Sale::with('customer', 'saleable')
-            ->orderBy('sale_date', 'desc')
-            ->paginate(10);
-        return view('invoices.index', compact('sales'));
-    }
-
-    /**
      * Generate and preview/download the invoice PDF for a sale.
      */
     public function invoice(Sale $sale, Request $request)
     {
-        $sale->load('customer', 'saleable');
+        $sale->load('customer', 'saleable', 'payments');
 
         if (!$sale->customer || !$sale->saleable) {
             return redirect()->back()->with('error', 'Customer or product not found for this sale.');
         }
 
         $company = [
-            'name' => config('app.name'),
+            'name' => config('app.name', 'Poultry Tracker'),
             'address' => 'Aprah Opeicuma, Awutu Senya West',
             'phone' => '0593036689',
-            'email' => 'info@company.com',
+            'email' => 'info@poultrytracker.local',
         ];
 
         $customerName = Str::slug($sale->customer->name, '_');
         $saleDate = $sale->sale_date->format('Y-m-d');
         $filename = "invoice-{$customerName}-{$saleDate}.pdf";
 
-        $pdf = Pdf::loadView('sales.invoice', compact('sale', 'company'));
-
-        if ($request->query('preview', 0)) {
-            return $pdf->stream($filename);
+        if ($request->query('preview', false)) {
+            return view('sales.invoice', compact('sale', 'company'));
         }
+
+        $pdf = Pdf::loadView('sales.invoice', compact('sale', 'company'));
 
         // Log activity
         UserActivityLog::create([
@@ -309,12 +331,12 @@ class SalesController extends Controller
     }
 
     /**
-     * Update the invoice status (e.g., mark as paid).
+     * Update the invoice status (manual override, e.g., for disputes).
      */
     public function updateStatus(Request $request, Sale $sale)
     {
         $validated = $request->validate([
-            'status' => 'required|in:pending,paid,overdue',
+            'status' => 'required|in:pending,paid,partially_paid,overdue',
         ]);
 
         $oldStatus = $sale->status;
@@ -338,35 +360,81 @@ class SalesController extends Controller
     }
 
     /**
-     * Email the invoice to the customer.
+     * Record a payment for an invoice.
      */
-    // public function emailInvoice(Sale $sale)
-    // {
-    //     $sale->load('customer', 'saleable');
+    public function recordPayment(Request $request, Sale $sale)
+    {
+        if ($sale->isPaid()) {
+            return redirect()->route('invoices.index')->with('error', 'Invoice is already fully paid.');
+        }
 
-    //     if (!$sale->customer || !$sale->customer->email) {
-    //         return redirect()->back()->with('error', 'Customer email not found.');
-    //     }
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01|max:'.($sale->total_amount - $sale->paid_amount),
+            'payment_date' => 'required|date',
+            'payment_method' => 'nullable|string|in:cash,bank_transfer,mobile_money|max:255',
+            'notes' => 'nullable|string|max:1000',
+        ]);
 
-    //     $company = [
-    //         'name' => config('app.name'),
-    //         'address' => 'Aprah Opeicuma, Awutu Senya West',
-    //         'phone' => '0593036689',
-    //         'email' => 'info@company.com',
-    //     ];
+        $payment = $sale->payments()->create([
+            'customer_id' => $sale->customer_id,
+            'amount' => $validated['amount'],
+            'payment_date' => $validated['payment_date'],
+            'payment_method' => $validated['payment_method'],
+            'notes' => $validated['notes'],
+        ]);
 
-    //     $pdf = Pdf::loadView('sales.invoice', compact('sale', 'company'));
-    //     $pdfData = $pdf->output();
+        // Update paid_amount and status
+        $sale->updatePaymentStatus();
 
-    //     Mail::to($sale->customer->email)->send(new InvoiceMail($sale, $company, $pdfData));
+        // Log activity
+        UserActivityLog::create([
+            'user_id' => Auth::id() ?? 1,
+            'action' => 'recorded_payment',
+            'details' => "Recorded payment of {$validated['amount']} for invoice #{$sale->id} (Customer: {$sale->customer->name})",
+        ]);
 
-    //     // Log activity
-    //     UserActivityLog::create([
-    //         'user_id' => Auth::id() ?? 1,
-    //         'action' => 'emailed_invoice',
-    //         'details' => "Emailed invoice #{$sale->id} to {$sale->customer->name}",
-    //     ]);
+        // Create alert
+        Alert::create([
+            'message' => "Payment of {$validated['amount']} recorded for invoice #{$sale->id}",
+            'type' => 'payment',
+            'user_id' => Auth::id() ?? 1,
+        ]);
 
-    //     return redirect()->route('invoices.index')->with('success', 'Invoice emailed successfully.');
-    // }
+        return redirect()->route('invoices.index')->with('success', 'Payment recorded successfully.');
+    }
+
+    /**
+     * Email the invoice to the customer (commented out for local hosting).
+     */
+    /*
+    public function emailInvoice(Sale $sale)
+    {
+        $sale->load('customer', 'saleable', 'payments');
+
+        if (!$sale->customer || !$sale->customer->email) {
+            return redirect()->back()->with('error', 'Customer email not found.');
+        }
+
+        $company = [
+            'name' => config('app.name', 'Poultry Tracker'),
+            'address' => 'Aprah Opeicuma, Awutu Senya West',
+            'phone' => '0593036689',
+            'email' => 'info@poultrytracker.local',
+        ];
+
+        $pdf = Pdf::loadView('sales.invoice', compact('sale', 'company'));
+        $pdfData = $pdf->output();
+
+        Mail::to($sale->customer->email)->send(new \App\Mail\InvoiceMail($sale, $company, $pdfData));
+
+        // Log activity
+        UserActivityLog::create([
+            'user_id' => Auth::id() ?? 1,
+            'action' => 'emailed_invoice',
+            'details' => "Emailed invoice #{$sale->id} to {$sale->customer->name}",
+        ]);
+
+        return redirect()->route('invoices.index')->with('success', 'Invoice emailed successfully.');
+    }
+    */
 }

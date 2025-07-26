@@ -32,12 +32,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_sales', 'create_sales', 'edit_sales', 'delete_sales', 'manage_sales',
             'view_customers', 'create_customers', 'edit_customers', 'delete_customers', 'manage_customers',
             'view_orders', 'create_orders', 'edit_orders', 'delete_orders', 'manage_orders',
-            'view_invoices', 'generate_invoices', 'manage_invoices',
+            'view_invoices', 'generate_invoices', 'manage_invoices', 'view-sales',
 
             // Financial Management
             'view_expenses', 'create_expenses', 'edit_expenses', 'delete_expenses', 'manage_expenses',
             'view_income', 'create_income', 'edit_income', 'delete_income', 'manage_income',
-            'view_payroll', 'create_payroll', 'edit_payroll', 'delete_payroll', 'manage_payroll', 'generate_payroll',
+            'view_payroll', 'create_payroll', 'edit_payroll', 'delete_payroll', 'manage_payroll', 'generate_payroll','manage_finances',
 
             // Health Management
             'view_health_checks', 'create_health_checks', 'edit_health_checks', 'delete_health_checks', 'manage_health_checks',
@@ -92,7 +92,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_customers', 'create_customers', 'edit_customers', 'delete_customers', 'manage_customers',
                 'view_orders', 'create_orders', 'edit_orders', 'delete_orders', 'manage_orders',
                 'view_invoices', 'generate_invoices', 'manage_invoices','manage_finances',
-                'view_dashboard',
+                'view_dashboard', 'view-sales'
             ]);
 
             $inventoryManager = Role::firstOrCreate(['name' => 'inventory_manager']);

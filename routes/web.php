@@ -132,6 +132,9 @@ Route::middleware('auth')->group(function () {
          ->name('sales.invoice');
     Route::get('sales/{sale}/email', [SalesController::class, 'emailInvoice'])
          ->name('sales.emailInvoice');
+    Route::post('sales/{sale}/payment', [SalesController::class, 'recordPayment'])
+    ->name('sales.recordPayment')
+    ->middleware('auth');
 
     Route::get('invoices', [SalesController::class, 'invoices'])
          ->name('invoices.index');

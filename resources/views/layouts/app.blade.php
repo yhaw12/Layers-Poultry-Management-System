@@ -27,7 +27,7 @@
             </aside>
 
             <!-- Main Area -->
-            <div class="flex-1 flex flex-col h-full">
+            <div class="flex-1 flex flex-col h-screen p-4">
                 <!-- Header -->
                 <header class="bg-white shadow-md dark:bg-[#0a0a23] dark:text-white">
                     <nav class="p-4">
@@ -72,9 +72,7 @@
 
                 <!-- Main Content Area -->
                 <main class="flex-1 overflow-y-auto">
-                    <div class="h-full">
                         @yield('content')
-                    </div>
                 </main>
             </div>
         </div>

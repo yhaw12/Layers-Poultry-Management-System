@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 py-8 space-y-12 bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
-    <!-- Date Filter -->
-    <form method="GET" class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md">
-        <div class="flex flex-wrap items-end gap-4">
-            <div class="flex-1 min-w-[150px]">
+
+ <!-- Date Filter -->
+  <form method="GET" class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md mb-8">
+    <div class="flex flex-wrap items-end gap-4">
+      <div class="flex-1 min-w-[150px]">
                 <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
                 <input type="date" id="start_date" name="start_date"
                     value="{{ $startDate ?? now()->startOfMonth()->format('Y-m-d') }}"
@@ -21,10 +21,10 @@
                 class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 transition duration-200">
                 Filter
             </button>
-        </div>
-    </form>
+    </div>
+  </form>
 
-    <!-- Alerts (Admin Only) -->
+   <!-- Alerts (Admin Only) -->
     @role('admin')
         <section id="alerts-section" class="mb-6">
             <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
@@ -66,8 +66,7 @@
         </section>
     @endrole
 
-    <!-- Summary Section (Admin or Permission-Based) -->
-    @can('manage-finances')
+   @can('manage_finances')
         <section>
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Financial Summary</h2>
             @if(isset($totalExpenses, $totalIncome, $profit))
@@ -105,8 +104,21 @@
         </section>
     @endcan
 
-    <!-- KPIs Section -->
-    <section>
+    {{-- dashboard.blade.php (add after Financial Summary) --}}
+    @role('admin')
+        <section>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Invoice Status</h2>
+            <div class="bg-white dark:bg-[#1a1a3a] p-4 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="relative h-64">
+                    <div id="invoiceStatusLoading" class="hidden absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse rounded-lg"></div>
+                    <canvas id="invoiceStatus" class="w-full h-full"></canvas>
+                </div>
+            </div>
+        </section>
+    @endrole
+
+  <!-- KPIs -->
+  <section>
         <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Key Performance Indicators (KPIs)</h2>
         @php
             $groupedKpis = [
@@ -161,8 +173,8 @@
         @endforeach
     </section>
 
-    <!-- Trend Charts -->
-    <section>
+  <!-- Trends -->
+  <section>
         <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Production Trends</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Egg Trend -->
@@ -213,12 +225,11 @@
             @endrole
         </div>
     </section>
-</div>
+@endsection
 
-@section('scripts')
+@push('scripts')
 
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{{-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> --}}
 <script>
     let eggChart, feedChart, salesChart;
 
@@ -365,5 +376,58 @@
     document.getElementById('eggChartType')?.addEventListener('change', updateEggChart);
     document.getElementById('feedChartType')?.addEventListener('change', updateFeedChart);
     document.getElementById('salesChartType')?.addEventListener('change', updateSalesChart);
-</script>
-@endsection
+
+
+    function updateInvoiceStatusChart() {
+        try {
+            const data = @json($invoiceStatuses ?? []);
+            if (!data || Object.values(data).every(count => count === 0)) {
+                throw new Error('No invoice status data available');
+            }
+
+            const ctx = document.getElementById('invoiceStatus').getContext('2d');
+            if (window.invoiceStatusChart) window.invoiceStatusChart.destroy();
+
+            window.invoiceStatusChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Pending', 'Paid', 'Partially Paid', 'Overdue'],
+                    datasets: [{
+                        data: [
+                            data.pending || 0,
+                            data.paid || 0,
+                            data.partially_paid || 0,
+                            data.overdue || 0
+                        ],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f97316', '#ef4444'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Invoice Status Distribution', font: { size: 16 } },
+                        tooltip: { mode: 'index' }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Invoice Status Chart Error:', error.message);
+            const container = document.getElementById('invoiceStatus')?.parentElement;
+            if (container && !container.querySelector('.no-data')) {
+                container.insertAdjacentHTML('beforeend', '<p class="no-data text-gray-600 dark:text-gray-400 text-center py-4">No invoice status data available.</p>');
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        @if(isset($invoiceStatuses) && array_sum($invoiceStatuses) > 0)
+            updateInvoiceStatusChart();
+        @else
+            const invoiceContainer = document.getElementById('invoiceStatus')?.parentElement;
+            if (invoiceContainer && !invoiceContainer.querySelector('.no-data')) {
+                invoiceContainer.insertAdjacentHTML('beforeend', '<p class="no-data text-gray-600 dark:text-gray-400 text-center py-4">No invoice status data available.</p>');
+            }
+        @endif
+    });
+</scrip>

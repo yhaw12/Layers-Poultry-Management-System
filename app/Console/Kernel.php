@@ -14,6 +14,8 @@ class Kernel extends ConsoleKernel
 
         // Add backup schedule
         $schedule->command('backup:run')->daily()->at('02:00'); // Run at 2 AM
+
+        $schedule->command('sales:check-overdue')->daily();
     }
 
     protected function commands()

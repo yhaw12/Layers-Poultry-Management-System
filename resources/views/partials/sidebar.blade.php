@@ -120,8 +120,8 @@
         @endrole
 
         <!-- Finances (Permission-Based) -->
-        @can('manage finances')
-            <div>
+        
+            <div class="mb-4">
                 <button data-target="finances-submenu" class="toggle-btn flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200" aria-expanded="false">
                     <div class="flex items-center">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,7 +150,7 @@
                     </a>
                 </div>
             </div>
-        @endcan
+        
 
         <!-- Employees (Admin Only) -->
         @role('admin')

@@ -130,11 +130,17 @@ class DashboardController extends Controller
 
             $alerts = Alert::where('user_id', $user->id)->whereNull('read_at')->take(50)->get();
         }
+        $invoiceStatuses = [
+        'pending' => Sale::where('status', 'pending')->count(),
+        'paid' => Sale::where('status', 'paid')->count(),
+        'partially_paid' => Sale::where('status', 'partially_paid')->count(),
+        'overdue' => Sale::where('status', 'overdue')->count(),
+     ];
 
         return view('dashboard.index', compact(
             'start', 'end', 'totalExpenses', 'totalIncome', 'profit',
             'chicks', 'layers', 'broilers', 'metrics', 'mortalityRate', 'fcr',
-            'employees', 'payroll', 'eggTrend', 'feedTrend', 'salesTrend', 'payrollTrend', 'alerts'
+            'employees', 'payroll', 'eggTrend', 'feedTrend', 'salesTrend', 'payrollTrend', 'alerts','invoiceStatuses'
         ));
     }
 
