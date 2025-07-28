@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Income;
+use Illuminate\Container\Attributes\Auth;
 use Illuminate\Http\Request;
 
 class IncomeController extends Controller
@@ -41,6 +42,7 @@ class IncomeController extends Controller
             'date' => 'required|date',
         ]);
 
+        $data['created_by'] = Auth::id();
         Income::create($data);
         return redirect()->route('income.index')->with('success', 'Income added successfully');
     }
@@ -59,6 +61,7 @@ class IncomeController extends Controller
             'date' => 'required|date',
         ]);
 
+        $data['created_by'] = Auth::id();
         $income->update($data);
         return redirect()->route('income.index')->with('success', 'Income updated successfully');
     }

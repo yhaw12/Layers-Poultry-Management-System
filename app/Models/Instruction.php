@@ -5,16 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class HealthCheck extends Model
+class Instruction extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'check_date',
-        'status',
+        'content',
+        'date',
     ];
 
     protected $casts = [
-        'check_date' => 'date',
+        'date' => 'date',
     ];
 }

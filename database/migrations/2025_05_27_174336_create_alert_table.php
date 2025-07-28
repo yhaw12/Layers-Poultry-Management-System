@@ -4,22 +4,22 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateAlertsTable extends Migration
 {
-    public function up(): void
+    public function up()
     {
         Schema::create('alerts', function (Blueprint $table) {
             $table->id();
-            $table->string('message');
-            $table->string('type');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->timestamp('read_at')->nullable();
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->enum('type', ['critical', 'warning', 'info', 'success'])->default('info');
+            $table->text('message');
+            $table->boolean('is_read')->default(false);
             $table->timestamps();
         });
     }
 
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('alerts');
     }
-};
+}

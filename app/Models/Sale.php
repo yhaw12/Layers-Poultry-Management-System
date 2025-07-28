@@ -11,6 +11,7 @@ class Sale extends Model
 {   
     use SoftDeletes;
     use HasFactory;
+
     protected $table = 'sales';
     protected $fillable = [
         'customer_id',
@@ -20,14 +21,22 @@ class Sale extends Model
         'unit_price',
         'total_amount',
         'sale_date',
-        'product_variant','sale_date', 'due_date', 'status', 'paid_amount',
+        'product_variant',
+        'due_date',
+        'status',
+        'paid_amount',
+        'created_by',
     ];
+
     protected $casts = [
         'sale_date' => 'date',
+        'due_date' => 'date',
         'unit_price' => 'decimal:2',
         'total_amount' => 'decimal:2',
-        'product_variant' => 'string'
+        'paid_amount' => 'decimal:2',
+        'product_variant' => 'string',
     ];
+
     protected $dates = ['deleted_at'];
 
     public function customer()
@@ -43,6 +52,11 @@ class Sale extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function updatePaymentStatus()

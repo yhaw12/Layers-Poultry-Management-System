@@ -6,23 +6,26 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Poultry Tracker</title>
     @vite('resources/css/app.css')
-    <style>
-        @media (max-width: 767px) {
-            .sidebar.expanded {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-    </style>
 </head>
 <body class="bg-gray-100 text-gray-900 dark:bg-[#0a0a23] dark:text-white font-sans">
+    <!-- Centralized Loader Overlay -->
+    <div id="global-loader" class="loader-overlay hidden" onclick="globalLoader.hide()">
+        <div class="flex flex-col items-center">
+            <div class="loader-spinner"></div>
+            <p id="loader-message" class="loader-message hidden"></p>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
+
     @auth
         <div class="flex h-screen relative">
-            <!-- Overlay for mobile -->
+            <!-- Sidebar Overlay for Mobile -->
             <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden"></div>
 
             <!-- Sidebar -->
-            <aside class="sidebar bg-white dark:bg-gray-900 shadow-lg h-screen fixed top-0 left-0 transform -translate-x-full md:translate-x-0 md:static z-50 transition-transform duration-300 ease-in-out" style="opacity: 1;">
+            <aside id="sidebar" class="sidebar bg-white dark:bg-gray-900 shadow-lg h-screen fixed top-0 left-0 transform -translate-x-full md:translate-x-0 md:static z-50 transition-transform duration-300 ease-in-out w-64">
                 @include('partials.sidebar')
             </aside>
 
@@ -32,14 +35,14 @@
                 <header class="bg-white shadow-md dark:bg-[#0a0a23] dark:text-white">
                     <nav class="p-4">
                         <div class="container mx-auto flex items-center gap-6">
-                            <!-- Mobile menu button -->
+                            <!-- Mobile Menu Button -->
                             <button id="mobile-menu-button" class="md:hidden p-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
                             </button>
 
-                            <!-- Navigation links -->
+                            <!-- Navigation Links -->
                             @if(auth()->user()->hasRole('admin'))
                                 <a href="{{ route('income.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 font-semibold">Income</a>
                             @endif
@@ -72,7 +75,7 @@
 
                 <!-- Main Content Area -->
                 <main class="flex-1 overflow-y-auto">
-                        @yield('content')
+                    @yield('content')
                 </main>
             </div>
         </div>
@@ -85,13 +88,172 @@
     @endguest
 
     <!-- Scripts -->
-    <script src="{{ asset('js/chart.min.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Global error handler for debugging
+        // Centralized Loader Class
+        class Loader {
+            constructor() {
+                this.loader = document.getElementById('global-loader');
+                this.messageEl = document.getElementById('loader-message');
+                this.timeoutId = null;
+                this.defaultTimeout = 10000; // 10 seconds
+                this.isShowing = false;
+            }
+
+            show(message = 'Loading...', timeout = this.defaultTimeout) {
+                if (this.loader && !this.isShowing) {
+                    this.isShowing = true;
+                    this.loader.classList.remove('hidden');
+                    if (message && this.messageEl) {
+                        this.messageEl.textContent = message;
+                        this.messageEl.classList.remove('hidden');
+                    } else if (this.messageEl) {
+                        this.messageEl.classList.add('hidden');
+                    }
+                    if (this.timeoutId) clearTimeout(this.timeoutId);
+                    if (timeout) {
+                        this.timeoutId = setTimeout(() => {
+                            this.hide();
+                            console.warn('Loader timeout: Page took too long to load.');
+                            if (this.messageEl) {
+                                this.messageEl.textContent = 'Loading timed out. Click to dismiss.';
+                                this.messageEl.classList.remove('hidden');
+                            }
+                        }, timeout);
+                    }
+                }
+            }
+
+            hide() {
+                if (this.loader && this.isShowing) {
+                    this.isShowing = false;
+                    this.loader.classList.add('hidden');
+                    if (this.messageEl) {
+                        this.messageEl.classList.add('hidden');
+                        this.messageEl.textContent = '';
+                    }
+                    if (this.timeoutId) {
+                        clearTimeout(this.timeoutId);
+                        this.timeoutId = null;
+                    }
+                }
+            }
+        }
+
+        // Global Loader Instance
+        const globalLoader = new Loader();
+
+        // Notification Manager
+        class NotificationManager {
+            constructor() {
+                this.container = document.getElementById('notification-container');
+                this.notifications = [];
+            }
+
+            show(id, message, type = 'info', timeout = 5000) {
+                if (!this.container) return;
+                const notification = document.createElement('div');
+                notification.className = `notification ${type} translate-x-full`;
+                notification.dataset.id = id;
+                notification.innerHTML = `
+                    <span>${message}</span>
+                    <button class="notification-close" onclick="notificationManager.dismiss('${id}')">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                `;
+                this.container.appendChild(notification);
+                this.notifications.push({ id, element: notification });
+
+                // Animate in
+                setTimeout(() => notification.classList.remove('translate-x-full'), 100);
+
+                // Auto-dismiss after timeout
+                if (timeout) {
+                    setTimeout(() => this.dismiss(id), timeout);
+                }
+            }
+
+            dismiss(id) {
+                const notification = this.notifications.find(n => n.id === id);
+                if (notification) {
+                    notification.element.classList.add('notification-exit');
+                    setTimeout(() => {
+                        notification.element.remove();
+                        this.notifications = this.notifications.filter(n => n.id !== id);
+                    }, 300);
+                }
+            }
+
+            async fetchNotifications() {
+                try {
+                    globalLoader.show('Fetching notifications...');
+                    const response = await fetch('/notifications', {
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+                    });
+                    if (!response.ok) throw new Error('Failed to fetch notifications');
+                    const notifications = await response.json();
+                    notifications.forEach(({ id, message, type }) => {
+                        if (!this.notifications.some(n => n.id === id)) {
+                            this.show(id, message, type, type === 'critical' ? 0 : 5000);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Failed to fetch notifications:', error);
+                    this.show(Date.now(), 'Failed to load notifications.', 'critical', 5000);
+                } finally {
+                    globalLoader.hide();
+                }
+            }
+
+            async markAsRead(id) {
+                try {
+                    const response = await fetch(`/notifications/${id}/read`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    if (response.ok) this.dismiss(id);
+                } catch (error) {
+                    console.error(`Failed to mark notification ${id} as read:`, error);
+                }
+            }
+        }
+
+        // Global Notification Instance
+        const notificationManager = new NotificationManager();
+
+        // Global Error Handler
         window.onerror = function(message, source, lineno, colno, error) {
             console.error(`Error: ${message} at ${source}:${lineno}:${colno}`, error);
+            notificationManager.show(Date.now(), 'An error occurred. Please refresh.', 'critical', 5000);
+            globalLoader.hide();
         };
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            globalLoader.show('Loading page...');
+            notificationManager.fetchNotifications();
+            setTimeout(() => {
+                if (globalLoader.isShowing) {
+                    console.warn('Fallback: Hiding loader after 10 seconds');
+                    globalLoader.hide();
+                }
+            }, 10000);
+        });
+
+        // Handle form submissions
+        document.addEventListener('submit', (event) => {
+            const form = event.target;
+            if (form.tagName === 'FORM') {
+                globalLoader.show('Submitting form...');
+                // Hide loader after submission (simplified; adjust for async submissions)
+                setTimeout(() => globalLoader.hide(), 3000);
+            }
+        });
 
         // Dark Mode Script
         (function() {
@@ -122,6 +284,28 @@
                     isDark = !isDark;
                     localStorage.setItem('darkMode', isDark);
                     applyTheme();
+                });
+            }
+        })();
+
+        // Sidebar Toggle for Mobile
+        (function() {
+            const menuButton = document.getElementById('mobile-menu-button');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+
+            if (menuButton && sidebar && overlay) {
+                menuButton.addEventListener('click', () => {
+                    sidebar.classList.toggle('transform');
+                    sidebar.classList.toggle('-translate-x-full');
+                    sidebar.classList.toggle('expanded');
+                    overlay.classList.toggle('hidden');
+                });
+
+                overlay.addEventListener('click', () => {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebar.classList.remove('expanded');
+                    overlay.classList.add('hidden');
                 });
             }
         })();

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Auth\AdminUserController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AlertController;
 use App\Http\Controllers\BirdsController;
 use App\Http\Controllers\ChicksController;
 use App\Http\Controllers\CustomerController;
@@ -176,4 +177,21 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/users/{user}/toggle-permission', [AdminUserController::class, 'togglePermission'])
          ->name('users.toggle-permission');
+
+         Route::post('/dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');
+Route::get('/sales/create', [SalesController::class, 'create'])->name('sales.create');
+Route::get('/expenses/create', [ExpenseController::class, 'create'])->name('expenses.create');
+// Route::get('/production/create', [ProductionController::class, 'create'])->name('production.create');
+Route::patch('/vaccinations/{id}/complete', [VaccinationLogController::class, 'complete'])->name('vaccinations.complete');
+Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create');
+Route::get('/suppliers/{id}', [SupplierController::class, 'show'])->name('suppliers.show');
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+Route::resource('income', IncomeController::class);
+// Route::patch('/tasks/{id}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
+Route::patch('/vaccinations/{id}/complete', [VaccinationLogController::class, 'complete'])->name('vaccinations.complete');
+Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create');
+Route::get('/suppliers/{id}', [SupplierController::class, 'show'])->name('suppliers.show');
+Route::post('alerts/{alert}/read', [AlertController::class, 'read'])->name('alerts.read');
+Route::post('alerts/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismiss-all');
+Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])->name('alerts.custom.create');
 });

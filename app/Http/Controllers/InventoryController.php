@@ -10,6 +10,16 @@ class InventoryController extends Controller
 {
     public function index()
     {
+
+              // In InventoryController or wherever low stock is checked
+        // if ($inventory->qty <= $inventory->threshold) {
+        //     Alert::create([
+        //         'user_id' => Auth::id(),
+        //         'message' => "Low stock for {$inventory->item_name}: {$inventory->qty} remaining",
+        //         'type' => 'warning',
+        //     ]);
+        //     // Do not create UserActivityLog entry
+        // }
         $items = Inventory::paginate(15);
         return view('inventory.index', compact('items'));
     }
@@ -56,6 +66,8 @@ class InventoryController extends Controller
         $inventory->delete();
         return back()->with('success', 'Item removed.');
     }
+
+    
 
     // public function lowStock()
     // {

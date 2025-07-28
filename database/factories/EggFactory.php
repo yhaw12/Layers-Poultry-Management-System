@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Egg;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class EggFactory extends Factory
@@ -14,11 +15,12 @@ class EggFactory extends Factory
         $sold = $this->faker->boolean(50);
         $crates = $this->faker->numberBetween(1, 50);
         return [
-            'crates' => $this->faker->numberBetween(1, 50),'crates' => $crates,
-            'date_laid' => $this->faker->dateTimeBetween('-30 days', 'now'),
-            'sold_quantity' => $sold ? $this->faker->numberBetween(1, $crates) : null,
-            'sold_date' => $sold ? $this->faker->dateTimeBetween('-30 days', 'now') : null,
-            'sale_price' => $sold ? $this->faker->randomFloat(2, 10, 100) : null,
+            'crates' => $this->faker->numberBetween(1, 100),
+            'date_laid' => $this->faker->dateTimeBetween('-1 year', 'now'),
+            'sold_quantity' => $this->faker->optional()->numberBetween(0, 50),
+            'sold_date' => $this->faker->optional()->dateTimeBetween('-1 year', 'now'),
+            'sale_price' => $this->faker->optional()->randomFloat(2, 5, 50),
+            'created_by' => User::factory(),
             'created_at' => now(),
             'updated_at' => now(),
         ];
