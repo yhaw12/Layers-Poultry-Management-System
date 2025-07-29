@@ -21,9 +21,11 @@ use App\Http\Controllers\MedicineLogController;
 use App\Http\Controllers\MortalitiesController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\VaccinationLogController;
 
@@ -194,4 +196,20 @@ Route::get('/suppliers/{id}', [SupplierController::class, 'show'])->name('suppli
 Route::post('alerts/{alert}/read', [AlertController::class, 'read'])->name('alerts.read');
 Route::post('alerts/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismiss-all');
 Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])->name('alerts.custom.create');
+
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+    Route::get('/notifications', [AlertController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [AlertController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/dismiss-all', [AlertController::class, 'dismissAll'])->name('notifications.dismiss-all');
+
+//     Route::get('/search', [SearchController::class, 'index'])->name('search');
+
+Route::get('/notifications', [AlertController::class, 'index'])->name('notifications.index');
+Route::post('/notifications/{id}/read', [AlertController::class, 'markAsRead'])->name('notifications.read');
+Route::post('/notifications/dismiss-all', [AlertController::class, 'dismissAll'])->name('notifications.dismiss-all');
 });

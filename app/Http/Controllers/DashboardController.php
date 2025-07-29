@@ -229,7 +229,7 @@ class DashboardController extends Controller
                 ->take(50)
                 ->get();
 
-            $alerts = Alert::where('user_id', $user->id)->whereNull('read_at')->take(50)->get();
+            // $alerts = Alert::where('user_id', $user->id)->whereNull('read_at')->take(50)->get();
 
             $invoiceStatuses = [
                 'pending' => Sale::where('status', 'pending')->count(),

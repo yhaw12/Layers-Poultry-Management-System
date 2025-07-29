@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold mb-4">Edit User</h1>
+    <h1 class="text-2xl font-bold mb-4">{{ auth()->user()->id === $user->id ? 'Edit Profile' : 'Edit User' }}</h1>
 
     @if (session('success'))
         <div class="bg-green-100 text-green-800 p-4 rounded mb-4">
@@ -10,7 +10,7 @@
         </div>
     @endif
 
-    <form action="{{ route('users.update', $user) }}" method="POST">
+    <form action="{{ auth()->user()->id === $user->id ? route('profile.update') : route('users.update', $user) }}" method="POST">
         @csrf
         @method('PUT')
         <div class="mb-4">
@@ -29,33 +29,37 @@
             <label for="password_confirmation" class="block text-gray-700 dark:text-gray-300">Confirm Password</label>
             <input type="password" name="password_confirmation" id="password_confirmation" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white">
         </div>
-        <div class="mb-4">
-            <label for="role" class="block text-gray-700 dark:text-gray-300">Role</label>
-            <select name="role" id="role" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
-                @foreach ($roles as $role)
-                    <option value="{{ $role->name }}" {{ $user->hasRole($role->name) ? 'selected' : '' }}>{{ $role->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Update</button>
+        @if(auth()->user()->hasRole('admin') && auth()->user()->id !== $user->id)
+            <div class="mb-4">
+                <label for="role" class="block text-gray-700 dark:text-gray-300">Role</label>
+                <select name="role" id="role" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
+                    @foreach ($roles as $role)
+                        <option value="{{ $role->name }}" {{ $user->hasRole($role->name) ? 'selected' : '' }}>{{ $role->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        @endif
+        <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">{{ auth()->user()->id === $user->id ? 'Update Profile' : 'Update User' }}</button>
     </form>
 
-    <h2 class="text-xl font-bold mt-6 mb-4">Permissions</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        @foreach (\Spatie\Permission\Models\Permission::all() as $permission)
-            <div class="flex items-center">
-                <form action="{{ route('users.toggle-permission', $user) }}" method="POST" class="flex items-center">
-                    @csrf
-                    <input type="hidden" name="permission" value="{{ $permission->name }}">
-                    <label class="switch mr-2">
-                        <input type="checkbox" {{ $user->hasPermissionTo($permission->name) ? 'checked' : '' }} onchange="this.form.submit()">
-                        <span class="slider round"></span>
-                    </label>
-                    <span>{{ $permission->name }}</span>
-                </form>
-            </div>
-        @endforeach
-    </div>
+    @if(auth()->user()->hasRole('admin') && auth()->user()->id !== $user->id)
+        <h2 class="text-xl font-bold mt-6 mb-4">Permissions</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @foreach (\Spatie\Permission\Models\Permission::all() as $permission)
+                <div class="flex items-center">
+                    <form action="{{ route('users.toggle-permission', $user) }}" method="POST" class="flex items-center">
+                        @csrf
+                        <input type="hidden" name="permission" value="{{ $permission->name }}">
+                        <label class="switch mr-2">
+                            <input type="checkbox" {{ $user->hasPermissionTo($permission->name) ? 'checked' : '' }} onchange="this.form.submit()">
+                            <span class="slider round"></span>
+                        </label>
+                        <span>{{ $permission->name }}</span>
+                    </form>
+                </div>
+            @endforeach
+        </div>
+    @endif
 </div>
 
 <style>

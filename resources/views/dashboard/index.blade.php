@@ -62,7 +62,7 @@
             <section class="mb-8">
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Quick Production Log</h2>
                 <div class="container-box">
-                    <form action="{{ route('eggs.store') }}" method="POST" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <form action="{{ route('eggs.store') }}" method="POST" class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="production-form">
                         @csrf
                         <div>
                             <label for="crates" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Egg Crates</label>

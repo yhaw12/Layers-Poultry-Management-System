@@ -1,3 +1,4 @@
+{{-- admin\users.index --}}
 @extends('layouts.app')
 
      @section('content')
