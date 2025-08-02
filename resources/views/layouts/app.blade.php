@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,9 +15,6 @@
             <p id="loader-message" class="loader-message hidden"></p>
         </div>
     </div>
-
-    <!-- Notification Container -->
-    <div id="notification-container" class="notification-container"></div>
 
     @auth
         <div class="flex h-screen relative">
@@ -235,6 +231,16 @@
                         </a>
                     @endrole
 
+                    <!-- Alerts -->
+                    <a href="{{ route('alerts.index') }}"
+                       class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 {{ Route::is('alerts.index') ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : '' }}"
+                       aria-current="{{ Route::is('alerts.index') ? 'page' : 'false' }}">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a2 2 0 10-4 0v.083A6 6 0 004 11v3.159c0 .538-.214 1.055-.595 1.436L2 17h5m5 0v1a3 3 0 11-6 0v-1m5 0H7" />
+                        </svg>
+                        Alerts
+                    </a>
+
                     <!-- Logout -->
                     <form method="POST" action="{{ route('logout') }}" class="absolute bottom-4 w-full">
                         @csrf
@@ -257,13 +263,11 @@
                         <div class="container mx-auto flex items-center justify-between gap-4 relative">
                             <!-- Left Section: Mobile Menu and Logo -->
                             <div class="flex items-center gap-4">
-                                <!-- Mobile Menu Button -->
                                 <button id="mobile-menu-button" class="md:hidden p-2 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full" aria-label="Open sidebar" aria-controls="sidebar">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                                     </svg>
                                 </button>
-                                <!-- Logo -->
                                 <a href="{{ route('dashboard') }}" class="text-xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 hover:text-blue-800 dark:hover:text-blue-300 transition duration-200">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -293,7 +297,7 @@
                                     <a href="{{ route('reports.index') }}" class="hidden md:block text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-semibold transition duration-200">Reports</a>
                                 @endif
 
-                                <!-- Notification Bell -->
+                                <!-- Notification Bell for Alerts -->
                                 <div class="relative">
                                     <button id="notification-bell" class="p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="View notifications">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -326,9 +330,7 @@
                                 <!-- User Profile Dropdown -->
                                 <div class="relative">
                                     <button id="user-menu-button" class="flex items-center gap-2 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="User menu">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
+                                        <img src="{{ auth()->user()->avatar ? asset('storage/avatars/' . auth()->user()->avatar . '?v=' . auth()->user()->updated_at->timestamp) : asset('images/default-avatar.png') }}" alt="{{ auth()->user()->name ?? 'User' }}'s avatar" class="h-5 w-5 rounded-full object-cover">
                                         <span class="hidden md:block text-blue-800 dark:text-blue-400 font-semibold text-sm">
                                             {{ auth()->user()->name ?? 'Unknown User' }}
                                         </span>
@@ -358,6 +360,11 @@
 
                 <!-- Main Content Area -->
                 <main class="flex-1 overflow-y-auto p-4">
+                    @if (auth()->check())
+                        <p>Debug: User ID: {{ auth()->user()->id }}, Avatar: {{ auth()->user()->avatar ?? 'No avatar' }}</p>
+                    @else
+                        <p>Debug: No authenticated user</p>
+                    @endif
                     @yield('content')
                 </main>
             </div>
@@ -371,7 +378,9 @@
     @endguest
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.min.js"></script>
+    {{-- <script src="{{ asset('js/chart.umd.js') }}"></script> --}}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         // Centralized Loader Class
         class Loader {
@@ -426,10 +435,9 @@
         // Global Loader Instance
         const globalLoader = new Loader();
 
-        // Notification Manager
+        // Notification Manager (Modified to Handle Dropdown Only)
         class NotificationManager {
             constructor() {
-                this.container = document.getElementById('notification-container');
                 this.dropdown = document.getElementById('notification-dropdown');
                 this.notificationList = document.getElementById('notification-list');
                 this.notificationCount = document.getElementById('notification-count');
@@ -437,44 +445,17 @@
                 this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
             }
 
-            show(id, message, type = 'info', timeout = 5000) {
-                if (!this.container) return;
-                const notification = document.createElement('div');
-                notification.className = `notification ${type} translate-x-full`;
-                notification.dataset.id = id;
-                notification.innerHTML = `
-                    <span>${message}</span>
-                    <button class="notification-close" onclick="notificationManager.dismiss('${id}')">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                `;
-                this.container.appendChild(notification);
-                this.notifications.push({ id, element: notification, message, type });
-
-                // Update dropdown
+            show(id, message, type = 'info', timeout = 5000, url = '#') {
+                // Only add to notifications array for dropdown
+                this.notifications.push({ id, message, type, url });
                 this.updateNotificationDropdown();
-
-                // Animate in
-                setTimeout(() => notification.classList.remove('translate-x-full'), 100);
-
-                // Auto-dismiss after timeout
-                if (timeout) {
-                    setTimeout(() => this.dismiss(id), timeout);
-                }
+                this.updateNotificationCount();
             }
 
             dismiss(id) {
-                const notification = this.notifications.find(n => n.id === id);
-                if (notification) {
-                    notification.element.classList.add('notification-exit');
-                    setTimeout(() => {
-                        notification.element.remove();
-                        this.notifications = this.notifications.filter(n => n.id !== id);
-                        this.updateNotificationDropdown();
-                    }, 300);
-                }
+                this.notifications = this.notifications.filter(n => n.id !== id);
+                this.updateNotificationDropdown();
+                this.updateNotificationCount();
             }
 
             async fetchNotifications() {
@@ -489,9 +470,10 @@
                     });
                     if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
                     const notifications = await response.json();
-                    notifications.forEach(({ id, message, type }) => {
+                    this.notifications = [];
+                    notifications.forEach(({ id, message, type, url }) => {
                         if (!this.notifications.some(n => n.id === id)) {
-                            this.show(id, message, type, type === 'critical' ? 0 : 5000);
+                            this.show(id, message, type, type === 'critical' ? 0 : 5000, url || '#');
                         }
                     });
                     this.updateNotificationCount();
@@ -514,9 +496,9 @@
                         }
                     });
                     if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-                    if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
                         this.dismiss(id);
-                        this.updateNotificationCount();
                     }
                 } catch (error) {
                     console.error(`Failed to mark notification ${id} as read:`, error);
@@ -536,10 +518,6 @@
                     });
                     if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
                     if (response.ok) {
-                        this.notifications.forEach(notification => {
-                            notification.element.classList.add('notification-exit');
-                            setTimeout(() => notification.element.remove(), 300);
-                        });
                         this.notifications = [];
                         this.updateNotificationDropdown();
                         this.updateNotificationCount();
@@ -555,7 +533,7 @@
                     this.notificationList.innerHTML = this.notifications.length > 0
                         ? this.notifications.map(n => `
                             <div class="p-3 border-b dark:border-gray-700 ${n.type === 'critical' ? 'bg-red-50 dark:bg-red-900' : n.type === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900' : n.type === 'success' ? 'bg-green-50 dark:bg-green-900' : 'bg-blue-50 dark:bg-blue-900'}">
-                                <p class="text-sm text-gray-800 dark:text-gray-200">${n.message}</p>
+                                <a href="${n.url || '#'}" class="text-sm text-gray-800 dark:text-gray-200 hover:underline">${n.message}</a>
                                 <button class="text-blue-600 dark:text-blue-400 hover:underline text-xs mt-1" onclick="notificationManager.markAsRead('${n.id}')">Mark as Read</button>
                             </div>
                         `).join('')
@@ -573,7 +551,7 @@
             }
         }
 
-        // Search Manager
+        // Search Manager (Unchanged)
         class SearchManager {
             constructor() {
                 this.container = document.getElementById('search-container');
@@ -588,31 +566,26 @@
             init() {
                 if (!this.input || !this.container || !this.results || !this.toggleButton) return;
 
-                // Toggle search input with animation
                 this.toggleButton.addEventListener('click', () => {
                     const isHidden = this.container.classList.contains('hidden');
                     if (isHidden) {
-                        // Show and slide in
                         this.container.classList.remove('hidden');
                         this.container.classList.add('translate-x-full');
-                        // Force reflow to ensure animation
                         this.container.offsetHeight;
                         this.container.classList.remove('translate-x-full');
                         this.toggleButton.setAttribute('aria-expanded', 'true');
                         this.input.focus();
                     } else {
-                        // Slide out and hide
                         this.container.classList.add('translate-x-full');
                         setTimeout(() => {
                             this.container.classList.add('hidden');
                             this.input.value = '';
                             this.results.innerHTML = '';
-                        }, 300); // Match animation duration
+                        }, 300);
                         this.toggleButton.setAttribute('aria-expanded', 'false');
                     }
                 });
 
-                // Close dropdown when clicking outside
                 document.addEventListener('click', (e) => {
                     if (!this.toggleButton.contains(e.target) && !this.container.contains(e.target)) {
                         if (!this.container.classList.contains('hidden')) {
@@ -621,13 +594,12 @@
                                 this.container.classList.add('hidden');
                                 this.input.value = '';
                                 this.results.innerHTML = '';
-                            }, 300); // Match animation duration
+                            }, 300);
                             this.toggleButton.setAttribute('aria-expanded', 'false');
                         }
                     }
                 });
 
-                // Handle search input
                 this.input.addEventListener('input', () => {
                     clearTimeout(this.debounceTimeout);
                     this.debounceTimeout = setTimeout(() => {
@@ -676,7 +648,7 @@
             }
         }
 
-        // Global Notification and Search Instances
+        // Global Instances
         const notificationManager = new NotificationManager();
         const searchManager = new SearchManager();
 
@@ -687,7 +659,7 @@
             globalLoader.hide();
         };
 
-        // Sidebar Toggle Script
+        // Sidebar Toggle Script (Unchanged)
         (function() {
             const sidebar = document.getElementById('sidebar');
             const sidebarToggle = document.getElementById('sidebar-toggle');
@@ -695,15 +667,12 @@
             const sidebarOverlay = document.getElementById('sidebar-overlay');
             let openSubmenuId = null;
 
-            // Initialize sidebar state
             const initializeSidebar = () => {
                 if (window.innerWidth >= 768) {
-                    // Desktop/Tablet: Sidebar visible
                     sidebar.classList.remove('hidden', '-translate-x-full');
                     sidebar.classList.add('translate-x-0');
                     sidebarOverlay.classList.add('hidden');
                 } else {
-                    // Mobile: Sidebar hidden
                     sidebar.classList.add('hidden', '-translate-x-full');
                     sidebar.classList.remove('translate-x-0');
                     sidebarOverlay.classList.add('hidden');
@@ -712,10 +681,8 @@
 
             initializeSidebar();
 
-            // Handle window resize
             window.addEventListener('resize', () => {
                 initializeSidebar();
-                // Close submenus on mobile when resizing to desktop
                 if (window.innerWidth >= 768 && openSubmenuId) {
                     const prevSubmenu = document.getElementById(openSubmenuId);
                     prevSubmenu.classList.remove('open', 'opacity-100');
@@ -727,7 +694,6 @@
                 }
             });
 
-            // Toggle submenu
             const toggleSubmenu = (toggle, submenuId) => {
                 const submenu = document.getElementById(submenuId);
                 const chevron = toggle.querySelector('svg');
@@ -758,7 +724,6 @@
                 }
             };
 
-            // Attach submenu toggle events
             document.querySelectorAll('.toggle-btn').forEach(toggle => {
                 toggle.addEventListener('click', () => {
                     const submenuId = toggle.getAttribute('data-target');
@@ -774,20 +739,17 @@
                 });
             });
 
-            // Toggle sidebar
             const toggleSidebar = () => {
                 const isOpen = !sidebar.classList.contains('hidden');
                 if (isOpen) {
-                    // Close sidebar
                     sidebar.classList.add('-translate-x-full');
                     setTimeout(() => {
                         sidebar.classList.add('hidden');
                         sidebar.classList.remove('translate-x-0');
-                    }, 300); // Match animation duration
+                    }, 300);
                     sidebarOverlay.classList.add('hidden');
                     mobileMenuButton.setAttribute('aria-label', 'Open sidebar');
                     sidebarToggle.setAttribute('aria-label', 'Open sidebar');
-                    // Reset submenus
                     if (openSubmenuId) {
                         const prevSubmenu = document.getElementById(openSubmenuId);
                         prevSubmenu.classList.remove('open', 'opacity-100');
@@ -797,27 +759,22 @@
                         prevToggle.setAttribute('aria-expanded', 'false');
                         openSubmenuId = null;
                     }
-                    // Return focus to mobile menu button
                     mobileMenuButton.focus();
                 } else {
-                    // Open sidebar
                     sidebar.classList.remove('hidden');
                     sidebar.classList.add('translate-x-0');
                     sidebar.classList.remove('-translate-x-full');
                     sidebarOverlay.classList.remove('hidden');
                     mobileMenuButton.setAttribute('aria-label', 'Close sidebar');
                     sidebarToggle.setAttribute('aria-label', 'Close sidebar');
-                    // Focus on first sidebar link
                     sidebar.querySelector('a, button').focus();
                 }
             };
 
-            // Attach toggle events
             if (mobileMenuButton) mobileMenuButton.addEventListener('click', toggleSidebar);
             if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
             if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
 
-            // Close sidebar on navigation
             document.querySelectorAll('nav a, nav button[type="submit"]').forEach(link => {
                 link.addEventListener('click', () => {
                     if (window.innerWidth < 768) {
@@ -826,7 +783,6 @@
                 });
             });
 
-            // Initialize submenus as hidden
             document.querySelectorAll('.submenu').forEach(submenu => {
                 submenu.classList.add('hidden', 'opacity-0');
             });
@@ -850,7 +806,11 @@
             const notificationDropdown = document.getElementById('notification-dropdown');
             if (notificationBell && notificationDropdown) {
                 notificationBell.addEventListener('click', () => {
+                    console.log('Notification bell clicked');
                     notificationDropdown.classList.toggle('hidden');
+                    if (!notificationDropdown.classList.contains('hidden')) {
+                        notificationManager.fetchNotifications();
+                    }
                 });
                 document.addEventListener('click', (e) => {
                     if (!notificationBell.contains(e.target) && !notificationDropdown.contains(e.target)) {
@@ -862,7 +822,10 @@
             // Dismiss All Notifications
             const dismissAllButton = document.getElementById('dismiss-all-notifications');
             if (dismissAllButton) {
-                dismissAllButton.addEventListener('click', () => notificationManager.dismissAll());
+                dismissAllButton.addEventListener('click', () => {
+                    console.log('Dismiss all notifications clicked');
+                    notificationManager.dismissAll();
+                });
             }
 
             // User Menu Toggle
@@ -870,6 +833,7 @@
             const userMenu = document.getElementById('user-menu');
             if (userMenuButton && userMenu) {
                 userMenuButton.addEventListener('click', () => {
+                    console.log('User menu button clicked');
                     userMenu.classList.toggle('hidden');
                 });
                 document.addEventListener('click', (e) => {
@@ -879,50 +843,49 @@
                 });
             }
 
+            // Dark Mode Toggle
+            const themeToggle = document.getElementById('theme-toggle');
+            const iconMoon = document.getElementById('icon-moon');
+            const iconSun = document.getElementById('icon-sun');
+            if (themeToggle && iconMoon && iconSun) {
+                themeToggle.addEventListener('click', () => {
+                    console.log('Dark mode toggle clicked');
+                    const isDark = !document.documentElement.classList.contains('dark');
+                    localStorage.setItem('darkMode', isDark);
+                    document.documentElement.classList.toggle('dark');
+                    iconMoon.classList.toggle('hidden', isDark);
+                    iconSun.classList.toggle('hidden', !isDark);
+                });
+            }
+
+            // Debug Button Clicks
+            document.querySelectorAll('button, a').forEach(button => {
+                button.addEventListener('click', () => {
+                    console.log(`Button clicked: ${button.id || button.textContent.trim()}`);
+                });
+            });
+
             // Handle form submissions
             document.addEventListener('submit', (event) => {
                 const form = event.target;
                 if (form.tagName === 'FORM') {
+                    console.log(`Form submitted: ${form.action}`);
                     globalLoader.show('Submitting form...');
-                    setTimeout(() => globalLoader.hide(), 3000);
                 }
             });
 
-            // Dark Mode Script
-            (function() {
-                const themeToggle = document.getElementById('theme-toggle');
-                const iconMoon = document.getElementById('icon-moon');
-                const iconSun = document.getElementById('icon-sun');
-                const root = document.documentElement;
-                const stored = localStorage.getItem('darkMode');
-
-                let isDark = stored === 'true' ? true : (stored === 'false' ? false : window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-                const applyTheme = () => {
-                    if (isDark) {
-                        root.classList.add('dark');
-                        iconMoon.classList.add('hidden');
-                        iconSun.classList.remove('hidden');
-                    } else {
-                        root.classList.remove('dark');
-                        iconSun.classList.add('hidden');
-                        iconMoon.classList.remove('hidden');
-                    }
-                };
-
-                applyTheme();
-
-                if (themeToggle) {
-                    themeToggle.addEventListener('click', () => {
-                        isDark = !isDark;
-                        localStorage.setItem('darkMode', isDark);
-                        applyTheme();
-                    });
+            // Refresh avatar on profile update
+            @if (session('success'))
+                console.log('Profile updated, refreshing avatar');
+                const avatarImg = document.querySelector('#user-menu-button img');
+                if (avatarImg) {
+                    const newAvatar = '{{ auth()->user()->avatar ? asset('storage/avatars/' . auth()->user()->avatar . '?v=' . auth()->user()->updated_at->timestamp) : asset('images/default-avatar.png') }}';
+                    avatarImg.src = newAvatar;
+                    avatarImg.alt = '{{ auth()->user()->name ?? 'User' }}'s avatar';
                 }
-            })();
+            @endif
         });
     </script>
     @stack('scripts')
 </body>
 </html>
-```

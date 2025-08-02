@@ -8,12 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('alerts', function (Blueprint $table) {
-            $table->id();
+      Schema::create('alerts', function (Blueprint $table) {
+            $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
-            $table->enum('type', ['critical', 'warning', 'info', 'success'])->default('info');
+            $table->string('type');
             $table->text('message');
             $table->boolean('is_read')->default(false);
+            $table->string('url')->nullable();
+            $table->timestamp('read_at')->nullable();
             $table->timestamps();
         });
     }

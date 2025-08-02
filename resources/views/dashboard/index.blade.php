@@ -1,3 +1,4 @@
+{{-- dashboard --}}
 @extends('layouts.app')
 
 @section('content')
@@ -464,13 +465,22 @@
     <script>
         let eggChart, feedChart, salesChart, invoiceStatusChart, expensesTrendChart, incomeTrendChart, profitTrendChart;
 
-        // Modified Chart Functions to Use Global Loader
         function createChart(canvasId, typeSelectorId, data, config) {
             try {
                 globalLoader.show(`Loading ${config.title}...`);
                 const ctx = document.getElementById(canvasId)?.getContext('2d');
                 if (!ctx) throw new Error(`Canvas ${canvasId} not found`);
-                if (window[canvasId + 'Chart']) window[canvasId + 'Chart'].destroy();
+
+                // Destroy existing chart instance if it exists
+                if (window[canvasId + 'Chart']) {
+                    window[canvasId + 'Chart'].destroy();
+                }
+
+                // Validate data
+                if (!config.data.labels || !config.data.datasets || !config.data.datasets[0].data) {
+                    throw new Error(`Invalid data for chart ${canvasId}`);
+                }
+
                 window[canvasId + 'Chart'] = new Chart(ctx, {
                     type: document.getElementById(typeSelectorId)?.value || config.type,
                     data: config.data,
@@ -487,20 +497,21 @@
                         },
                         animation: {
                             onComplete: () => {
-                                console.log(`Chart ${canvasId} rendered`);
+                                console.log(`Chart ${canvasId} rendered successfully`);
                                 globalLoader.hide();
                             }
                         }
                     }
                 });
+
                 const typeSelector = document.getElementById(typeSelectorId);
                 if (typeSelector) {
                     typeSelector.addEventListener('change', () => createChart(canvasId, typeSelectorId, data, config));
                 }
             } catch (error) {
                 console.error(`Failed to create chart ${canvasId}:`, error);
-                globalLoader.show(`Failed to load ${config.title}.`, 5000);
-                setTimeout(() => globalLoader.hide(), 5000);
+                notificationManager.show(Date.now(), `Failed to load ${config.title}.`, 'critical', 5000);
+                globalLoader.hide();
             }
         }
 
@@ -509,6 +520,17 @@
                 globalLoader.show('Loading trend data...');
                 const ctx = document.getElementById(canvasId)?.getContext('2d');
                 if (!ctx) throw new Error(`Canvas ${canvasId} not found`);
+
+                // Destroy existing chart instance if it exists
+                if (window[canvasId + 'Chart']) {
+                    window[canvasId + 'Chart'].destroy();
+                }
+
+                // Validate data
+                if (!data || !Array.isArray(data) || data.length === 0) {
+                    throw new Error(`Invalid data for sparkline chart ${canvasId}`);
+                }
+
                 new Chart(ctx, {
                     type: 'line',
                     data: {
@@ -536,7 +558,7 @@
                         },
                         animation: {
                             onComplete: () => {
-                                console.log(`Sparkline ${canvasId} rendered`);
+                                console.log(`Sparkline ${canvasId} rendered successfully`);
                                 globalLoader.hide();
                             }
                         }
@@ -544,8 +566,8 @@
                 });
             } catch (error) {
                 console.error(`Failed to create sparkline chart ${canvasId}:`, error);
-                globalLoader.show('Failed to load trend data.', 5000);
-                setTimeout(() => globalLoader.hide(), 5000);
+                notificationManager.show(Date.now(), 'Failed to load trend data.', 'critical', 5000);
+                globalLoader.hide();
             }
         }
 
@@ -573,8 +595,8 @@
                     }
                 } catch (error) {
                     console.error('Failed to load alerts:', error);
+                    notificationManager.show(Date.now(), 'Failed to load alerts.', 'critical', 5000);
                 } finally {
-                    console.log('Alerts section processed');
                     globalLoader.hide();
                 }
             @endrole
@@ -591,8 +613,8 @@
                 }
             } catch (error) {
                 console.error('Failed to load recent activity:', error);
+                notificationManager.show(Date.now(), 'Failed to load recent activity.', 'critical', 5000);
             } finally {
-                console.log('Recent activity section processed');
                 globalLoader.hide();
             }
 
@@ -656,7 +678,7 @@
             @endif
 
             @if (isset($salesTrend) && $salesTrend->isNotEmpty())
-                @role('admin')
+                @can('view-sales')
                     createChart('salesTrend', 'salesChartType', @json($salesTrend), {
                         type: 'line',
                         title: 'Sales Trend',
@@ -683,7 +705,7 @@
                     } finally {
                         globalLoader.hide();
                     }
-                @endrole
+                @endcan
             @endif
 
             @if (isset($incomeLabels) && !empty($incomeLabels))
@@ -751,17 +773,40 @@
             @if (isset($expenseTrend) && !empty($expenseTrend))
                 createSparklineChart('expensesTrend', @json($expenseTrend), '#ef4444');
             @else
-                globalLoader.hide();
+                try {
+                    const expensesTrendContainer = document.getElementById('expensesTrend')?.parentElement;
+                    if (expensesTrendContainer && !expensesTrendContainer.querySelector('.no-data')) {
+                        expensesTrendContainer.insertAdjacentHTML('beforeend', '<p class="no-data">No expense trend data available.</p>');
+                    }
+                } finally {
+                    globalLoader.hide();
+                }
             @endif
+
             @if (isset($incomeTrend) && !empty($incomeTrend))
                 createSparklineChart('incomeTrend', @json($incomeTrend), '#10b981');
             @else
-                globalLoader.hide();
+                try {
+                    const incomeTrendContainer = document.getElementById('incomeTrend')?.parentElement;
+                    if (incomeTrendContainer && !incomeTrendContainer.querySelector('.no-data')) {
+                        incomeTrendContainer.insertAdjacentHTML('beforeend', '<p class="no-data">No income trend data available.</p>');
+                    }
+                } finally {
+                    globalLoader.hide();
+                }
             @endif
+
             @if (isset($profitTrend) && !empty($profitTrend))
                 createSparklineChart('profitTrend', @json($profitTrend), @json(($profit ?? 0) >= 0 ? '#10b981' : '#ef4444'));
             @else
-                globalLoader.hide();
+                try {
+                    const profitTrendContainer = document.getElementById('profitTrend')?.parentElement;
+                    if (profitTrendContainer && !profitTrendContainer.querySelector('.no-data')) {
+                        profitTrendContainer.insertAdjacentHTML('beforeend', '<p class="no-data">No profit trend data available.</p>');
+                    }
+                } finally {
+                    globalLoader.hide();
+                }
             @endif
 
             // Close Alerts Section if Empty

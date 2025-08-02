@@ -19,7 +19,6 @@ use App\Models\Mortalities;
 use App\Models\Payroll;
 use App\Models\Sale;
 use App\Models\Supplier;
-use App\Models\Task;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\UserActivityLog;
@@ -47,12 +46,14 @@ class DashboardController extends Controller
         }
 
         $isAdmin = $user->hasRole('admin');
+        $canManageFinances = $user->hasPermissionTo('manage_finances');
+        $canViewSales = $user->hasPermissionTo('view-sales');
+
         // Date filter defaults to current month
         $start = $request->input('start_date', now()->startOfMonth()->toDateString());
         $end = $request->input('end_date', now()->endOfMonth()->toDateString());
         $period = [$start, $end];
 
-        
         // Common data for all users
         $chicks = Chicks::sum('quantity_bought') ?? 0;
         $layers = Bird::where('type', 'layer')->sum('quantity') ?? 0;
@@ -90,9 +91,8 @@ class DashboardController extends Controller
             ->take(50)
             ->get();
 
-        // Recent Activities (for all users)
-      // Recent Activities
-    $recentActivities = collect();
+        // Recent Activities
+        $recentActivities = collect();
         if ($isAdmin) {
             $recentActivities = UserActivityLog::whereBetween('created_at', $period)
                 ->select('action', 'user_id', 'created_at')
@@ -125,10 +125,9 @@ class DashboardController extends Controller
                 ->filter(function ($activity) {
                     return !str_contains($activity->action, 'System');
                 })
+                ->sortByDesc('created_at')
                 ->take(5);
-       }
-           
-    
+        }
 
         // Daily Instructions (for labourers)
         $dailyInstructions = collect([]);
@@ -138,29 +137,27 @@ class DashboardController extends Controller
                 ->take(5)
                 ->get(['id', 'content', 'created_at']);
         }
-        
-        // Add income data
-            $incomeData = [];
-            $incomeLabels = [];
-            for ($i = 0; $i < 6; $i++) {
-                $month = now()->subMonths($i);
-                $incomeLabels[] = $month->format('M Y');
-                $incomeData[] = Income::whereMonth('date', $month->month)
-                                    ->whereYear('date', $month->year)
-                                    ->sum('amount') ?? 0;
-            }
-            $incomeLabels = array_reverse($incomeLabels);
-            $incomeData = array_reverse($incomeData);
 
-        // Initialize admin-only data
-        $salesTrend = collect([]);
-        $payrollTrend = collect([]);
-        $alerts = collect([]);
+        // Income data (for all users who can view financial summary)
+        $incomeData = [];
+        $incomeLabels = [];
+        for ($i = 0; $i < 6; $i++) {
+            $month = now()->subMonths($i);
+            $incomeLabels[] = $month->format('M Y');
+            $incomeData[] = Income::whereMonth('date', $month->month)
+                ->whereYear('date', $month->year)
+                ->sum('amount') ?? 0;
+        }
+        $incomeLabels = array_reverse($incomeLabels);
+        $incomeData = array_reverse($incomeData);
+
+        // Initialize admin/finance/sales-related data
         $totalExpenses = 0;
         $totalIncome = 0;
         $profit = 0;
         $employees = 0;
         $payroll = 0;
+        $salesTrend = collect([]);
         $expenseTrend = collect([]);
         $incomeTrend = collect([]);
         $profitTrend = collect([]);
@@ -170,41 +167,18 @@ class DashboardController extends Controller
             'partially_paid' => 0,
             'overdue' => 0,
         ];
-        $userActivities = collect([]);
-        $lowStockAlerts = collect([]);
-        $pendingApprovals = collect([]);
+        $alerts = collect([]);
         $healthSummary = collect([]);
         $vaccinationSchedule = collect([]);
         $suppliers = collect([]);
         $payrollStatus = collect([]);
+        $pendingApprovals = collect([]);
 
-        // Admin-only data
-        if ($isAdmin) {
+        // Data for users with manage_finances permission or admin role
+        if ($isAdmin || $canManageFinances) {
             $totalExpenses = Expense::whereBetween('date', $period)->sum('amount') ?? 0;
             $totalIncome = Income::whereBetween('date', $period)->sum('amount') ?? 0;
             $profit = $totalIncome - $totalExpenses;
-
-            $metrics['sales'] = Sale::whereBetween('sale_date', $period)
-                ->selectRaw('SUM(total_amount) as total')
-                ->value('total') ?? 0;
-            $metrics['customers'] = Customer::count() ?? 0;
-
-            $employees = Employee::count() ?? 0;
-            $payroll = Payroll::whereBetween('pay_date', $period)->sum('net_pay') ?? 0;
-
-            $salesTrend = Sale::whereBetween('sale_date', $period)
-                ->select(DB::raw('DATE(sale_date) as date'), DB::raw('SUM(total_amount) as value'))
-                ->groupBy('date')
-                ->orderBy('date')
-                ->take(50)
-                ->get();
-
-            $payrollTrend = Payroll::whereBetween('pay_date', $period)
-                ->select(DB::raw('DATE(pay_date) as date'), DB::raw('SUM(net_pay) as value'))
-                ->groupBy('pay_date')
-                ->orderBy('pay_date')
-                ->take(50)
-                ->get();
 
             $expenseTrend = Expense::whereBetween('date', $period)
                 ->select(DB::raw('DATE(date) as date'), DB::raw('SUM(amount) as value'))
@@ -229,7 +203,25 @@ class DashboardController extends Controller
                 ->take(50)
                 ->get();
 
-            // $alerts = Alert::where('user_id', $user->id)->whereNull('read_at')->take(50)->get();
+             $pendingApprovals = Transaction::where('status', 'pending')
+                 ->whereBetween('date', $period)
+                 ->take(5)
+                ->get(['id', 'type', 'amount', 'date']);
+        }
+
+        // Data for users with view-sales permission or admin role
+        if ($isAdmin || $canViewSales) {
+            $metrics['sales'] = Sale::whereBetween('sale_date', $period)
+                ->selectRaw('SUM(total_amount) as total')
+                ->value('total') ?? 0;
+            $metrics['customers'] = Customer::count() ?? 0;
+
+            $salesTrend = Sale::whereBetween('sale_date', $period)
+                ->select(DB::raw('DATE(sale_date) as date'), DB::raw('SUM(total_amount) as value'))
+                ->groupBy('date')
+                ->orderBy('date')
+                ->take(50)
+                ->get();
 
             $invoiceStatuses = [
                 'pending' => Sale::where('status', 'pending')->count(),
@@ -237,47 +229,31 @@ class DashboardController extends Controller
                 'partially_paid' => Sale::where('status', 'partially_paid')->count(),
                 'overdue' => Sale::where('status', 'overdue')->count(),
             ];
+        }
 
-            $userActivities = collect()
-                ->concat(
-                    Sale::whereBetween('sale_date', $period)
-                        ->select(DB::raw("'Sale added' as action"), 'created_by as user_id', 'sale_date as created_at')
-                        ->take(5)
+        // Alerts (for all users, but filtered for non-admins)
+        if ($isAdmin) {
+            $alerts = Alert::whereBetween('created_at', $period)
+                ->get()
+                ->concat(Cache::remember('low_stock_alerts', 3600, function () use ($period) {
+                    return Inventory::where('qty', '<', DB::raw('threshold'))
+                        ->whereBetween('updated_at', $period)
                         ->get()
-                )
-                ->concat(
-                    Expense::whereBetween('date', $period)
-                        ->select(DB::raw("'Expense logged' as action"), 'created_by as user_id', 'date as created_at')
-                        ->take(5)
-                        ->get()
-                )
-                ->concat(
-                    Egg::whereBetween('date_laid', $period)
-                        ->select(DB::raw("'Egg production recorded' as action"), 'created_by as user_id', 'date_laid as created_at')
-                        ->take(5)
-                        ->get()
-                )
-                ->sortByDesc('created_at')
-                ->take(5)
-                ->map(function ($activity) {
-                    $user = User::find($activity->user_id);
-                    $activity->user_name = $user ? $user->name : 'Unknown';
-                    return $activity;
-                });
-
- 
-        $alerts = $isAdmin ? Alert::whereBetween('created_at', $period)
-            ->get()
-            ->concat($lowStockAlerts->map(function ($item) {
-                return new Alert([
-                    'message' => "Low stock for {$item->item_name}: {$item->quantity} remaining (Threshold: {$item->threshold})",
-                    'type' => 'warning',
-                    'created_at' => now(),
-                    'user_id' => null,
-                ]);
-            })) : collect();
-
-
+                        ->map(function ($item) {
+                            return new Alert([
+                                'message' => "Low stock for {$item->item_name}: {$item->quantity} remaining (Threshold: {$item->threshold})",
+                                'type' => 'warning',
+                                'created_at' => now(),
+                                'user_id' => null,
+                            ]);
+                        });
+                }));
+        } else {
+            $alerts = Alert::where('user_id', $user->id)
+                ->whereNull('read_at')
+                ->whereBetween('created_at', $period)
+                ->take(50)
+                ->get();
         }
 
         // Farm Manager: Flock Health Summary
@@ -306,9 +282,6 @@ class DashboardController extends Controller
                 ->get(['id', 'name', 'contact_info']);
         }
 
-        // Labourer: Daily Instructions
-        // Already fetched above for labourers
-
         // Accountant: Payroll Status
         if ($user->hasRole('accountant')) {
             $payrollStatus = Payroll::whereBetween('pay_date', $period)
@@ -318,14 +291,6 @@ class DashboardController extends Controller
                 ->take(5)
                 ->get();
         }
-
-        // Pending Approvals (for users with manage_finances permission)
-        // if ($user->hasPermissionTo('manage_finances')) {
-        //     $pendingApprovals = Transaction::where('status', 'pending')
-        //         ->whereBetween('date', $period)
-        //         ->take(5)
-        //         ->get(['id', 'type', 'amount', 'date']);
-        // }
 
         return view('dashboard.index', compact(
             'start',
@@ -344,21 +309,19 @@ class DashboardController extends Controller
             'eggTrend',
             'feedTrend',
             'salesTrend',
-            'payrollTrend',
             'alerts',
             'invoiceStatuses',
             'recentActivities',
             'expenseTrend',
             'incomeTrend',
             'profitTrend',
-            // 'tasks',
             'pendingApprovals',
             'healthSummary',
             'vaccinationSchedule',
             'suppliers',
             'dailyInstructions',
             'payrollStatus',
-            'incomeLabels',  
+            'incomeLabels',
             'incomeData'
         ));
     }

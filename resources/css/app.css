@@ -40,7 +40,7 @@
 
 /* Notification styles */
 .notification-container {
-    @apply fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-xs w-full;
+    @apply fixed top-[5rem] right-4 z-40 flex flex-col gap-2 max-w-xs w-full; /* Moved below header, z-index below header buttons */
 }
 .notification {
     @apply p-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out flex items-center justify-between;
@@ -67,6 +67,25 @@
     @apply ml-4 text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
 }
 
+/* Notification Dropdown Styles */
+#notification-dropdown {
+    @apply min-w-[20rem] max-w-[24rem] z-50; /* Ensure dropdown is above notifications */
+}
+#notification-list > div {
+    @apply transition-colors duration-200;
+}
+#notification-list > div:hover {
+    @apply bg-gray-100 dark:bg-gray-800 !important;
+}
+#notification-count {
+    @apply text-xs leading-4;
+}
+
+/* Header Buttons */
+.header-buttons {
+    @apply relative z-50; /* Ensure header buttons are above notification container */
+}
+
 /* Search Animation */
 #search-container {
     @apply z-50;
@@ -78,72 +97,16 @@
     @apply transition-all duration-300 ease-in-out;
 }
 
-/* Notification Dropdown */
-#notification-dropdown {
-    @apply bg-white dark:bg-gray-900 shadow-lg rounded-lg border dark:border-gray-700;
-}
-#notification-list {
-    @apply max-h-64 overflow-y-auto;
-}
-#notification-list > div {
-    @apply p-3 border-b dark:border-gray-700;
-}
+/* Additional Notification Styles for Dropdown */
 #notification-list .critical {
-    @apply bg-red-50 dark:bg-red-900;
+    @apply bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-300 font-semibold;
 }
 #notification-list .warning {
-    @apply bg-yellow-50 dark:bg-yellow-900;
+    @apply bg-yellow-50 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300;
 }
 #notification-list .info {
-    @apply bg-blue-50 dark:bg-blue-900;
+    @apply bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300;
 }
 #notification-list .success {
-    @apply bg-green-50 dark:bg-green-900;
-}
-
-/* User Menu */
-#user-menu {
-    @apply bg-white dark:bg-gray-900 shadow-lg rounded-lg border dark:border-gray-700;
-}
-
-.notification-container {
-    @apply fixed top-4 right-4 z-50 space-y-2;
-}
-
-.notification {
-    @apply bg-blue-600 text-white p-4 rounded-lg shadow-lg flex justify-between items-center transition-transform duration-300;
-}
-
-.notification.critical { @apply bg-red-600 text-white; }
-.notification.warning { @apply bg-yellow-600 text-white; }
-.notification.success { @apply bg-green-600 text-white; }
-.notification.info { @apply bg-blue-600 text-white; }
-
-.notification-exit {
-    @apply transform translate-x-full opacity-0;
-}
-
-/* New styles for search */
-#search-container {
-    @apply transition-all duration-300;
-}
-
-#search-results a {
-    @apply block p-3 border-b dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors;
-}
-
-#search-results p {
-    @apply p-3 text-sm text-gray-600 dark:text-gray-400;
-}
-
-.sidebar {
-    @apply transition-transform duration-300 ease-in-out;
-}
-
-#sidebar-overlay {
-    @apply fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden;
-}
-
-.submenu {
-    @apply transition-opacity duration-300;
+    @apply bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-300;
 }

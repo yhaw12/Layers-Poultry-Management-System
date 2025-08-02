@@ -25,6 +25,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\VaccinationLogController;
@@ -203,13 +204,11 @@ Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])->n
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
 
-    Route::get('/notifications', [AlertController::class, 'index'])->name('notifications.index');
-    Route::post('/notifications/{id}/read', [AlertController::class, 'markAsRead'])->name('notifications.read');
-    Route::post('/notifications/dismiss-all', [AlertController::class, 'dismissAll'])->name('notifications.dismiss-all');
+     Route::get('/notifications', [AlertController::class, 'index'])->name('alerts.index');
+    Route::post('/notifications/{id}/read', [AlertController::class, 'markAsRead'])->name('alerts.read');
+    Route::post('/notifications/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismissAll');
 
-//     Route::get('/search', [SearchController::class, 'index'])->name('search');
+Route::get('/search', [SearchController::class, 'index'])->name('search');
+Route::get('/alerts/low-stock', [InventoryController::class, 'lowStock'])->name('alerts.low-stock');
 
-Route::get('/notifications', [AlertController::class, 'index'])->name('notifications.index');
-Route::post('/notifications/{id}/read', [AlertController::class, 'markAsRead'])->name('notifications.read');
-Route::post('/notifications/dismiss-all', [AlertController::class, 'dismissAll'])->name('notifications.dismiss-all');
 });

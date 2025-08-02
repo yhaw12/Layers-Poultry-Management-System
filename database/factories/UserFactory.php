@@ -17,18 +17,30 @@ class UserFactory extends Factory
             'name' => $this->faker->name(),
             'email' => $this->faker->unique()->safeEmail(),
             'password' => Hash::make('password'),
-            'email_verified_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
+            // 'phone_number' => $this->faker->optional()->phoneNumber(),
+            // 'bio' => $this->faker->optional()->sentence(10),
+            'avatar' => $this->faker->optional()->imageUrl(100, 100, 'people'), // Placeholder avatar
+            'email_verified_at' => $this->faker->dateTimeThisYear(),
+            'remember_token' => Str::random(10),
+            'created_at' => $this->faker->dateTimeThisYear(),
+            'updated_at' => $this->faker->dateTimeThisYear(),
         ];
     }
 
     public function configure()
     {
         return $this->afterCreating(function (User $user) {
-            // Assign 'user' role to random users
             if (\Spatie\Permission\Models\Role::where('name', 'user')->exists()) {
                 $user->assignRole('user');
+            }
+        });
+    }
+
+    public function admin()
+    {
+        return $this->afterCreating(function (User $user) {
+            if (\Spatie\Permission\Models\Role::where('name', 'admin')->exists()) {
+                $user->assignRole('admin');
             }
         });
     }

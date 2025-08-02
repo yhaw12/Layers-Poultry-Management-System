@@ -1,3 +1,4 @@
 // import './bootstrap';
+import Chart from 'chart.js/auto';
 
-window.Chart = require('chart.js');
+window.Chart = Chart;

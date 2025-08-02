@@ -3,14 +3,31 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Alert extends Model
 {
-    protected $fillable = ['user_id', 'type', 'message', 'is_read'];
+    protected $primaryKey = 'id';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+   protected $fillable = ['id', 'user_id', 'type', 'message', 'is_read', 'url', 'read_at'];
 
     protected $casts = [
         'is_read' => 'boolean',
+        'read_at' => 'datetime',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
 
     public function user()
     {

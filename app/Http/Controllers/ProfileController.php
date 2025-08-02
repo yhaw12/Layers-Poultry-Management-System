@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 
 class ProfileController extends Controller
@@ -12,8 +12,9 @@ class ProfileController extends Controller
     public function edit()
     {
         $user = Auth::user();
-        $roles = Role::all();
-        return view('admin.users.edit', compact('user', 'roles'));
+        $isProfileEdit = true; // Flag to indicate profile editing
+        $roles = Auth::user()->hasRole('admin') ? Role::all() : []; // Only load roles for admins
+        return view('admin.users.edit', compact('user', 'roles', 'isProfileEdit'));
     }
 
     public function update(Request $request)
@@ -23,6 +24,7 @@ class ProfileController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ]);
 
         if ($request->filled('password')) {
@@ -31,6 +33,13 @@ class ProfileController extends Controller
             unset($data['password']);
         }
 
+       if ($request->hasFile('avatar')) {
+            if ($user->avatar) {
+                Storage::disk('public')->delete('avatars/' . $user->avatar);
+            }
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $data['avatar'] = basename($path);
+        }
         $user->update($data);
 
         return redirect()->route('profile.edit')->with('success', 'Profile updated successfully.');
