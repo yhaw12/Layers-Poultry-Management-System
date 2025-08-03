@@ -28,6 +28,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -38,7 +40,6 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
-        // Get authenticated user with null check
         /** @var User $user */
         $user = Auth::user();
         if (!$user) {
@@ -49,12 +50,10 @@ class DashboardController extends Controller
         $canManageFinances = $user->hasPermissionTo('manage_finances');
         $canViewSales = $user->hasPermissionTo('view-sales');
 
-        // Date filter defaults to current month
         $start = $request->input('start_date', now()->startOfMonth()->toDateString());
         $end = $request->input('end_date', now()->endOfMonth()->toDateString());
         $period = [$start, $end];
 
-        // Common data for all users
         $chicks = Chicks::sum('quantity_bought') ?? 0;
         $layers = Bird::where('type', 'layer')->sum('quantity') ?? 0;
         $broilers = Bird::where('type', 'broiler')->sum('quantity') ?? 0;
@@ -91,7 +90,6 @@ class DashboardController extends Controller
             ->take(50)
             ->get();
 
-        // Recent Activities
         $recentActivities = collect();
         if ($isAdmin) {
             $recentActivities = UserActivityLog::whereBetween('created_at', $period)
@@ -129,7 +127,6 @@ class DashboardController extends Controller
                 ->take(5);
         }
 
-        // Daily Instructions (for labourers)
         $dailyInstructions = collect([]);
         if ($user->hasRole('labourer')) {
             $dailyInstructions = Instruction::whereDate('date', now())
@@ -138,7 +135,6 @@ class DashboardController extends Controller
                 ->get(['id', 'content', 'created_at']);
         }
 
-        // Income data (for all users who can view financial summary)
         $incomeData = [];
         $incomeLabels = [];
         for ($i = 0; $i < 6; $i++) {
@@ -151,7 +147,6 @@ class DashboardController extends Controller
         $incomeLabels = array_reverse($incomeLabels);
         $incomeData = array_reverse($incomeData);
 
-        // Initialize admin/finance/sales-related data
         $totalExpenses = 0;
         $totalIncome = 0;
         $profit = 0;
@@ -174,7 +169,6 @@ class DashboardController extends Controller
         $payrollStatus = collect([]);
         $pendingApprovals = collect([]);
 
-        // Data for users with manage_finances permission or admin role
         if ($isAdmin || $canManageFinances) {
             $totalExpenses = Expense::whereBetween('date', $period)->sum('amount') ?? 0;
             $totalIncome = Income::whereBetween('date', $period)->sum('amount') ?? 0;
@@ -202,14 +196,8 @@ class DashboardController extends Controller
                 ->orderBy('income.date')
                 ->take(50)
                 ->get();
-
-             $pendingApprovals = Transaction::where('status', 'pending')
-                 ->whereBetween('date', $period)
-                 ->take(5)
-                ->get(['id', 'type', 'amount', 'date']);
         }
 
-        // Data for users with view-sales permission or admin role
         if ($isAdmin || $canViewSales) {
             $metrics['sales'] = Sale::whereBetween('sale_date', $period)
                 ->selectRaw('SUM(total_amount) as total')
@@ -231,22 +219,61 @@ class DashboardController extends Controller
             ];
         }
 
-        // Alerts (for all users, but filtered for non-admins)
         if ($isAdmin) {
             $alerts = Alert::whereBetween('created_at', $period)
                 ->get()
                 ->concat(Cache::remember('low_stock_alerts', 3600, function () use ($period) {
-                    return Inventory::where('qty', '<', DB::raw('threshold'))
+                    $lowStockAlerts = collect();
+
+                    $lowInventory = Inventory::where('qty', '<', DB::raw('threshold'))
                         ->whereBetween('updated_at', $period)
                         ->get()
                         ->map(function ($item) {
                             return new Alert([
-                                'message' => "Low stock for {$item->item_name}: {$item->quantity} remaining (Threshold: {$item->threshold})",
+                                'id' => (string) Str::uuid(),
+                                'message' => "Low stock for " . ($item->name ?? 'Unknown Item') . ": {$item->qty} remaining (Threshold: {$item->threshold})",
                                 'type' => 'warning',
                                 'created_at' => now(),
                                 'user_id' => null,
                             ]);
                         });
+                    $lowStockAlerts = $lowStockAlerts->concat($lowInventory);
+
+                    $lowFeed = Feed::where('quantity', '<', DB::raw('threshold'))
+                        ->whereBetween('purchase_date', $period)
+                        ->get()
+                        ->map(function ($item) {
+                            return new Alert([
+                                'id' => (string) Str::uuid(),
+                                'message' => "Low feed stock for " . ($item->name ?? 'Unknown Feed') . ": {$item->quantity} kg remaining (Threshold: {$item->threshold} kg)",
+                                'type' => 'warning',
+                                'created_at' => now(),
+                                'user_id' => null,
+                            ]);
+                        });
+                    $lowStockAlerts = $lowStockAlerts->concat($lowFeed);
+
+                    // Skip medicine alerts due to negative quantities issue
+                    /*
+                    $lowMedicine = MedicineLog::select('medicine_name')
+                        ->selectRaw('SUM(CASE WHEN type = "purchase" THEN quantity ELSE -quantity END) as net_quantity')
+                        ->whereBetween('date', $period)
+                        ->groupBy('medicine_name')
+                        ->havingRaw('net_quantity < ?', [10])
+                        ->get()
+                        ->map(function ($item) {
+                            return new Alert([
+                                'id' => (string) Str::uuid(),
+                                'message' => "Low medicine stock for " . ($item->medicine_name ?? 'Unknown Medicine') . ": {$item->net_quantity} units remaining (Threshold: 10 units)",
+                                'type' => 'warning',
+                                'created_at' => now(),
+                                'user_id' => null,
+                            ]);
+                        });
+                    $lowStockAlerts = $lowStockAlerts->concat($lowMedicine);
+                    */
+
+                    return $lowStockAlerts;
                 }));
         } else {
             $alerts = Alert::where('user_id', $user->id)
@@ -256,7 +283,15 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        // Farm Manager: Flock Health Summary
+        if ($isAdmin || $canManageFinances) {
+            $pendingApprovals = Transaction::with('source')
+                ->where('status', 'pending')
+                ->whereBetween('date', $period)
+                ->orderBy('date', 'desc')
+                ->take(5)
+                ->get(['id', 'type', 'amount', 'date', 'source_type', 'source_id']);
+        }
+
         if ($user->hasRole('farm_manager')) {
             $healthSummary = HealthCheck::whereBetween('check_date', $period)
                 ->select(DB::raw('check_date as date'), DB::raw('COUNT(*) as checks'), DB::raw('SUM(CASE WHEN status = "unhealthy" THEN 1 ELSE 0 END) as unhealthy'))
@@ -266,7 +301,6 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        // Veterinarian: Vaccination Schedule
         if ($user->hasRole('veterinarian')) {
             $vaccinationSchedule = VaccinationLog::where('status', 'pending')
                 ->whereDate('due_date', '>=', now())
@@ -275,54 +309,32 @@ class DashboardController extends Controller
                 ->get(['id', 'vaccine_name', 'due_date']);
         }
 
-        // Inventory Manager: Suppliers
         if ($user->hasRole('inventory_manager')) {
             $suppliers = Supplier::orderBy('name')
                 ->take(5)
                 ->get(['id', 'name', 'contact_info']);
         }
 
-        // Accountant: Payroll Status
         if ($user->hasRole('accountant')) {
             $payrollStatus = Payroll::whereBetween('pay_date', $period)
                 ->select(DB::raw('pay_date as date'), DB::raw('COUNT(*) as employees'), DB::raw('SUM(net_pay) as total'))
                 ->groupBy('pay_date')
                 ->orderBy('pay_date', 'desc')
                 ->take(5)
-                ->get();
+                ->get()
+                ->map(function ($item) {
+                    $item->date = Carbon::parse($item->date);
+                    return $item;
+                });
         }
 
         return view('dashboard.index', compact(
-            'start',
-            'end',
-            'totalExpenses',
-            'totalIncome',
-            'profit',
-            'chicks',
-            'layers',
-            'broilers',
-            'metrics',
-            'mortalityRate',
-            'fcr',
-            'employees',
-            'payroll',
-            'eggTrend',
-            'feedTrend',
-            'salesTrend',
-            'alerts',
-            'invoiceStatuses',
-            'recentActivities',
-            'expenseTrend',
-            'incomeTrend',
-            'profitTrend',
-            'pendingApprovals',
-            'healthSummary',
-            'vaccinationSchedule',
-            'suppliers',
-            'dailyInstructions',
-            'payrollStatus',
-            'incomeLabels',
-            'incomeData'
+            'start', 'end', 'totalExpenses', 'totalIncome', 'profit', 'chicks', 'layers',
+            'broilers', 'metrics', 'mortalityRate', 'fcr', 'employees', 'payroll',
+            'eggTrend', 'feedTrend', 'salesTrend', 'alerts', 'invoiceStatuses',
+            'recentActivities', 'expenseTrend', 'incomeTrend', 'profitTrend',
+            'pendingApprovals', 'healthSummary', 'vaccinationSchedule', 'suppliers',
+            'dailyInstructions', 'payrollStatus', 'incomeLabels', 'incomeData'
         ));
     }
 

@@ -13,6 +13,7 @@ class CreateFeedTable extends Migration
             $table->string('type'); 
             $table->string('supplier');
             $table->integer('quantity'); 
+            $table->integer('threshold')->default(100);
             $table->decimal('weight', 10, 2);
             $table->date('purchase_date');
             $table->decimal('cost', 10, 2);

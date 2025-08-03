@@ -1,3 +1,4 @@
+{{-- eggs.sales --}}
 @extends('layouts.app')
 
 @section('content')

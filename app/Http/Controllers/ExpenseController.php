@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expense;
+use App\Models\Transaction;
 use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -11,17 +12,14 @@ class ExpenseController extends Controller
 {
     public function index(Request $request)
     {
-        // Search query
         $query = Expense::query();
         if ($search = $request->input('search')) {
             $query->where('category', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%");
         }
 
-        // Paginated expenses
         $expenses = $query->orderBy('date', 'desc')->paginate(10);
 
-        // Chart data (last 6 months, cached for 1 hour)
         $expenseChart = Cache::remember('expense_trends', 3600, function () {
             $data = [];
             $labels = [];
@@ -57,8 +55,19 @@ class ExpenseController extends Controller
 
         $expense = Expense::create($validated);
 
+        Transaction::create([
+            'type' => 'expense',
+            'amount' => $validated['amount'],
+            'status' => 'pending',
+            'date' => $validated['date'],
+            'source_type' => Expense::class,
+            'source_id' => $expense->id,
+            'user_id' => auth()->id() ?? 1,
+            'description' => "Expense for {$validated['category']}: {$validated['description']}",
+        ]);
+
         UserActivityLog::create([
-            'user_id' => auth()->id,
+            'user_id' => auth()->id() ?? 1,
             'action' => 'created_expense',
             'details' => "Created expense of \${$validated['amount']} for {$validated['category']} on {$validated['date']}",
         ]);
@@ -87,8 +96,23 @@ class ExpenseController extends Controller
 
         $expense->update($validated);
 
+        Transaction::updateOrCreate(
+            [
+                'source_type' => Expense::class,
+                'source_id' => $expense->id,
+            ],
+            [
+                'type' => 'expense',
+                'amount' => $validated['amount'],
+                'status' => $expense->status ?? 'pending',
+                'date' => $validated['date'],
+                'user_id' => auth()->id() ?? 1,
+                'description' => "Updated expense for {$validated['category']}: {$validated['description']}",
+            ]
+        );
+
         UserActivityLog::create([
-            'user_id' => auth()->id,
+            'user_id' => auth()->id() ?? 1,
             'action' => 'updated_expense',
             'details' => "Updated expense of \${$validated['amount']} for {$validated['category']} on {$validated['date']}",
         ]);
@@ -97,15 +121,20 @@ class ExpenseController extends Controller
     }
 
     public function destroy($id)
-    {   
-        $expense = Expense::findorFail($id);
-        $expense->delete(); 
+    {
+        $expense = Expense::findOrFail($id);
+
+        Transaction::where('source_type', Expense::class)
+            ->where('source_id', $expense->id)
+            ->delete();
 
         UserActivityLog::create([
-            'user_id' => auth()->id,
+            'user_id' => auth()->id() ?? 1,
             'action' => 'deleted_expense',
             'details' => "Deleted expense of \${$expense->amount} for {$expense->category} on {$expense->date}",
         ]);
+
+        $expense->delete();
 
         return redirect()->route('expenses.index')->with('success', 'Expense deleted successfully.');
     }

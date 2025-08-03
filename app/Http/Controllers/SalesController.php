@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSaleRequest;
+use App\Http\Requests\UpdateSaleRequest;
 use App\Models\Sale;
 use App\Models\Payment;
 use App\Models\Customer;
 use App\Models\Bird;
 use App\Models\Egg;
 use App\Models\Alert;
+use App\Models\Transaction;
 use App\Models\UserActivityLog;
+use App\Models\Income;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,18 +21,6 @@ use Carbon\Carbon;
 
 class SalesController extends Controller
 {
-    // public function __construct()
-    // {
-    //     $this->middleware(['auth', 'permission:view-sales'])->only(['index', 'sales', 'birdSales', 'invoices']);
-    //     $this->middleware(['auth', 'permission:edit-sales'])->only(['create', 'store', 'edit', 'update']);
-    //     $this->middleware(['auth', 'permission:delete-sales'])->only('destroy');
-    //     $this->middleware(['auth', 'permission:email-invoices'])->only('emailInvoice');
-    //     $this->middleware(['auth', 'permission:update-invoice-status'])->only(['updateStatus', 'recordPayment']);
-    // }
-
-    /**
-     * Display a listing of all sales.
-     */
     public function index()
     {
         $sales = Sale::with('customer', 'saleable')
@@ -41,9 +32,6 @@ class SalesController extends Controller
         return view('sales.index', compact('sales', 'totalSales', 'totalQuantity'));
     }
 
-    /**
-     * Display a listing of egg sales.
-     */
     public function sales()
     {
         $sales = Sale::with('customer', 'saleable')
@@ -56,9 +44,6 @@ class SalesController extends Controller
         return view('eggs.sales', compact('sales', 'totalSales', 'totalCratesSold'));
     }
 
-    /**
-     * Display a listing of bird sales.
-     */
     public function birdSales()
     {
         $sales = Sale::with('customer', 'saleable')
@@ -71,9 +56,6 @@ class SalesController extends Controller
         return view('sales.birds', compact('sales', 'totalSales', 'totalQuantity'));
     }
 
-    /**
-     * Display the invoices listing with filters.
-     */
     public function invoices(Request $request)
     {
         $query = Sale::with('customer');
@@ -90,9 +72,6 @@ class SalesController extends Controller
         return view('invoices.index', compact('sales'));
     }
 
-    /**
-     * Show the form for creating a new sale.
-     */
     public function create()
     {
         $birds = Bird::where('quantity', '>', 0)->get();
@@ -101,11 +80,12 @@ class SalesController extends Controller
         return view('sales.create', compact('birds', 'eggs', 'customers'));
     }
 
-    /**
-     * Store a newly created sale in storage.
-     */
     public function store(StoreSaleRequest $request)
     {
+        if (!Auth::check()) {
+            return back()->withErrors(['auth' => 'User must be authenticated to record a sale.']);
+        }
+
         $validated = $request->validated();
 
         // Validate stock availability
@@ -127,7 +107,7 @@ class SalesController extends Controller
             ['phone' => $validated['customer_phone'] ?? '', 'email' => $validated['customer_email'] ?? '']
         );
 
-        // Calculate total and set default due date (Net 7 days)
+        // Calculate total and set default due date
         $validated['customer_id'] = $customer->id;
         $validated['total_amount'] = $validated['quantity'] * $validated['unit_price'];
         $validated['due_date'] = $validated['due_date'] ?? Carbon::parse($validated['sale_date'])->addDays(7);
@@ -143,9 +123,31 @@ class SalesController extends Controller
             $egg->decrement('crates', $validated['quantity']);
         }
 
+        // Create transaction
+        $itemType = $validated['saleable_type'] === 'App\Models\Bird' ? 'birds' : 'egg crates';
+        Transaction::create([
+            'type' => 'sale',
+            'amount' => $validated['total_amount'],
+            'status' => 'pending',
+            'date' => $validated['sale_date'],
+            'source_type' => Sale::class,
+            'source_id' => $sale->id,
+            'user_id' => Auth::id(),
+            'description' => "Sale of {$validated['quantity']} {$itemType} to {$customer->name}",
+        ]);
+
+        // Create income record
+        Income::create([
+            'source' => "Sale #{$sale->id}",
+            'description' => "Sale of {$validated['quantity']} {$itemType} to {$customer->name}",
+            'amount' => $validated['total_amount'],
+            'date' => $validated['sale_date'],
+            'created_by' => Auth::id(),
+        ]);
+
         // Log activity
         UserActivityLog::create([
-            'user_id' => Auth::id() ?? 1,
+            'user_id' => Auth::id(),
             'action' => 'created_sale',
             'details' => "Created sale #{$sale->id} for {$customer->name} (Total: {$validated['total_amount']})",
         ]);
@@ -154,15 +156,12 @@ class SalesController extends Controller
         Alert::create([
             'message' => "New sale #{$sale->id} for customer {$customer->name}",
             'type' => 'sale',
-            'user_id' => Auth::id() ?? 1,
+            'user_id' => Auth::id(),
         ]);
 
         return redirect()->route('sales.index')->with('success', 'Sale recorded successfully.');
     }
 
-    /**
-     * Show the form for editing the specified sale.
-     */
     public function edit(Sale $sale)
     {
         $birds = Bird::where('quantity', '>', 0)->orWhere('id', $sale->saleable_id)->get();
@@ -171,25 +170,15 @@ class SalesController extends Controller
         return view('sales.edit', compact('sale', 'birds', 'eggs', 'customers'));
     }
 
-    /**
-     * Update the specified sale in storage.
-     */
-    public function update(Request $request, Sale $sale)
+    public function update(UpdateSaleRequest $request, Sale $sale)
     {
-        $validated = $request->validate([
-            'customer_name' => 'required|string|max:255',
-            'customer_phone' => 'nullable|string|max:20',
-            'customer_email' => 'nullable|email|max:255',
-            'saleable_type' => 'required|in:App\Models\Bird,App\Models\Egg',
-            'saleable_id' => 'required|integer',
-            'product_variant' => 'required|in:big,small,cracked,broiler,layer',
-            'quantity' => 'required|integer|min:1',
-            'unit_price' => 'required|numeric|min:0',
-            'sale_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:sale_date',
-        ]);
+        if (!Auth::check()) {
+            return back()->withErrors(['auth' => 'User must be authenticated to update a sale.']);
+        }
 
-        // Validate stock availability (accounting for original quantity)
+        $validated = $request->validated();
+
+        // Validate stock availability
         $quantityDiff = $validated['quantity'] - $sale->quantity;
         if ($quantityDiff > 0) {
             if ($validated['saleable_type'] === 'App\Models\Bird') {
@@ -213,7 +202,6 @@ class SalesController extends Controller
 
         // Update stock
         if ($quantityDiff != 0 || $sale->saleable_id != $validated['saleable_id'] || $sale->saleable_type != $validated['saleable_type']) {
-            // Restore original stock
             if ($sale->saleable_type === 'App\Models\Bird') {
                 $originalBird = Bird::find($sale->saleable_id);
                 if ($originalBird) {
@@ -226,7 +214,6 @@ class SalesController extends Controller
                 }
             }
 
-            // Deduct new stock
             if ($validated['saleable_type'] === 'App\Models\Bird') {
                 $bird = Bird::find($validated['saleable_id']);
                 if ($bird) {
@@ -246,11 +233,41 @@ class SalesController extends Controller
         $validated['due_date'] = $validated['due_date'] ?? ($sale->due_date ?? Carbon::parse($validated['sale_date'])->addDays(7));
 
         $sale->update($validated);
-        $sale->updatePaymentStatus(); // Update status based on payments
+        $sale->updatePaymentStatus();
+
+        // Update or create transaction
+        $itemType = $validated['saleable_type'] === 'App\Models\Bird' ? 'birds' : 'egg crates';
+        Transaction::updateOrCreate(
+            [
+                'source_type' => Sale::class,
+                'source_id' => $sale->id,
+            ],
+            [
+                'type' => 'sale',
+                'amount' => $validated['total_amount'],
+                'status' => $sale->status,
+                'date' => $validated['sale_date'],
+                'user_id' => Auth::id(),
+                'description' => "Updated sale of {$validated['quantity']} {$itemType} to {$customer->name}",
+            ]
+        );
+
+        // Update or create income record
+        Income::updateOrCreate(
+            [
+                'source' => "Sale #{$sale->id}",
+            ],
+            [
+                'description' => "Sale of {$validated['quantity']} {$itemType} to {$customer->name}",
+                'amount' => $validated['total_amount'],
+                'date' => $validated['sale_date'],
+                'created_by' => Auth::id(),
+            ]
+        );
 
         // Log activity
         UserActivityLog::create([
-            'user_id' => Auth::id() ?? 1,
+            'user_id' => Auth::id(),
             'action' => 'updated_sale',
             'details' => "Updated sale #{$sale->id} for {$customer->name} (Total: {$validated['total_amount']})",
         ]);
@@ -258,12 +275,12 @@ class SalesController extends Controller
         return redirect()->route('sales.index')->with('success', 'Sale updated successfully.');
     }
 
-    /**
-     * Remove the specified sale from storage.
-     */
     public function destroy(Sale $sale)
     {
-        // Prevent deletion if payments exist
+        if (!Auth::check()) {
+            return back()->withErrors(['auth' => 'User must be authenticated to delete a sale.']);
+        }
+
         if ($sale->payments()->exists()) {
             return redirect()->route('sales.index')->with('error', 'Cannot delete sale with associated payments.');
         }
@@ -281,9 +298,17 @@ class SalesController extends Controller
             }
         }
 
+        // Delete transaction
+        Transaction::where('source_type', Sale::class)
+            ->where('source_id', $sale->id)
+            ->delete();
+
+        // Delete income record
+        Income::where('source', "Sale #{$sale->id}")->delete();
+
         // Log activity
         UserActivityLog::create([
-            'user_id' => Auth::id() ?? 1,
+            'user_id' => Auth::id(),
             'action' => 'deleted_sale',
             'details' => "Deleted sale #{$sale->id} for {$sale->customer->name} (Total: {$sale->total_amount})",
         ]);
@@ -292,9 +317,6 @@ class SalesController extends Controller
         return redirect()->route('sales.index')->with('success', 'Sale deleted successfully.');
     }
 
-    /**
-     * Generate and preview/download the invoice PDF for a sale.
-     */
     public function invoice(Sale $sale, Request $request)
     {
         $sale->load('customer', 'saleable', 'payments');
@@ -320,9 +342,8 @@ class SalesController extends Controller
 
         $pdf = Pdf::loadView('sales.invoice', compact('sale', 'company'));
 
-        // Log activity
         UserActivityLog::create([
-            'user_id' => Auth::id() ?? 1,
+            'user_id' => Auth::id(),
             'action' => 'generated_invoice',
             'details' => "Generated invoice for sale #{$sale->id} for {$sale->customer->name}",
         ]);
@@ -330,11 +351,12 @@ class SalesController extends Controller
         return $pdf->download($filename);
     }
 
-    /**
-     * Update the invoice status (manual override, e.g., for disputes).
-     */
     public function updateStatus(Request $request, Sale $sale)
     {
+        if (!Auth::check()) {
+            return back()->withErrors(['auth' => 'User must be authenticated to update invoice status.']);
+        }
+
         $validated = $request->validate([
             'status' => 'required|in:pending,paid,partially_paid,overdue',
         ]);
@@ -342,99 +364,83 @@ class SalesController extends Controller
         $oldStatus = $sale->status;
         $sale->update(['status' => $validated['status']]);
 
-        // Log activity
+        // Update transaction status
+        Transaction::where('source_type', Sale::class)
+            ->where('source_id', $sale->id)
+            ->update(['status' => $validated['status']]);
+
+        // Update income status if necessary
+        Income::where('source', "Sale #{$sale->id}")
+            ->update(['synced_at' => $validated['status'] === 'paid' ? now() : null]);
+
         UserActivityLog::create([
-            'user_id' => Auth::id() ?? 1,
+            'user_id' => Auth::id(),
             'action' => 'updated_invoice_status',
             'details' => "Changed status of invoice #{$sale->id} for {$sale->customer->name} from {$oldStatus} to {$validated['status']}",
         ]);
 
-        // Create alert
         Alert::create([
             'message' => "Invoice #{$sale->id} status changed to {$validated['status']} for {$sale->customer->name}",
             'type' => 'payment',
-            'user_id' => Auth::id() ?? 1,
+            'user_id' => Auth::id(),
         ]);
 
         return redirect()->route('invoices.index')->with('success', 'Invoice status updated successfully.');
     }
 
-    /**
-     * Record a payment for an invoice.
-     */
     public function recordPayment(Request $request, Sale $sale)
     {
+        if (!Auth::check()) {
+            return back()->withErrors(['auth' => 'User must be authenticated to record a payment.']);
+        }
+
         if ($sale->isPaid()) {
             return redirect()->route('invoices.index')->with('error', 'Invoice is already fully paid.');
         }
 
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:0.01|max:'.($sale->total_amount - $sale->paid_amount),
+            'amount' => 'required|numeric|min:0.01|max:' . ($sale->total_amount - $sale->paid_amount),
             'payment_date' => 'required|date',
             'payment_method' => 'nullable|string|in:cash,bank_transfer,mobile_money|max:255',
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $payment = $sale->payments()->create([
-            'customer_id' => $sale->customer_id,
+        // Record the payment
+        $payment = Payment::create([
+            'sale_id' => $sale->id,
             'amount' => $validated['amount'],
             'payment_date' => $validated['payment_date'],
-            'payment_method' => $validated['payment_method'],
-            'notes' => $validated['notes'],
+            'payment_method' => $validated['payment_method'] ?? null,
+            'notes' => $validated['notes'] ?? null,
         ]);
 
-        // Update paid_amount and status
+        // Update the sale's paid amount
+        $sale->increment('paid_amount', $validated['amount']);
+        $sale->refresh();
+
+        // Automatically update status
         $sale->updatePaymentStatus();
 
-        // Log activity
+        // Update income synced_at if sale is fully paid
+        if ($sale->isPaid()) {
+            Income::where('source', "Sale #{$sale->id}")
+                ->update(['synced_at' => now()]);
+        }
+
+        // Log the activity
         UserActivityLog::create([
-            'user_id' => Auth::id() ?? 1,
+            'user_id' => Auth::id(),
             'action' => 'recorded_payment',
-            'details' => "Recorded payment of {$validated['amount']} for invoice #{$sale->id} (Customer: {$sale->customer->name})",
+            'details' => "Recorded payment of GH₵ {$validated['amount']} for sale #{$sale->id} to {$sale->customer->name}",
         ]);
 
         // Create alert
         Alert::create([
-            'message' => "Payment of {$validated['amount']} recorded for invoice #{$sale->id}",
+            'message' => "Payment of GH₵ {$validated['amount']} recorded for invoice #{$sale->id} ({$sale->customer->name})",
             'type' => 'payment',
-            'user_id' => Auth::id() ?? 1,
+            'user_id' => Auth::id(),
         ]);
 
         return redirect()->route('invoices.index')->with('success', 'Payment recorded successfully.');
     }
-
-    /**
-     * Email the invoice to the customer (commented out for local hosting).
-     */
-    /*
-    public function emailInvoice(Sale $sale)
-    {
-        $sale->load('customer', 'saleable', 'payments');
-
-        if (!$sale->customer || !$sale->customer->email) {
-            return redirect()->back()->with('error', 'Customer email not found.');
-        }
-
-        $company = [
-            'name' => config('app.name', 'Poultry Tracker'),
-            'address' => 'Aprah Opeicuma, Awutu Senya West',
-            'phone' => '0593036689',
-            'email' => 'info@poultrytracker.local',
-        ];
-
-        $pdf = Pdf::loadView('sales.invoice', compact('sale', 'company'));
-        $pdfData = $pdf->output();
-
-        Mail::to($sale->customer->email)->send(new \App\Mail\InvoiceMail($sale, $company, $pdfData));
-
-        // Log activity
-        UserActivityLog::create([
-            'user_id' => Auth::id() ?? 1,
-            'action' => 'emailed_invoice',
-            'details' => "Emailed invoice #{$sale->id} to {$sale->customer->name}",
-        ]);
-
-        return redirect()->route('invoices.index')->with('success', 'Invoice emailed successfully.');
-    }
-    */
 }

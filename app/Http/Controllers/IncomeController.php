@@ -3,24 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Models\Income;
-use Illuminate\Container\Attributes\Auth;
+use App\Models\Transaction;
+use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class IncomeController extends Controller
 {
     public function index()
     {
-        $incomes = Income::all();
-
-        // Monthly income comparison (last 6 months)
+        $incomes = Income::withoutTrashed()->get();
         $incomeData = [];
         $incomeLabels = [];
         for ($i = 0; $i < 6; $i++) {
             $month = now()->subMonths($i);
             $incomeLabels[] = $month->format('M Y');
-            $incomeData[] = Income::whereMonth('date', $month->month)
-                                  ->whereYear('date', $month->year)
-                                  ->sum('amount');
+            $incomeData[] = Income::withoutTrashed()
+                ->whereMonth('date', $month->month)
+                ->whereYear('date', $month->year)
+                ->sum('amount') ?? 0;
         }
         $incomeLabels = array_reverse($incomeLabels);
         $incomeData = array_reverse($incomeData);
@@ -42,8 +43,26 @@ class IncomeController extends Controller
             'date' => 'required|date',
         ]);
 
-        $data['created_by'] = Auth::id();
-        Income::create($data);
+        $data['created_by'] = Auth::id() ?? 1;
+        $income = Income::create($data);
+
+        Transaction::create([
+            'type' => 'income',
+            'amount' => $data['amount'],
+            'status' => 'pending',
+            'date' => $data['date'],
+            'source_type' => Income::class,
+            'source_id' => $income->id,
+            'user_id' => Auth::id() ?? 1,
+            'description' => "Income from {$data['source']}: {$data['description']}",
+        ]);
+
+        UserActivityLog::create([
+            'user_id' => Auth::id() ?? 1,
+            'action' => 'created_income',
+            'details' => "Created income of \${$data['amount']} from {$data['source']} on {$data['date']}",
+        ]);
+
         return redirect()->route('income.index')->with('success', 'Income added successfully');
     }
 
@@ -61,24 +80,48 @@ class IncomeController extends Controller
             'date' => 'required|date',
         ]);
 
-        $data['created_by'] = Auth::id();
+        $data['created_by'] = Auth::id() ?? 1;
         $income->update($data);
+
+        Transaction::updateOrCreate(
+            [
+                'source_type' => Income::class,
+                'source_id' => $income->id,
+            ],
+            [
+                'type' => 'income',
+                'amount' => $data['amount'],
+                'status' => 'pending',
+                'date' => $data['date'],
+                'user_id' => Auth::id() ?? 1,
+                'description' => "Updated income from {$data['source']}: {$data['description']}",
+            ]
+        );
+
+        UserActivityLog::create([
+            'user_id' => Auth::id() ?? 1,
+            'action' => 'updated_income',
+            'details' => "Updated income of \${$data['amount']} from {$data['source']} on {$data['date']}",
+        ]);
+
         return redirect()->route('income.index')->with('success', 'Income updated successfully');
     }
 
     public function destroy($id)
     {
-        $income = Income::findorFail($id);
+        $income = Income::withoutTrashed()->findOrFail($id);
+
+        Transaction::where('source_type', Income::class)
+            ->where('source_id', $income->id)
+            ->delete();
+
+        UserActivityLog::create([
+            'user_id' => Auth::id() ?? 1,
+            'action' => 'deleted_income',
+            'details' => "Deleted income of \${$income->amount} from {$income->source} on {$income->date}",
+        ]);
+
         $income->delete();
         return redirect()->route('income.index')->with('success', 'Income deleted successfully');
     }
-
-
-//     public function transactions(Customer $customer)
-// {
-//     $sales = Sale::where('customer_id', $customer->id)->with('saleable')->paginate(10);
-//     return view('customers.transactions', compact('customer', 'sales'));
-// }
-
-// Route::get('/customers/{customer}/transactions', [CustomerController::class, 'transactions'])->name('customers.transactions');
 }

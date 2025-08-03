@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -170,6 +171,10 @@
                             <a href="{{ route('payroll.index') }}"
                                class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('payroll.*') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}">
                                 Payroll
+                            </a>
+                            <a href="{{ route('transactions.index') }}"
+                               class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('transactions.*') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}">
+                                Transactions
                             </a>
                         </div>
                     </div>
@@ -360,11 +365,6 @@
 
                 <!-- Main Content Area -->
                 <main class="flex-1 overflow-y-auto p-4">
-                    @if (auth()->check())
-                        <p>Debug: User ID: {{ auth()->user()->id }}, Avatar: {{ auth()->user()->avatar ?? 'No avatar' }}</p>
-                    @else
-                        <p>Debug: No authenticated user</p>
-                    @endif
                     @yield('content')
                 </main>
             </div>
@@ -378,7 +378,6 @@
     @endguest
 
     <!-- Scripts -->
-    {{-- <script src="{{ asset('js/chart.umd.js') }}"></script> --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
@@ -435,7 +434,7 @@
         // Global Loader Instance
         const globalLoader = new Loader();
 
-        // Notification Manager (Modified to Handle Dropdown Only)
+        // Notification Manager
         class NotificationManager {
             constructor() {
                 this.dropdown = document.getElementById('notification-dropdown');
@@ -446,7 +445,6 @@
             }
 
             show(id, message, type = 'info', timeout = 5000, url = '#') {
-                // Only add to notifications array for dropdown
                 this.notifications.push({ id, message, type, url });
                 this.updateNotificationDropdown();
                 this.updateNotificationCount();
@@ -551,7 +549,7 @@
             }
         }
 
-        // Search Manager (Unchanged)
+        // Search Manager
         class SearchManager {
             constructor() {
                 this.container = document.getElementById('search-container');
@@ -659,7 +657,7 @@
             globalLoader.hide();
         };
 
-        // Sidebar Toggle Script (Unchanged)
+        // Sidebar Toggle Script
         (function() {
             const sidebar = document.getElementById('sidebar');
             const sidebarToggle = document.getElementById('sidebar-toggle');
@@ -857,13 +855,6 @@
                     iconSun.classList.toggle('hidden', !isDark);
                 });
             }
-
-            // Debug Button Clicks
-            document.querySelectorAll('button, a').forEach(button => {
-                button.addEventListener('click', () => {
-                    console.log(`Button clicked: ${button.id || button.textContent.trim()}`);
-                });
-            });
 
             // Handle form submissions
             document.addEventListener('submit', (event) => {

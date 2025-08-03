@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreSaleRequest extends FormRequest
+class UpdateSaleRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -14,7 +14,7 @@ class StoreSaleRequest extends FormRequest
      */
     public function authorize()
     {
-        return auth()->check();
+        return auth()->check(); // Ensure the user is authenticated
     }
 
     /**

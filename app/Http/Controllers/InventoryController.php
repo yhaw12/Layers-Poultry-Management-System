@@ -22,7 +22,7 @@ class InventoryController extends Controller
 
         // Inventory low stock
         $lowInventory = Inventory::where('qty', '<', DB::raw('threshold'))
-            ->get(['id', 'item_name as name', 'qty', 'threshold', DB::raw('"Inventory" as type')]);
+            ->get(['id', 'name', 'qty', 'threshold', DB::raw('"Inventory" as type')]);
         $lowStockItems = $lowStockItems->concat($lowInventory);
 
         // Feed low stock
@@ -33,13 +33,13 @@ class InventoryController extends Controller
         // Medicine low stock
         $lowMedicine = MedicineLog::select('medicine_name as name')
             ->selectRaw('SUM(CASE WHEN type = "purchase" THEN quantity ELSE -quantity END) as qty')
-            ->selectRaw('10 as threshold') // Adjust threshold as needed
+            ->selectRaw('10 as threshold')
             ->groupBy('medicine_name')
             ->havingRaw('qty < 10')
             ->get()
             ->map(function ($item) {
                 return (object) [
-                    'id' => null, // No single ID since it's aggregated
+                    'id' => null,
                     'name' => $item->name,
                     'qty' => $item->qty,
                     'threshold' => $item->threshold,
@@ -62,14 +62,14 @@ class InventoryController extends Controller
             'name' => 'required|string|max:255',
             'sku' => 'required|unique:inventories,sku',
             'qty' => 'required|integer|min:0',
-            'threshold' => 'required|integer|min:0', // Add threshold validation
+            'threshold' => 'required|integer|min:0',
         ]);
 
         $inventory = Inventory::create($req->only('name', 'sku', 'qty', 'threshold'));
 
         // Check for low stock and create alert if needed
         if ($inventory->qty <= $inventory->threshold) {
-            $this->createLowStockAlert('Inventory', $inventory->item_name, $inventory->qty, $inventory->threshold, Auth::id());
+            $this->createLowStockAlert('Inventory', $inventory->name, $inventory->qty, $inventory->threshold, Auth::id());
         }
 
         return redirect()->route('inventory.index')
@@ -94,7 +94,7 @@ class InventoryController extends Controller
 
         // Check for low stock and create alert if needed
         if ($inventory->qty <= $inventory->threshold) {
-            $this->createLowStockAlert('Inventory', $inventory->item_name, $inventory->qty, $inventory->threshold, Auth::id());
+            $this->createLowStockAlert('Inventory', $inventory->name, $inventory->qty, $inventory->threshold, Auth::id());
         }
 
         return redirect()->route('inventory.index')
@@ -110,12 +110,12 @@ class InventoryController extends Controller
 
     public function lowStock()
     {
-        // Reuse the low stock query from index
+        // Fetch low stock items for Inventory, Feed, and Medicine
         $lowStockItems = collect();
 
         // Inventory low stock
         $lowInventory = Inventory::where('qty', '<', DB::raw('threshold'))
-            ->get(['id', 'item_name as name', 'qty', 'threshold', DB::raw('"Inventory" as type')]);
+            ->get(['id', 'name', 'qty', 'threshold', DB::raw('"Inventory" as type')]);
         $lowStockItems = $lowStockItems->concat($lowInventory);
 
         // Feed low stock
@@ -161,7 +161,6 @@ class InventoryController extends Controller
      */
     private function createLowStockAlert($type, $name, $quantity, $threshold, $userId)
     {
-        // Check if an alert already exists for this item
         $existingAlert = Alert::where('message', "Low stock for {$name}: {$quantity} remaining (Threshold: {$threshold})")
             ->where('type', 'warning')
             ->whereNull('read_at')

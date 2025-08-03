@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('name', 255);
             $table->string('sku')->unique();
             $table->integer('qty')->unsigned()->default(0);
+             $table->integer('threshold')->unsigned()->default(10);
             $table->timestamps();
             $table->softDeletes();
         });

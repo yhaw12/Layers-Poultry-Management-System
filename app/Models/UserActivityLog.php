@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class UserActivityLog extends Model
 {
     use SoftDeletes;
-    protected $fillable = ['user_id', 'action', 'details'];
+    protected $fillable = ['user_id', 'action', 'details', 'created_at'];
 
     public function user()
     {

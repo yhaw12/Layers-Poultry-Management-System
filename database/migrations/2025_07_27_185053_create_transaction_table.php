@@ -6,26 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-       Schema::create('transactions', function (Blueprint $table) {
-        $table->id();
-        $table->string('type');
-        $table->decimal('amount', 10, 2);
-        $table->string('status')->default('pending');
-        $table->date('date');
-        $table->timestamps();
+        Schema::create('transactions', function (Blueprint $table) {
+            $table->id();
+            $table->string('type'); // e.g., 'sale', 'expense', 'income', 'order'
+            $table->decimal('amount', 10, 2);
+            $table->string('status')->default('pending'); // pending, approved, rejected
+            $table->date('date');
+            $table->morphs('source'); // source_type, source_id (e.g., Sale, Expense)
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->text('description')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('transaction');
+        Schema::dropIfExists('transactions');
     }
 };

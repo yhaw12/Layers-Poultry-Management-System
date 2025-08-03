@@ -1,4 +1,3 @@
-{{-- dashboard --}}
 @extends('layouts.app')
 
 @section('content')
@@ -21,6 +20,63 @@
                 </div>
             </form>
         </section>
+
+        <!-- Alerts (Admin Only) -->
+        @role('admin')
+            <section id="alerts-section" class="mb-8 relative">
+                <div class="container-box">
+                    <button id="close-alerts" class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none" title="Close Alerts">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                    @if (session('error'))
+                        <div class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-4 rounded-2xl mb-4" role="alert">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+                    @if (session('success'))
+                        <div class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 p-4 rounded-2xl mb-4" role="alert">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Alerts</h3>
+                        @if ($alerts->isNotEmpty())
+                            <form action="{{ route('alerts.dismiss') }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium">
+                                    Dismiss All
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                    <div id="alerts-content">
+                        @if ($alerts->isNotEmpty())
+                            <ul class="space-y-3">
+                                @foreach ($alerts as $item)
+                                    <li class="list-item">
+                                        <div class="flex justify-between items-center">
+                                            <span class="{{ $item->type === 'warning' ? 'text-red-600' : ($item->type === 'sale' ? 'text-green-600' : '') }}">{{ $item->message }}</span>
+                                            @if ($item->id && $item->user_id)
+                                                <form action="{{ route('alerts.read', $item->id) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Mark as Read</button>
+                                                </form>
+                                            @elseif (!$item->id)
+                                                <span class="text-gray-500 text-sm">Cannot mark as read (No ID)</span>
+                                            @endif
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <p class="no-data">No active alerts at this time.</p>
+                        @endif
+                    </div>
+                </div>
+            </section>
+        @endrole
 
         <!-- Daily Instructions (Labourer) -->
         @role('labourer')
@@ -160,61 +216,6 @@
             </section>
         @endrole
 
-        <!-- Alerts (Admin Only) -->
-        @role('admin')
-            <section id="alerts-section" class="mb-8 relative">
-                <div class="container-box">
-                    <button id="close-alerts" class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none" title="Close Alerts">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                    @if (session('error'))
-                        <div class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-4 rounded-2xl mb-4" role="alert">
-                            {{ session('error') }}
-                        </div>
-                    @endif
-                    @if (session('success'))
-                        <div class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 p-4 rounded-2xl mb-4" role="alert">
-                            {{ session('success') }}
-                        </div>
-                    @endif
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Alerts</h3>
-                        @if ($alerts->isNotEmpty())
-                            <form action="{{ route('alerts.dismiss-all') }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium">
-                                    Dismiss All
-                                </button>
-                            </form>
-                        @endif
-                    </div>
-                    <div id="alerts-content">
-                        @if ($alerts->isNotEmpty())
-                            <ul class="space-y-3">
-                                @foreach ($alerts as $item)
-                                    <li class="list-item">
-                                        <div class="flex justify-between items-center">
-                                            <span class="{{ $item->type === 'warning' ? 'text-red-600' : '' }}">{{ $item->message }}</span>
-                                            @if ($item->user_id)
-                                                <form action="{{ route('alerts.read', $item) }}" method="POST" class="inline">
-                                                    @csrf
-                                                    <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Mark as Read</button>
-                                                </form>
-                                            @endif
-                                        </div>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @else
-                            <p class="no-data">No active alerts at this time.</p>
-                        @endif
-                    </div>
-                </div>
-            </section>
-        @endrole
-
         <!-- Financial Summary (Admins with Permission) -->
         @can('manage_finances')
             <section class="mb-8">
@@ -258,7 +259,7 @@
         @endcan
 
         <!-- Payroll Status (Accountant) -->
-        @role('accountant')
+        @role('admin')
             <section class="mb-8">
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Payroll Status</h2>
                 <div class="container-box">
@@ -277,6 +278,54 @@
             </section>
         @endrole
 
+        <!-- Pending Approvals (Admins or Finance Managers) -->
+        @if ($pendingApprovals->isNotEmpty() && (auth()->user()->hasRole('admin') || auth()->user()->hasPermissionTo('manage_finances')))
+            <section class="mb-8">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Pending Approvals</h2>
+                <div class="container-box">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            @foreach ($pendingApprovals as $approval)
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ $approval->id }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ ucfirst($approval->type) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${{ number_format($approval->amount, 2) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ $approval->date }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                        @if ($approval->source_type === \App\Models\Sale::class)
+                                            Sale #{{ $approval->source_id }}
+                                        @elseif ($approval->source_type === \App\Models\Expense::class)
+                                            Expense: {{ $approval->source->category }}
+                                        @elseif ($approval->source_type === \App\Models\Income::class)
+                                            Income: {{ $approval->source->source }}
+                                        @elseif ($approval->source_type === \App\Models\Order::class)
+                                            Order #{{ $approval->source_id }}
+                                        @else
+                                            N/A
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <a href="{{ route('transactions.approve', $approval->id) }}" class="text-green-600 dark:text-green-400 hover:underline">Approve</a>
+                                        <a href="{{ route('transactions.reject', $approval->id) }}" class="text-red-600 dark:text-red-400 hover:underline ml-4">Reject</a>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        @endif
+
         <!-- Key Performance Indicators (KPIs) -->
         <section class="mb-8">
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Key Performance Indicators (KPIs)</h2>
@@ -286,7 +335,8 @@
                         ['label' => 'Chicks', 'value' => $chicks ?? 0, 'icon' => '🐤'],
                         ['label' => 'Layers', 'value' => $layers ?? 0, 'icon' => '🐓'],
                         ['label' => 'Broilers', 'value' => $broilers ?? 0, 'icon' => '🥩'],
-                        ['label' => 'Mortality %', 'value' => number_format($mortalityRate ?? 0, 2), 'icon' => '⚰️'],
+                        ['label' => 'Mortality Count', 'value' => $metrics['mortality'] ?? 0, 'icon' => '⚰️'],
+                        ['label' => 'Mortality %', 'value' => number_format($mortalityRate ?? 0, 2), 'icon' => '📊'],
                     ],
                     'Production' => [
                         ['label' => 'Egg Crates', 'value' => $metrics['egg_crates'] ?? 0, 'icon' => '🥚'],
@@ -429,7 +479,7 @@
 
         <!-- Invoice Status (Admin Only) -->
         @role('admin')
-            <section class="mb-2xl">
+            <section class="mb-8">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Invoice Status</h2>
                     <form action="{{ route('dashboard.export') }}" method="POST">

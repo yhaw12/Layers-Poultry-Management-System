@@ -28,6 +28,7 @@ use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\VaccinationLogController;
 
 /*
@@ -204,11 +205,21 @@ Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])->n
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
 
-     Route::get('/notifications', [AlertController::class, 'index'])->name('alerts.index');
+     // Route::get('/notifications', [AlertController::class, 'index'])->name('alerts.index');
     Route::post('/notifications/{id}/read', [AlertController::class, 'markAsRead'])->name('alerts.read');
     Route::post('/notifications/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismissAll');
 
 Route::get('/search', [SearchController::class, 'index'])->name('search');
 Route::get('/alerts/low-stock', [InventoryController::class, 'lowStock'])->name('alerts.low-stock');
+
+
+    Route::get('/transactions', [TransactionsController::class, 'index'])->name('transactions.index');
+    Route::post('/transactions/{transaction}/approve', [App\Http\Controllers\TransactionsController::class, 'approve'])->name('transactions.approve');
+    Route::post('/transactions/{transaction}/reject', [App\Http\Controllers\TransactionsController::class, 'reject'])->name('transactions.reject');
+   
+//     Route::get('/notifications', [AlertController::class, 'index'])->name('alerts.index');
+    Route::get('/alerts', [AlertController::class, 'view'])->name('alerts.index');
+    Route::post('/alerts/{id}/read', [AlertController::class, 'markAsRead'])->name('alerts.read');
+    Route::post('/alerts/dismiss', [AlertController::class, 'dismissAll'])->name('alerts.dismiss');
 
 });
