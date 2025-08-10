@@ -64,7 +64,7 @@ class ReportController extends Controller
 
             if (in_array('eggs', $metrics)) {
                 $data['eggs'] = Egg::whereBetween('date_laid', [$startDate, $endDate])
-                    ->select('date_laid', 'sold_quantity as quantity')
+                    ->select('date_laid', 'quantity')
                     ->orderBy('date_laid')
                     ->get();
             }

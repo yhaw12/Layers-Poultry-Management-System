@@ -8,7 +8,6 @@ use App\Models\MedicineLog;
 use App\Models\Payroll;
 use App\Models\Expense;
 use App\Models\Income;
-use App\Models\Chicks;
 use App\Models\Bird;
 use App\Models\Mortalities;
 use App\Models\Egg;
@@ -20,7 +19,7 @@ use App\Observers\MedicineLogObserver;
 use App\Observers\PayrollObserver;
 use App\Observers\ExpenseObserver;
 use App\Observers\IncomeObserver;
-use App\Observers\ChicksObserver;
+// use App\Observers\ChicksObserver;
 use App\Observers\BirdObserver;
 use App\Observers\MortalitiesObserver;
 use App\Observers\EggObserver;
@@ -54,12 +53,12 @@ class EventServiceProvider extends ServiceProvider
         Payroll::observe(PayrollObserver::class);
         Expense::observe(ExpenseObserver::class);
         Income::observe(IncomeObserver::class);
-        Chicks::observe(ChicksObserver::class);
-        // Bird::observe(BirdObserver::class);
+        // Chicks::observe(ChicksObserver::class);
+        Bird::observe(BirdObserver::class);
         Mortalities::observe(MortalitiesObserver::class);
-        // Egg::observe(EggObserver::class);
+         Egg::observe(EggObserver::class);
         Feed::observe(FeedObserver::class);
-        // Sale::observe(SaleObserver::class); 
+        Sale::observe(SaleObserver::class); 
         Customer::observe(CustomerObserver::class);
     }
 

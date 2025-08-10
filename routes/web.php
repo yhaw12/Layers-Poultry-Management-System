@@ -1,12 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Auth\AdminUserController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AlertController;
 use App\Http\Controllers\BirdsController;
-use App\Http\Controllers\ChicksController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiseaseController;
@@ -30,6 +28,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\VaccinationLogController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,33 +36,11 @@ use App\Http\Controllers\VaccinationLogController;
 |--------------------------------------------------------------------------
 */
 Route::middleware('guest')->group(function () {
-    Route::get('login',  [UserController::class, 'showLoginForm'])->name('login');
+    Route::get('login', [UserController::class, 'showLoginForm'])->name('login');
     Route::post('login', [UserController::class, 'login']);
-
-    Route::get('register',  [UserController::class, 'showRegistrationForm'])->name('register');
+    Route::get('register', [UserController::class, 'showRegistrationForm'])->name('register');
     Route::post('register', [UserController::class, 'register']);
 });
-
-/*
-|--------------------------------------------------------------------------
-| Admin-Only Routes (under /admin, named admin.*)
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth', 'role:admin'])
-     ->group(function () {
-         Route::resource('users', AdminUserController::class)->except('show');
-
-         Route::get('activity-logs', [ActivityLogController::class, 'index'])
-              ->name('activity-logs.index');
-
-         Route::post('alerts/{alert}/read',   [ActivityLogController::class, 'read'])
-              ->name('alerts.read');
-         Route::post('alerts/dismiss-all',    [ActivityLogController::class, 'dismissAll'])
-              ->name('alerts.dismiss-all');
-
-         Route::resource('roles', RoleController::class)
-              ->only(['index', 'store']);
-     });
 
 /*
 |--------------------------------------------------------------------------
@@ -71,33 +48,25 @@ Route::middleware(['auth', 'role:admin'])
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    // logout
+    // Logout
     Route::post('logout', [UserController::class, 'logout'])->name('logout');
 
-    // dashboard
-    Route::get('/',                [DashboardController::class, 'index'])->name('dashboard');
+    // Dashboard
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('dashboard/export', [DashboardController::class, 'exportPDF'])
          ->name('dashboard.export')
          ->middleware('role:admin');
 
-    /*
-    |--------------------------------------------------------------
-    | Re-expose alerts routes under their old names so your views
-    | calling route('alerts.dismiss-all') still work.
-    |--------------------------------------------------------------
-    */
-    Route::post('alerts/{alert}/read',   [ActivityLogController::class, 'read'])
-         ->name('alerts.read')
+    // Alerts
+    Route::get('alerts', [AlertController::class, 'view'])->name('alerts.index');
+    Route::post('alerts/{id}/read', [AlertController::class, 'markAsRead'])->name('alerts.read');
+    Route::post('alerts/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismiss-all');
+    Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])->name('alerts.custom.create')
          ->middleware('role:admin');
 
-    Route::post('alerts/dismiss-all',    [ActivityLogController::class, 'dismissAll'])
-         ->name('alerts.dismiss-all')
-         ->middleware('role:admin');
-
-    // core resources
+    // Core resources
     Route::resources([
         'birds'            => BirdsController::class,
-        'chicks'           => ChicksController::class,
         'customers'        => CustomerController::class,
         'eggs'             => EggController::class,
         'employees'        => EmployeeController::class,
@@ -114,112 +83,55 @@ Route::middleware('auth')->group(function () {
         'vaccination-logs' => VaccinationLogController::class,
     ]);
 
-    // custom routes
-    Route::delete('eggs/bulk', [EggController::class, 'bulkDelete'])
-         ->name('eggs.bulkDelete');
+    // Health Checks
+    Route::resource('health-checks', HealthCheckController::class)->only(['index', 'create', 'store']);
 
-    Route::get('feed/consumption', [FeedController::class, 'consumption'])
-         ->name('feed.consumption');
-
-    Route::get('medicine-logs/purchase',    [MedicineLogController::class, 'purchase'])
-         ->name('medicine-logs.purchase');
-    Route::get('medicine-logs/consumption', [MedicineLogController::class, 'consumption'])
-         ->name('medicine-logs.consumption');
-
-    Route::get('sales/eggs',  [SalesController::class, 'sales'])
-         ->name('eggs.sales');
-    Route::get('sales/birds', [SalesController::class, 'birdSales'])
-         ->name('sales.birds');
-
-    Route::post('sales/{sale}/status', [SalesController::class, 'updateStatus'])
-         ->name('sales.updateStatus');
-    Route::get('sales/{sale}/invoice', [SalesController::class, 'invoice'])
-         ->name('sales.invoice');
-    Route::get('sales/{sale}/email', [SalesController::class, 'emailInvoice'])
-         ->name('sales.emailInvoice');
-    Route::post('sales/{sale}/payment', [SalesController::class, 'recordPayment'])
-    ->name('sales.recordPayment')
-    ->middleware('auth');
-
-    Route::get('invoices', [SalesController::class, 'invoices'])
-         ->name('invoices.index');
-
-    Route::post('payroll/generate', [PayrollController::class, 'generateMonthly'])
-         ->name('payroll.generate');
-    Route::get('payroll/export',    [PayrollController::class, 'exportPDF'])
-         ->name('payroll.export')
-         ->middleware('role:admin');
-
-    // reports
+    // Other routes
+    Route::delete('eggs/bulk', [EggController::class, 'bulkDelete'])->name('eggs.bulkDelete');
+    Route::get('feed/consumption', [FeedController::class, 'consumption'])->name('feed.consumption');
+    Route::get('medicine-logs/purchase', [MedicineLogController::class, 'purchase'])->name('medicine-logs.purchase');
+    Route::get('medicine-logs/consumption', [MedicineLogController::class, 'consumption'])->name('medicine-logs.consumption');
+    Route::get('sales/eggs', [SalesController::class, 'sales'])->name('eggs.sales');
+    Route::get('sales/birds', [SalesController::class, 'birdSales'])->name('sales.birds');
+    Route::post('sales/{sale}/status', [SalesController::class, 'updateStatus'])->name('sales.updateStatus');
+    Route::get('sales/{sale}/invoice', [SalesController::class, 'invoice'])->name('sales.invoice');
+    Route::get('sales/{sale}/email', [SalesController::class, 'emailInvoice'])->name('sales.emailInvoice');
+    Route::post('sales/{sale}/payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment');
+    Route::get('invoices', [SalesController::class, 'invoices'])->name('invoices.index');
+    Route::post('payroll/generate', [PayrollController::class, 'generateMonthly'])->name('payroll.generate');
+    Route::get('payroll/export', [PayrollController::class, 'exportPDF'])->name('payroll.export')->middleware('role:admin');
     Route::prefix('reports')->name('reports.')->group(function () {
-        Route::get('export',   [ReportController::class, 'export'])->name('export');
-        Route::match(['get','post'], '{type?}', [ReportController::class, 'index'])
-             ->name('index');
-        Route::get('custom',   [ReportController::class, 'custom'])->name('custom');
+        Route::get('export', [ReportController::class, 'export'])->name('export');
+        Route::match(['get', 'post'], '{type?}', [ReportController::class, 'index'])->name('index');
+        Route::get('custom', [ReportController::class, 'custom'])->name('custom');
     });
-
-    // health check & diseases
-    Route::resource('health-checks', HealthCheckController::class)
-         ->only(['index','create','store']);
-
-    Route::get('diseases',               [DiseaseController::class, 'index'])
-         ->name('diseases.index');
-    Route::get('diseases/{disease}/history', [DiseaseController::class, 'history'])
-         ->name('diseases.history');
-    Route::post('diseases',              [DiseaseController::class, 'store'])
-         ->name('diseases.store');
-
-    // user role assignment
-    Route::post('users/{user}/assign-role', [UserController::class, 'assignRole'])
-         ->name('users.assign-role')
-         ->middleware('role:admin');
-
-    // custom alert rules
-    Route::post('alerts/custom/create', [ActivityLogController::class, 'createCustom'])
-         ->name('alerts.custom.create')
-         ->middleware('role:admin');
-
-    Route::post('/users/{user}/toggle-permission', [AdminUserController::class, 'togglePermission'])
-         ->name('users.toggle-permission');
-
-         Route::post('/dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');
-Route::get('/sales/create', [SalesController::class, 'create'])->name('sales.create');
-Route::get('/expenses/create', [ExpenseController::class, 'create'])->name('expenses.create');
-// Route::get('/production/create', [ProductionController::class, 'create'])->name('production.create');
-Route::patch('/vaccinations/{id}/complete', [VaccinationLogController::class, 'complete'])->name('vaccinations.complete');
-Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create');
-Route::get('/suppliers/{id}', [SupplierController::class, 'show'])->name('suppliers.show');
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-Route::resource('income', IncomeController::class);
-// Route::patch('/tasks/{id}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
-Route::patch('/vaccinations/{id}/complete', [VaccinationLogController::class, 'complete'])->name('vaccinations.complete');
-Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create');
-Route::get('/suppliers/{id}', [SupplierController::class, 'show'])->name('suppliers.show');
-Route::post('alerts/{alert}/read', [AlertController::class, 'read'])->name('alerts.read');
-Route::post('alerts/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismiss-all');
-Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])->name('alerts.custom.create');
-
+    Route::get('diseases', [DiseaseController::class, 'index'])->name('diseases.index');
+    Route::get('diseases/{disease}/history', [DiseaseController::class, 'history'])->name('diseases.history');
+    Route::post('diseases', [DiseaseController::class, 'store'])->name('diseases.store');
+    Route::post('users/{user}/assign-role', [UserController::class, 'assignRole'])->name('users.assign-role')->middleware('role:admin');
+    Route::post('/users/{user}/toggle-permission', [AdminUserController::class, 'togglePermission'])->name('users.toggle-permission');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
-
-     // Route::get('/notifications', [AlertController::class, 'index'])->name('alerts.index');
-    Route::post('/notifications/{id}/read', [AlertController::class, 'markAsRead'])->name('alerts.read');
-    Route::post('/notifications/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismissAll');
-
-Route::get('/search', [SearchController::class, 'index'])->name('search');
-Route::get('/alerts/low-stock', [InventoryController::class, 'lowStock'])->name('alerts.low-stock');
-
-
+    Route::get('/search', [SearchController::class, 'index'])->name('search');
+    Route::get('/alerts/low-stock', [InventoryController::class, 'lowStock'])->name('alerts.low-stock');
     Route::get('/transactions', [TransactionsController::class, 'index'])->name('transactions.index');
-    Route::post('/transactions/{transaction}/approve', [App\Http\Controllers\TransactionsController::class, 'approve'])->name('transactions.approve');
-    Route::post('/transactions/{transaction}/reject', [App\Http\Controllers\TransactionsController::class, 'reject'])->name('transactions.reject');
-   
-//     Route::get('/notifications', [AlertController::class, 'index'])->name('alerts.index');
-    Route::get('/alerts', [AlertController::class, 'view'])->name('alerts.index');
-    Route::post('/alerts/{id}/read', [AlertController::class, 'markAsRead'])->name('alerts.read');
-    Route::post('/alerts/dismiss', [AlertController::class, 'dismissAll'])->name('alerts.dismiss');
+    Route::post('/transactions/{transaction}/approve', [TransactionsController::class, 'approve'])->name('transactions.approve');
+    Route::post('/transactions/{transaction}/reject', [TransactionsController::class, 'reject'])->name('transactions.reject');
 
+    // Soft delete routes
+    Route::get('birds/trashed', [BirdsController::class, 'trashed'])->name('birds.trashed');
+    Route::post('birds/{id}/restore', [BirdsController::class, 'restore'])->name('birds.restore');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin-Only Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::resource('users', AdminUserController::class)->except('show');
+    Route::resource('roles', RoleController::class)->only(['index', 'store']);
+    Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
 });

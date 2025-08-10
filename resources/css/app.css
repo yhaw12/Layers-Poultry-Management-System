@@ -110,3 +110,12 @@
 #notification-list .success {
     @apply bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-300;
 }
+
+.container-box > .grid > div, .container-box > table > tbody > tr {
+    animation: fadeIn 0.5s ease-in;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+

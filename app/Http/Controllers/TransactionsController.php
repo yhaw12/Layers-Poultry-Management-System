@@ -27,24 +27,33 @@ class TransactionsController extends Controller
         return view('transactions.index', compact('transactions'));
     }
 
-    public function approve(Transaction $transaction)
+     public function approve(Request $request, Transaction $transaction)
     {
-        $transaction->updateStatus('approved');
+        try {
+            $remainingAmount = $transaction->reference->amount - $transaction->reference->transactions()->where('status', 'approved')->sum('amount');
 
-        // Update source status if applicable
-        if ($transaction->source_type === \App\Models\Sale::class) {
-            $transaction->source->update(['status' => 'paid']);
-        } elseif ($transaction->source_type === \App\Models\Order::class) {
-            $transaction->source->update(['status' => 'paid']);
+            if ($remainingAmount <= 0) {
+                return back()->with('error', 'Transaction cannot be approved; payment already fulfilled.');
+            }
+
+            if ($request->amount && $request->amount < $transaction->amount) {
+                // Handle partial payment
+                $this->createTransaction($transaction->type, [
+                    'amount' => $request->amount,
+                    'status' => 'approved',
+                    'description' => "Partial payment for {$transaction->description}",
+                    'reference_id' => $transaction->reference_id,
+                    'reference_type' => $transaction->reference_type,
+                ]);
+                $transaction->update(['amount' => $transaction->amount - $request->amount]);
+            } else {
+                $this->approveTransaction($transaction);
+            }
+
+            return redirect()->route('transactions.index')->with('success', 'Transaction approved successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to approve transaction.');
         }
-
-        Alert::create([
-            'message' => "Transaction #{$transaction->id} ({$transaction->type}) approved",
-            'type' => 'transaction',
-            'user_id' => Auth::id() ?? 1,
-        ]);
-
-        return redirect()->route('transactions.index')->with('success', 'Transaction approved successfully.');
     }
 
     public function reject(Transaction $transaction)
@@ -60,3 +69,4 @@ class TransactionsController extends Controller
         return redirect()->route('transactions.index')->with('success', 'Transaction rejected successfully.');
     }
 }
+

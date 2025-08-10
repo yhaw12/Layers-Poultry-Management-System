@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Database\Factories\AlertFactory;
 use Database\Factories\BirdFactory;
-use Database\Factories\ChickFactory;
+// use Database\Factories\ChickFactory;
 use Database\Factories\CustomerFactory;
 use Database\Factories\EggFactory;
 use Database\Factories\EmployeeFactory;
@@ -27,6 +27,7 @@ use App\Models\Bird;
 use App\Models\Egg;
 use App\Models\Customer;
 use App\Models\Sale;
+use Database\Factories\PenFactory;
 
 class DatabaseSeeder extends Seeder
 {
@@ -45,8 +46,10 @@ class DatabaseSeeder extends Seeder
         $birds = BirdFactory::new()->count(5000)->create();
 
         // Create Chicks
-        ChickFactory::new()->count(5024)->create();
+        // ChickFactory::new()->count(5024)->create();
 
+       $pen = PenFactory::new()->count(5)->create();
+    
         // Create Eggs
         $eggs = EggFactory::new()->count(2000)->create();
 

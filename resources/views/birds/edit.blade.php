@@ -31,28 +31,68 @@
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
                 </div>
-                <div class="mb-4">
-    <label class="block text-gray-700 dark:text-gray-300">Vaccination Status</label>
-    <input type="text" name="vaccination_status" class="w-full border rounded p-2 dark:bg-gray-800">
-</div>
-<div class="mb-4">
-    <label class="block text-gray-700 dark:text-gray-300">Housing Location</label>
-    <input type="text" name="housing_location" class="w-full border rounded p-2 dark:bg-gray-800">
-</div>
-<div class="mb-4">
-    <label class="block text-gray-700 dark:text-gray-300">Stage</label>
-    <select name="stage" class="w-full border rounded p-2 dark:bg-gray-800">
-        <option value="chick">Chick</option>
-        <option value="grower">Grower</option>
-        <option value="layer">Layer</option>
-    </select>
-</div>
+                <div>
+                    <label for="stage" class="block text-gray-700 dark:text-gray-300">Stage</label>
+                    <select name="stage" id="stage" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
+                        <option value="" disabled>Select Stage</option>
+                        <option value="chick" {{ old('stage', $bird->stage) == 'chick' ? 'selected' : '' }}>Chick</option>
+                        <option value="juvenile" {{ old('stage', $bird->stage) == 'juvenile' ? 'selected' : '' }}>Juvenile (Growing Bird)</option>
+                        <option value="adult" {{ old('stage', $bird->stage) == 'adult' ? 'selected' : '' }}>Adult (Fully Grown)</option>
+                    </select>
+                    @error('stage')
+                        <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
                 <div>
                     <label for="quantity" class="block text-gray-700 dark:text-gray-300">Quantity</label>
                     <input type="number" name="quantity" id="quantity" value="{{ old('quantity', $bird->quantity) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" min="1" required>
                     @error('quantity')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
+                </div>
+                <div class="chick-fields {{ $bird->stage == 'chick' ? '' : 'hidden' }} space-y-6">
+                    <div>
+                        <label for="quantity_bought" class="block text-gray-700 dark:text-gray-300">Quantity Bought</label>
+                        <input type="number" name="quantity_bought" id="quantity_bought" value="{{ old('quantity_bought', $bird->quantity_bought) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" min="1" {{ $bird->stage == 'chick' ? 'required' : '' }}>
+                        @error('quantity_bought')
+                            <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                        @endError
+                    </div>
+                    <div>
+                        <label for="feed_amount" class="block text-gray-700 dark:text-gray-300">Feed Amount (kg)</label>
+                        <input type="number" name="feed_amount" id="feed_amount" value="{{ old('feed_amount', $bird->feed_amount) }}" step="0.01" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" min="0" {{ $bird->stage == 'chick' ? 'required' : '' }}>
+                        @error('feed_amount')
+                            <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                        @endError
+                    </div>
+                    <div>
+                        <label for="alive" class="block text-gray-700 dark:text-gray-300">Alive</label>
+                        <input type="number" name="alive" id="alive" value="{{ old('alive', $bird->alive) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" min="0" {{ $bird->stage == 'chick' ? 'required' : '' }}>
+                        @error('alive')
+                            <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                        @endError
+                    </div>
+                    <div>
+                        <label for="dead" class="block text-gray-700 dark:text-gray-300">Dead</label>
+                        <input type="number" name="dead" id="dead" value="{{ old('dead', $bird->dead) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" min="0" {{ $bird->stage == 'chick' ? 'required' : '' }}>
+                        @error('dead')
+                            <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                        @endError
+                    </div>
+                    <div>
+                        <label for="purchase_date" class="block text-gray-700 dark:text-gray-300">Purchase Date</label>
+                        <input type="date" name="purchase_date" id="purchase_date" value="{{ old('purchase_date', $bird->purchase_date?->format('Y-m-d')) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" {{ $bird->stage == 'chick' ? 'required' : '' }}>
+                        @error('purchase_date')
+                            <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                        @endError
+                    </div>
+                    <div>
+                        <label for="cost" class="block text-gray-700 dark:text-gray-300">Cost ($)</label>
+                        <input type="number" name="cost" id="cost" value="{{ old('cost', $bird->cost) }}" step="0.01" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" min="0" {{ $bird->stage == 'chick' ? 'required' : '' }}>
+                        @error('cost')
+                            <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                        @endError
+                    </div>
                 </div>
                 <div>
                     <label for="working" class="block text-gray-700 dark:text-gray-300">Working</label>
@@ -65,16 +105,27 @@
                     @endError
                 </div>
                 <div>
-                    <label for="age" class="block text-gray-700 dark:text-gray-300">Age (Weeks)</label>
-                    <input type="number" name="age" id="age" value="{{ old('age', $bird->age) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" min="0" required>
-                    @error('age')
+                    <label for="entry_date" class="block text-gray-700 dark:text-gray-300">Entry Date</label>
+                    <input type="date" name="entry_date" id="entry_date" value="{{ old('entry_date', $bird->entry_date->format('Y-m-d')) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
+                    @error('entry_date')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
                 </div>
                 <div>
-                    <label for="entry_date" class="block text-gray-700 dark:text-gray-300">Entry Date</label>
-                    <input type="date" name="entry_date" id="entry_date" value="{{ old('entry_date', $bird->entry_date->format('Y-m-d')) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
-                    @error('entry_date')
+                    <label for="vaccination_status" class="block text-gray-700 dark:text-gray-300">Vaccination Status</label>
+                    <select name="vaccination_status" id="vaccination_status" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white">
+                        <option value="" {{ old('vaccination_status', $bird->vaccination_status) ? '' : 'selected' }} disabled>Select Status</option>
+                        <option value="1" {{ old('vaccination_status', $bird->vaccination_status) == 1 ? 'selected' : '' }}>Yes</option>
+                        <option value="0" {{ old('vaccination_status', $bird->vaccination_status) == 0 ? 'selected' : '' }}>No</option>
+                    </select>
+                    @error('vaccination_status')
+                        <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
+                <div>
+                    <label for="housing_location" class="block text-gray-700 dark:text-gray-300">Housing Location (Optional)</label>
+                    <input type="text" name="housing_location" id="housing_location" value="{{ old('housing_location', $bird->housing_location) }}" class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white">
+                    @error('housing_location')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
                 </div>
@@ -90,4 +141,19 @@
         </div>
     </section>
 </div>
+
+@push('scripts')
+<script>
+    document.getElementById('stage').addEventListener('change', function() {
+        const chickFields = document.querySelector('.chick-fields');
+        if (this.value === 'chick') {
+            chickFields.classList.remove('hidden');
+            chickFields.querySelectorAll('input').forEach(input => input.setAttribute('required', 'required'));
+        } else {
+            chickFields.classList.add('hidden');
+            chickFields.querySelectorAll('input').forEach(input => input.removeAttribute('required'));
+        }
+    });
+</script>
+@endpush
 @endsection

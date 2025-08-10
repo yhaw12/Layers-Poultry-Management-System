@@ -10,7 +10,7 @@ class VaccinationLogController extends Controller
 {
     public function index()
     {
-        $logs = VaccinationLog::with('bird', 'chicks')->orderBy('date_administered', 'desc')->paginate(10);
+        $logs = VaccinationLog::with('bird')->orderBy('date_administered', 'desc')->paginate(10);
         return view('vaccination-logs.index', compact('logs'));
     }
 

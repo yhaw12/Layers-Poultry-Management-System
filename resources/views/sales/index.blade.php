@@ -33,7 +33,9 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $sale->quantity }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ number_format($sale->total_amount, 2) }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $sale->sale_date->format('F j, Y') }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                                {{ $sale->sale_date ? \Carbon\Carbon::parse($sale->sale_date)->format('F j, Y') : 'N/A' }}
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap space-x-2">
                                 <a href="{{ route('sales.invoice', ['sale' => $sale->id, 'preview' => 1]) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline">Invoice</a>
                                 <a href="{{ route('sales.edit', $sale) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Edit</a>

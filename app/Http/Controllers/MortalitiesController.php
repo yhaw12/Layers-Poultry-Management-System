@@ -31,9 +31,18 @@ class MortalitiesController extends Controller
             'cause' => 'nullable|string|max:255',
         ]);
 
-        Mortalities::create($validated);
+        $mortality = Mortalities::create($validated);
+
+        // Update the bird's dead field if stage is chick
+        $bird = Bird::find($validated['bird_id']);
+        if ($bird->stage === 'chick') {
+            $totalDead = Mortalities::where('bird_id', $bird->id)->sum('quantity');
+            $bird->dead = $totalDead;
+            $bird->save();
+        }
+
         \App\Models\UserActivityLog::create([
-            'user_id' => auth()->id,
+            'user_id' => auth()->id(),
             'action' => 'created_mortality',
             'description' => "Recorded {$validated['quantity']} mortalities for bird ID {$validated['bird_id']} on {$validated['date']}",
         ]);
@@ -57,8 +66,17 @@ class MortalitiesController extends Controller
         ]);
 
         $mortality->update($validated);
+
+        // Update the bird's dead field if stage is chick
+        $bird = Bird::find($validated['bird_id']);
+        if ($bird->stage === 'chick') {
+            $totalDead = Mortalities::where('bird_id', $bird->id)->sum('quantity');
+            $bird->dead = $totalDead;
+            $bird->save();
+        }
+
         \App\Models\UserActivityLog::create([
-            'user_id' => auth()->id,
+            'user_id' => auth()->id(),
             'action' => 'updated_mortality',
             'description' => "Updated mortality ID {$mortality->id} for bird ID {$validated['bird_id']}",
         ]);
@@ -68,29 +86,24 @@ class MortalitiesController extends Controller
 
     public function destroy($id)
     {
-        $mortality = Mortalities::findorFail($id);
+        $mortality = Mortalities::findOrFail($id);
+        $bird = Bird::find($mortality->bird_id);
+
         $mortality->delete();
+
+        // Update the bird's dead field if stage is chick
+        if ($bird && $bird->stage === 'chick') {
+            $totalDead = Mortalities::where('bird_id', $bird->id)->sum('quantity');
+            $bird->dead = $totalDead;
+            $bird->save();
+        }
+
         \App\Models\UserActivityLog::create([
-            'user_id' => auth()->id,
+            'user_id' => auth()->id(),
             'action' => 'deleted_mortality',
             'description' => "Deleted mortality ID {$mortality->id}",
         ]);
 
         return redirect()->route('mortalities.index')->with('success', 'Mortality record deleted successfully.');
     }
-
-    // public function healthIssues()
-    // {
-    //     $highMortality = Mortalities::where('quantity', '>', 5)->get(); // Threshold example
-    //     foreach ($highMortality as $record) {
-    //         Alert::create([
-    //             'message' => "High mortality: {$record->quantity} birds on {$record->date}",
-    //             'type' => 'health',
-    //             'user_id' => auth()->id() ?? 1,
-    //         ]);
-    //     }
-    //     return view('mortalities.health-issues', compact('highMortality'));
-    // }
-    
-    // Route::get('/alerts/health-issues', [MortalitiesController::class, 'healthIssues'])->name('alerts.health-issues');
 }

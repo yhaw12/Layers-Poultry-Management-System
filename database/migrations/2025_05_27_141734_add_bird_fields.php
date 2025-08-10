@@ -8,16 +8,16 @@ return new class extends Migration
     public function up()
     {
         Schema::table('birds', function (Blueprint $table) {
-            $table->string('vaccination_status')->nullable();
-            $table->string('housing_location')->nullable();
-            $table->enum('stage', ['chick', 'grower', 'layer'])->default('chick');
+            // $table->string('vaccination_status')->nullable();
+            // $table->string('housing_location')->nullable();
+            // $table->enum('stage', ['chick', 'grower', 'layer'])->default('chick');
         });
     }
 
     public function down()
     {
         Schema::table('birds', function (Blueprint $table) {
-            $table->dropColumn(['vaccination_status', 'housing_location', 'stage']);
+            // $table->dropColumn(['vaccination_status', 'housing_location', 'stage']);
         });
     }
 };

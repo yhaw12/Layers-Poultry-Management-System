@@ -14,7 +14,15 @@ class Sale extends Model
         'total_amount', 'sale_date', 'due_date', 'paid_amount', 'status',
     ];
 
-    protected $dates = ['sale_date', 'due_date', 'deleted_at'];
+    protected $casts = [
+        'sale_date' => 'date',
+        'due_date' => 'date',
+        'deleted_at' => 'datetime',
+        'quantity' => 'decimal:2',
+        'unit_price' => 'decimal:2',
+        'total_amount' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
+    ];
 
     public function customer()
     {

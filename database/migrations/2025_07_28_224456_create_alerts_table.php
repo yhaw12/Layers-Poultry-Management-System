@@ -10,13 +10,14 @@ return new class extends Migration
     {
       Schema::create('alerts', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->foreignId('user_id')->nullable()->constrained('users');
             $table->string('type');
             $table->text('message');
             $table->boolean('is_read')->default(false);
             $table->string('url')->nullable();
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
+
         });
     }
 
@@ -25,3 +26,4 @@ return new class extends Migration
         Schema::dropIfExists('alerts');
     }
 };
+

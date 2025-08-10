@@ -1,19 +1,18 @@
 <?php
 
-namespace Database\Seeders;
+namespace Database\Factories;
 
-use Illuminate\Database\Seeder;
 use App\Models\Pen;
-use App\Models\User;
-use App\Models\Egg;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
-class DatabaseSeeder extends Seeder
+class PenFactory extends Factory
 {
-    public function run()
+    protected $model = Pen::class;
+
+    public function definition()
     {
-        Pen::create(['name' => 'Flock A']);
-        Pen::create(['name' => 'Flock B']);
-        User::create(['name' => 'John Doe', 'email' => 'john@example.com', 'password' => bcrypt('password')]);
-        Egg::factory()->count(10)->create();
+        return [
+            'name' => $this->faker->word . ' Flock', // Appending 'Flock' for clarity
+        ];
     }
 }

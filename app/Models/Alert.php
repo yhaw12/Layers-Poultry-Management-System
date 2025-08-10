@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class Alert extends Model
 {
+
+    //  use SoftDeletes;
     protected $primaryKey = 'id';
     public $incrementing = false;
     protected $keyType = 'string';
@@ -34,3 +37,4 @@ class Alert extends Model
         return $this->belongsTo(User::class);
     }
 }
+

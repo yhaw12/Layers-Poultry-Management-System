@@ -75,7 +75,8 @@ class ActivityLogController extends Controller
             'message' => 'required|string',
         ]);
 
-        AlertRule::create(array_merge($validated, ['user_id' => auth()->id()]));
+        // AlertRule::create(array_merge($validated, ['user_id' => auth()->id()]));
         return redirect()->back()->with('success', 'Custom alert created.');
     }
 }
+

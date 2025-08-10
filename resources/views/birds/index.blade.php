@@ -19,6 +19,7 @@
             <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ number_format($totalQuantity, 0) }} birds</p>
             <p class="text-lg text-gray-700 dark:text-gray-300">Layers: {{ number_format($layers, 0) }}</p>
             <p class="text-lg text-gray-700 dark:text-gray-300">Broilers: {{ number_format($broilers, 0) }}</p>
+            <p class="text-lg text-gray-700 dark:text-gray-300">Chicks: {{ number_format($chicks, 0) }}</p>
         </div>
     </section>
 
@@ -41,7 +42,11 @@
                                 <th class="p-3 text-gray-700 dark:text-gray-200">ID</th>
                                 <th class="p-3 text-gray-700 dark:text-gray-200">Breed</th>
                                 <th class="p-3 text-gray-700 dark:text-gray-200">Type</th>
+                                <th class="p-3 text-gray-700 dark:text-gray-200">Stage</th>
                                 <th class="p-3 text-gray-700 dark:text-gray-200">Quantity</th>
+                                <th class="p-3 text-gray-700 dark:text-gray-200">Alive</th>
+                                <th class="p-3 text-gray-700 dark:text-gray-200">Dead</th>
+                                <th class="p-3 text-gray-700 dark:text-gray-200">Cost</th>
                                 <th class="p-3 text-gray-700 dark:text-gray-200">Working</th>
                                 <th class="p-3 text-gray-700 dark:text-gray-200">Age (Weeks)</th>
                                 <th class="p-3 text-gray-700 dark:text-gray-200">Entry Date</th>
@@ -54,7 +59,11 @@
                                     <td class="p-3">{{ $bird->id }}</td>
                                     <td class="p-3">{{ $bird->breed }}</td>
                                     <td class="p-3">{{ ucfirst($bird->type) }}</td>
-                                    <td class="p-3">{{ $bird->quantity }}</td>
+                                    <td class="p-3">{{ ucfirst($bird->stage) }}</td>
+                                    <td class="p-3">{{ $bird->quantity ?? 'N/A' }}</td>
+                                    <td class="p-3">{{ $bird->alive ?? 'N/A' }}</td>
+                                    <td class="p-3">{{ $bird->dead ?? 'N/A' }}</td>
+                                    <td class="p-3">{{ $bird->cost ? number_format($bird->cost, 2) : 'N/A' }}</td>
                                     <td class="p-3">{{ $bird->working ? 'Yes' : 'No' }}</td>
                                     <td class="p-3">{{ $bird->age }}</td>
                                     <td class="p-3">{{ $bird->entry_date->format('Y-m-d') }}</td>
@@ -65,10 +74,6 @@
                                             @method('DELETE')
                                             <button type="submit" class="text-red-600 dark:text-red-400 hover:underline">Delete</button>
                                         </form>
-                                        {{-- <h1>Deleted Birds</h1> --}}
-                                        {{-- @foreach ($birds as $bird)
-                                            <p>{{ $bird->breed }} | <a href="{{ route('birds.restore', $bird->id) }}">Restore</a></p>
-                                        @endforeach --}}
                                     </td>
                                 </tr>
                             @endforeach

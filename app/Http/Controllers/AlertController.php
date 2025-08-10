@@ -23,202 +23,87 @@ class AlertController extends Controller
      */
     public function index(Request $request)
     {
+        // Log the request for debugging
+        Log::info('AlertController::index called', ['user_id' => Auth::id() ?? 'guest']);
+
         try {
             $user = Auth::user();
             if (!$user) {
+                Log::warning('Unauthorized access to alerts', ['user_id' => Auth::id() ?? 'guest']);
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
 
+            // Default notification preferences (customize as needed)
             $preferences = $user->notification_preferences ?? [
                 'email' => true,
                 'in_app' => true,
                 'critical_only' => false,
             ];
+            Log::info('User notification preferences', ['preferences' => $preferences]);
 
+            // If in-app notifications are disabled, return empty array
             if (!$preferences['in_app']) {
+                Log::info('In-app notifications disabled for user', ['user_id' => $user->id]);
                 return response()->json([]);
             }
 
             $notifications = [];
-            $isAdmin = $user->hasRole('admin');
+            $isAdmin = $user->hasRole('admin'); // Assumes a role system (e.g., Spatie Permission)
 
-            // Define period for consistency with DashboardController
+            // Date range for alerts
             $start = $request->input('start_date', now()->startOfMonth()->toDateString());
             $end = $request->input('end_date', now()->endOfMonth()->toDateString());
             $period = [$start, $end];
 
             if ($isAdmin) {
-                // Fetch all unread alerts for admins
                 if (Schema::hasTable('alerts')) {
                     $alerts = Alert::where('is_read', false)
                         ->whereBetween('created_at', $period)
                         ->get();
+                    Log::info('Admin alerts fetched', ['count' => $alerts->count()]);
 
                     foreach ($alerts as $alert) {
                         if (!$preferences['critical_only'] || $alert->type === 'critical') {
                             $notifications[] = [
-                                'id' => $alert->id ?? (string) Str::uuid(),
+                                'id' => $alert->id,
                                 'message' => $alert->message,
                                 'type' => $alert->type,
                                 'url' => $alert->url ?? '#',
-                                'created_at' => $alert->created_at ? $alert->created_at->toDateTimeString() : now()->toDateTimeString(),
-                            ];
-                        }
-                    }
-
-                    // Add low stock alerts from cache
-                    $lowStockAlerts = Cache::remember('low_stock_alerts', 3600, function () use ($period) {
-                        $lowStockAlerts = collect();
-
-                        // Low inventory alerts
-                        $lowInventory = Inventory::where('qty', '<', DB::raw('threshold'))
-                            ->whereBetween('updated_at', $period)
-                            ->get()
-                            ->map(function ($item) {
-                                $alert = new Alert([
-                                    'id' => (string) Str::uuid(),
-                                    'message' => "Low stock for " . ($item->name ?? 'Unknown Item') . ": {$item->qty} remaining (Threshold: {$item->threshold})",
-                                    'type' => 'warning',
-                                    'is_read' => false,
-                                    'created_at' => now(),
-                                    'user_id' => null,
-                                ]);
-                                return $alert;
-                            });
-                        $lowStockAlerts = $lowStockAlerts->concat($lowInventory);
-
-                        // Low feed alerts
-                        $lowFeed = Feed::where('quantity', '<', DB::raw('threshold'))
-                            ->whereBetween('purchase_date', $period)
-                            ->get()
-                            ->map(function ($item) {
-                                $alert = new Alert([
-                                    'id' => (string) Str::uuid(),
-                                    'message' => "Low feed stock for " . ($item->name ?? 'Unknown Feed') . ": {$item->quantity} kg remaining (Threshold: {$item->threshold} kg)",
-                                    'type' => 'warning',
-                                    'is_read' => false,
-                                    'created_at' => now(),
-                                    'user_id' => null,
-                                ]);
-                                return $alert;
-                            });
-                        $lowStockAlerts = $lowStockAlerts->concat($lowFeed);
-
-                        // Low medicine alerts (skip for now due to missing MedicineLog model)
-                        /*
-                        $lowMedicine = MedicineLog::select('medicine_name')
-                            ->selectRaw('SUM(CASE WHEN type = "purchase" THEN quantity ELSE -quantity END) as net_quantity')
-                            ->whereBetween('date', $period)
-                            ->groupBy('medicine_name')
-                            ->havingRaw('net_quantity < ?', [10])
-                            ->get()
-                            ->map(function ($item) {
-                                $alert = new Alert([
-                                    'id' => (string) Str::uuid(),
-                                    'message' => "Low medicine stock for " . ($item->medicine_name ?? 'Unknown Medicine') . ": {$item->net_quantity} units remaining (Threshold: 10 units)",
-                                    'type' => 'warning',
-                                    'is_read' => false,
-                                    'created_at' => now(),
-                                    'user_id' => null,
-                                ]);
-                                return $alert;
-                            });
-                        $lowStockAlerts = $lowStockAlerts->concat($lowMedicine);
-                        */
-
-                        return $lowStockAlerts;
-                    });
-
-                    foreach ($lowStockAlerts as $alert) {
-                        if (!$preferences['critical_only'] || $alert->type === 'critical') {
-                            $notifications[] = [
-                                'id' => $alert->id ?? (string) Str::uuid(),
-                                'message' => $alert->message,
-                                'type' => $alert->type,
-                                'url' => $alert->url ?? '#',
-                                'created_at' => $alert->created_at ? $alert->created_at->toDateTimeString() : now()->toDateTimeString(),
+                                'created_at' => $alert->created_at->toDateTimeString(),
                             ];
                         }
                     }
                 }
             } else {
-                // Fetch unread alerts for non-admin users
-                if ($user->hasRole('inventory_manager')) {
-                    if (Feed::where('quantity', '<', 100)->exists()) {
-                        $alert = Alert::firstOrCreate(
-                            [
-                                'user_id' => $user->id,
-                                'message' => 'Feed stock is low (< 100 kg). Restock soon.',
-                            ],
-                            [
-                                'id' => (string) Str::uuid(),
-                                'type' => 'critical',
-                                'is_read' => false,
-                                'url' => route('feed.index'),
-                                'created_at' => now(),
-                            ]
-                        );
-                        $notifications[] = [
-                            'id' => $alert->id ?? (string) Str::uuid(),
-                            'message' => $alert->message,
-                            'type' => $alert->type,
-                            'url' => $alert->url ?? '#',
-                            'created_at' => $alert->created_at ? $alert->created_at->toDateTimeString() : now()->toDateTimeString(),
-                        ];
-                    }
-
-                    $newInventory = Inventory::where('created_at', '>=', now()->subDay())->get();
-                    foreach ($newInventory as $item) {
-                        if (!$preferences['critical_only'] || $item->quantity > 1000) {
-                            $alert = Alert::firstOrCreate(
-                                [
-                                    'user_id' => $user->id,
-                                    'message' => "New inventory item added: " . ($item->name ?? 'Unknown Item') . " ({$item->quantity} units).",
-                                ],
-                                [
-                                    'id' => (string) Str::uuid(),
-                                    'type' => $item->quantity > 1000 ? 'critical' : 'info',
-                                    'is_read' => false,
-                                    'url' => route('inventory.index'),
-                                    'created_at' => now(),
-                                ]
-                            );
-                            $notifications[] = [
-                                'id' => $alert->id ?? (string) Str::uuid(),
-                                'message' => $alert->message,
-                                'type' => $alert->type,
-                                'url' => $alert->url ?? '#',
-                                'created_at' => $alert->created_at ? $alert->created_at->toDateTimeString() : now()->toDateTimeString(),
-                            ];
-                        }
-                    }
-                }
-
-                // Fetch existing unread alerts for the user
                 if (Schema::hasTable('alerts')) {
                     $alerts = Alert::where('user_id', $user->id)
                         ->where('is_read', false)
                         ->whereBetween('created_at', $period)
                         ->take(50)
                         ->get();
+                    Log::info('User-specific alerts fetched', ['count' => $alerts->count()]);
 
                     foreach ($alerts as $alert) {
                         if (!$preferences['critical_only'] || $alert->type === 'critical') {
                             $notifications[] = [
-                                'id' => $alert->id ?? (string) Str::uuid(),
+                                'id' => $alert->id,
                                 'message' => $alert->message,
                                 'type' => $alert->type,
                                 'url' => $alert->url ?? '#',
-                                'created_at' => $alert->created_at ? $alert->created_at->toDateTimeString() : now()->toDateTimeString(),
+                                'created_at' => $alert->created_at->toDateTimeString(),
                             ];
                         }
                     }
                 }
             }
 
+            Log::info('Notifications generated', ['notifications' => $notifications]);
             return response()->json($notifications);
         } catch (\Exception $e) {
-            \Log::error('Failed to fetch notifications', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('Failed to fetch notifications', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'error' => 'Failed to fetch notifications',
                 'notifications' => [],
@@ -226,116 +111,22 @@ class AlertController extends Controller
         }
     }
 
-    /**
-     * Display a paginated list of alerts for the alerts.index view.
-     *
-     * @param Request $request
-     * @return \Illuminate\View\View
-     */
     public function view(Request $request)
-    {
-        $user = Auth::user();
-        if (!$user) {
-            abort(401, 'Unauthorized');
-        }
-
-        $isAdmin = $user->hasRole('admin');
-        $start = $request->input('start_date', now()->startOfMonth()->toDateString());
-        $end = $request->input('end_date', now()->endOfMonth()->toDateString());
-        $period = [$start, $end];
-
-        $alerts = collect();
-        if ($isAdmin) {
-            $alerts = Alert::where('is_read', false)
-                ->whereBetween('created_at', $period)
-                ->paginate(10);
-        } else {
-            $alerts = Alert::where('user_id', $user->id)
-                ->where('is_read', false)
-                ->whereBetween('created_at', $period)
-                ->paginate(10);
-        }
-
-        return view('alerts.index', compact('alerts'));
+{
+    $user = Auth::user();
+    if (!$user) {
+        abort(401, 'Unauthorized');
     }
 
-    /**
-     * Mark a specific alert as read.
-     *
-     * @param Request $request
-     * @param string $id
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function markAsRead(Request $request, $id)
-    {
-        try {
-            if (!Schema::hasTable('alerts') || !Schema::hasColumn('alerts', 'is_read')) {
-                return response()->json(['success' => false, 'error' => 'Alerts table or is_read column missing'], 500);
-            }
+    $start = $request->input('start_date', now()->startOfMonth()->toDateString());
+    $end = $request->input('end_date', now()->endOfMonth()->toDateString());
 
-            $alert = Alert::where('id', $id)
-                ->when(!Auth::user()->hasRole('admin'), function ($query) {
-                    return $query->where('user_id', Auth::id());
-                })
-                ->first();
+    $alerts = Alert::where('user_id', $user->id)
+        ->whereBetween('created_at', [$start, $end])
+        ->where('is_read', false)
+        ->orderBy('created_at', 'desc')
+        ->paginate(10);
 
-            if ($alert) {
-                $alert->update([
-                    'is_read' => true,
-                    'read_at' => now(),
-                ]);
-
-                UserActivityLog::create([
-                    'user_id' => Auth::id(),
-                    'action' => 'marked_notification_as_read',
-                    'details' => json_encode(['notification_id' => $id, 'message' => $alert->message]),
-                ]);
-
-                return response()->json(['success' => true]);
-            }
-
-            return response()->json(['success' => false, 'error' => 'Alert not found'], 404);
-        } catch (\Exception $e) {
-            \Log::error('Failed to mark alert as read', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return response()->json(['success' => false, 'error' => 'Failed to mark alert as read'], 500);
-        }
-    }
-
-    /**
-     * Dismiss all unread alerts for the authenticated user.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function dismissAll(Request $request)
-    {
-        try {
-            if (!Schema::hasTable('alerts') || !Schema::hasColumn('alerts', 'is_read')) {
-                return response()->json(['success' => false, 'error' => 'Alerts table or is_read column missing'], 500);
-            }
-
-            $query = Alert::where('is_read', false);
-            if (!Auth::user()->hasRole('admin')) {
-                $query->where('user_id', Auth::id());
-            }
-
-            $updated = $query->update([
-                'is_read' => true,
-                'read_at' => now(),
-            ]);
-
-            if ($updated) {
-                UserActivityLog::create([
-                    'user_id' => Auth::id(),
-                    'action' => 'dismissed_all_notifications',
-                    'details' => json_encode(['count' => $updated]),
-                ]);
-            }
-
-            return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            \Log::error('Failed to dismiss all alerts', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return response()->json(['success' => false, 'error' => 'Failed to dismiss all alerts'], 500);
-        }
-    }
+    return view('alerts.index', compact('alerts'));
+}
 }

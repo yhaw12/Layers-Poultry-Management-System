@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\Employee;
 use App\Models\Payroll;
+use App\Models\UserActivityLog;
 
 class PayrollController extends Controller
 {
@@ -36,27 +37,31 @@ class PayrollController extends Controller
     {
         $validated = $request->validate([
             'employee_id' => 'required|exists:employees,id',
-            'pay_date' => 'required|date',
-            'bonus' => 'nullable|numeric|min:0',
-            'deductions' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string|max:500',
+            'amount' => 'required|numeric|min:0',
+            'payment_date' => 'required|date',
         ]);
 
-        $employee = Employee::findOrFail($validated['employee_id']);
-        $netPay = $employee->monthly_salary + ($validated['bonus'] ?? 0) - ($validated['deductions'] ?? 0);
+        try {
+            return DB::transaction(function () use ($validated) {
+                $payroll = Payroll::create($validated);
+                $this->createTransaction('payroll', [
+                    'amount' => $validated['amount'],
+                    'description' => "Payroll payment for employee ID {$validated['employee_id']}",
+                    'reference_id' => $payroll->id,
+                    'reference_type' => Payroll::class,
+                ]);
 
-        Payroll::create([
-            'employee_id' => $validated['employee_id'],
-            'pay_date' => $validated['pay_date'],
-            'base_salary' => $employee->monthly_salary,
-            'bonus' => $validated['bonus'] ?? 0,
-            'deductions' => $validated['deductions'] ?? 0,
-            'net_pay' => $netPay,
-            'status' => 'pending',
-            'notes' => $validated['notes'],
-        ]);
+                UserActivityLog::create([
+                    'user_id' => auth()->id(),
+                    'action' => 'created_payroll',
+                    'details' => json_encode(['payroll_id' => $payroll->id, 'amount' => $payroll->amount]),
+                ]);
 
-        return redirect()->route('payroll.index')->with('success', 'Payroll record created successfully.');
+                return redirect()->route('payrolls.index')->with('success', 'Payroll created successfully.');
+            });
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to create payroll.');
+        }
     }
 
     public function show($id)
@@ -157,3 +162,5 @@ class PayrollController extends Controller
         return redirect()->route('payroll.index')->with('success', 'Monthly payroll generated successfully.');
     }
 }
+
+

@@ -13,4 +13,9 @@ class Customer extends Model
     protected $table = 'customers';
     protected $fillable = ['name', 'phone']; 
     protected $dates = ['deleted_at'];
+
+            public function sales()
+        {
+            return $this->hasMany(Sale::class);
+        }
 }
