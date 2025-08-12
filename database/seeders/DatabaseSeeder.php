@@ -110,7 +110,7 @@ class DatabaseSeeder extends Seeder
         }
 
         // Create Alerts
-        AlertFactory::new()->count(15)->create();
+        AlertFactory::new()->count(25)->create();
 
         // Create Activity Logs
         UserActivityLogFactory::new()->count(50)->create();

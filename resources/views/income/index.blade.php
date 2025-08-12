@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
-    <div class="bg-white p-6 rounded-lg shadow-md">
+<div class="container mx-auto px-4 py-8 ">
+    <div class=" p-6 rounded-lg shadow-md bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">Income</h1>
             <a href="{{ route('income.create') }}" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 font-semibold">+ Add Income</a>
@@ -13,7 +13,7 @@
         @endif
 
         <!-- Monthly Income Chart -->
-        <div class="mb-8">
+        <div class="mb-8  ">
             <canvas id="incomeChart" class="w-full h-64"></canvas>
         </div>
 

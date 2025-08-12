@@ -5,9 +5,9 @@ return [
     /*
      * Determine if the response cache middleware should be enabled.
      */
-    'enabled' => env('RESPONSE_CACHE_ENABLED', true),
+     'enabled' => env('RESPONSE_CACHE_ENABLED', true),
 
-    'add_cache_hit_header' => true,
+     'add_cache_hit_header' => true,
 
 
     /*
@@ -17,7 +17,7 @@ return [
      *  You can provide your own class given that it implements the
      *  CacheProfile interface.
      */
-    'cache_profile' => Spatie\ResponseCache\CacheProfiles\CacheAllSuccessfulGetRequests::class,
+     'cache_profile' => Spatie\ResponseCache\CacheProfiles\CacheAllSuccessfulGetRequests::class,
 
     /*
      *  Optionally, you can specify a header that will force a cache bypass.
@@ -32,20 +32,20 @@ return [
      * When using the default CacheRequestFilter this setting controls the
      * default number of seconds responses must be cached.
      */
-    'cache_lifetime_in_seconds' => (int) env('RESPONSE_CACHE_LIFETIME', 60 * 60 * 24 * 7),
+     'cache_lifetime_in_seconds' => (int) env('RESPONSE_CACHE_LIFETIME', 60 * 60 * 24 * 7),
 
     /*
      * This setting determines if a http header named with the cache time
      * should be added to a cached response. This can be handy when
      * debugging.
      */
-    'add_cache_time_header' => env('APP_DEBUG', false),
+     'add_cache_time_header' => env('APP_DEBUG', false),
 
     /*
      * This setting determines the name of the http header that contains
      * the time at which the response was cached
      */
-    'cache_time_header_name' => env('RESPONSE_CACHE_HEADER_NAME', 'laravel-responsecache'),
+     'cache_time_header_name' => env('RESPONSE_CACHE_HEADER_NAME', 'laravel-responsecache'),
 
     /*
      * This setting determines if a http header named with the cache age
@@ -53,7 +53,7 @@ return [
      * debugging.
      * ONLY works when "add_cache_time_header" is also active!
      */
-    'add_cache_age_header' => env('RESPONSE_CACHE_AGE_HEADER', false),
+     'add_cache_age_header' => env('RESPONSE_CACHE_AGE_HEADER', false),
 
     /*
      * This setting determines the name of the http header that contains
@@ -73,7 +73,7 @@ return [
      * Each replacer must implement the Replacer interface.
      */
     'replacers' => [
-        \Spatie\ResponseCache\Replacers\CsrfTokenReplacer::class,
+         \Spatie\ResponseCache\Replacers\CsrfTokenReplacer::class,
     ],
 
     /*
@@ -94,5 +94,5 @@ return [
     /*
      * This class is responsible for serializing responses.
      */
-    'serializer' => \Spatie\ResponseCache\Serializers\DefaultSerializer::class,
+     'serializer' => \Spatie\ResponseCache\Serializers\DefaultSerializer::class,
 ];

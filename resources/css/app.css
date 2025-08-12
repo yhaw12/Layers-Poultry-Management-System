@@ -38,48 +38,6 @@
     @apply mt-4 text-white dark:text-gray-200 text-lg font-medium;
 }
 
-/* Notification styles */
-.notification-container {
-    @apply fixed top-[5rem] right-4 z-40 flex flex-col gap-2 max-w-xs w-full; /* Moved below header, z-index below header buttons */
-}
-.notification {
-    @apply p-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out flex items-center justify-between;
-}
-.notification.critical {
-    @apply bg-red-600 text-white;
-}
-.notification.warning {
-    @apply bg-yellow-500 text-black;
-}
-.notification.info {
-    @apply bg-blue-500 text-white;
-}
-.notification.success {
-    @apply bg-green-500 text-white;
-}
-.notification-enter {
-    @apply translate-x-full opacity-0;
-}
-.notification-exit {
-    @apply translate-x-full opacity-0;
-}
-.notification-close {
-    @apply ml-4 text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
-}
-
-/* Notification Dropdown Styles */
-#notification-dropdown {
-    @apply min-w-[20rem] max-w-[24rem] z-50; /* Ensure dropdown is above notifications */
-}
-#notification-list > div {
-    @apply transition-colors duration-200;
-}
-#notification-list > div:hover {
-    @apply bg-gray-100 dark:bg-gray-800 !important;
-}
-#notification-count {
-    @apply text-xs leading-4;
-}
 
 /* Header Buttons */
 .header-buttons {
@@ -97,18 +55,87 @@
     @apply transition-all duration-300 ease-in-out;
 }
 
-/* Additional Notification Styles for Dropdown */
-#notification-list .critical {
-    @apply bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-300 font-semibold;
+/* resources/css/app.css */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
-#notification-list .warning {
-    @apply bg-yellow-50 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-300;
+
+.notification {
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.3s ease-in-out;
+    max-width: 400px;
 }
-#notification-list .info {
-    @apply bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300;
+
+.notification.info {
+    background-color: #DBEAFE;
+    color: #1E40AF;
 }
-#notification-list .success {
-    @apply bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-300;
+
+.notification.warning {
+    background-color: #FEF3C7;
+    color: #D97706;
+}
+
+.notification.critical {
+    background-color: #FEE2E2;
+    color: #B91C1C;
+}
+
+.notification.success {
+    background-color: #D1FAE5;
+    color: #065F46;
+}
+
+.notification.inventory {
+    background-color: #E0E7FF;
+    color: #3730A3;
+}
+
+.notification.sale {
+    background-color: #D1FAE5;
+    color: #065F46;
+}
+
+.notification.mortality {
+    background-color: #FEE2E2;
+    color: #B91C1C;
+}
+
+.notification.backup_success {
+    background-color: #D1FAE5;
+    color: #065F46;
+}
+
+.notification.backup_failed {
+    background-color: #FEE2E2;
+    color: #B91C1C;
+}
+
+.notification-exit {
+    transform: translateX(100%);
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+}
+
+.notification-close svg {
+    width: 16px;
+    height: 16px;
 }
 
 .container-box > .grid > div, .container-box > table > tbody > tr {
@@ -119,3 +146,15 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* resources/css/app.css */
+.user-avatar {
+    width: 2rem; /* 32px */
+    height: 2rem; /* 32px */
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #e5e7eb; /* gray-200 */
+}
+
+.dark .user-avatar {
+    border-color: #374151; /* gray-700 */
+}

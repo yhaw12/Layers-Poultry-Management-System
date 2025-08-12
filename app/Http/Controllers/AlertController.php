@@ -3,56 +3,37 @@
 namespace App\Http\Controllers;
 
 use App\Models\Alert;
-use App\Models\Feed;
-use App\Models\Inventory;
-use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 class AlertController extends Controller
 {
-    /**
-     * Display a listing of notifications for the authenticated user.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function index(Request $request)
     {
-        // Log the request for debugging
-        Log::info('AlertController::index called', ['user_id' => Auth::id() ?? 'guest']);
-
         try {
             $user = Auth::user();
             if (!$user) {
-                Log::warning('Unauthorized access to alerts', ['user_id' => Auth::id() ?? 'guest']);
+                Log::warning('Unauthorized access attempt to alerts index');
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
 
-            // Default notification preferences (customize as needed)
             $preferences = $user->notification_preferences ?? [
                 'email' => true,
                 'in_app' => true,
                 'critical_only' => false,
             ];
-            Log::info('User notification preferences', ['preferences' => $preferences]);
 
-            // If in-app notifications are disabled, return empty array
             if (!$preferences['in_app']) {
-                Log::info('In-app notifications disabled for user', ['user_id' => $user->id]);
                 return response()->json([]);
             }
 
             $notifications = [];
-            $isAdmin = $user->hasRole('admin'); // Assumes a role system (e.g., Spatie Permission)
+            $isAdmin = $user->hasRole('admin');
 
-            // Date range for alerts
-            $start = $request->input('start_date', now()->startOfMonth()->toDateString());
-            $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+            $start = $request->input('start_date', '2025-02-01');
+            $end = $request->input('end_date', '2025-08-31');
             $period = [$start, $end];
 
             if ($isAdmin) {
@@ -60,7 +41,6 @@ class AlertController extends Controller
                     $alerts = Alert::where('is_read', false)
                         ->whereBetween('created_at', $period)
                         ->get();
-                    Log::info('Admin alerts fetched', ['count' => $alerts->count()]);
 
                     foreach ($alerts as $alert) {
                         if (!$preferences['critical_only'] || $alert->type === 'critical') {
@@ -81,7 +61,6 @@ class AlertController extends Controller
                         ->whereBetween('created_at', $period)
                         ->take(50)
                         ->get();
-                    Log::info('User-specific alerts fetched', ['count' => $alerts->count()]);
 
                     foreach ($alerts as $alert) {
                         if (!$preferences['critical_only'] || $alert->type === 'critical') {
@@ -97,36 +76,76 @@ class AlertController extends Controller
                 }
             }
 
-            Log::info('Notifications generated', ['notifications' => $notifications]);
             return response()->json($notifications);
         } catch (\Exception $e) {
-            Log::error('Failed to fetch notifications', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+            Log::error('Failed to fetch notifications', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json([
-                'error' => 'Failed to fetch notifications',
+ гигать 'error' => 'Failed to fetch notifications',
                 'notifications' => [],
             ], 500);
         }
     }
 
     public function view(Request $request)
-{
-    $user = Auth::user();
-    if (!$user) {
-        abort(401, 'Unauthorized');
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                Log::warning('Unauthorized access attempt to alerts view');
+                return view('alerts.index', ['alerts' => collect(), 'error' => 'Unauthorized']);
+            }
+
+            $start = $request->input('start_date', '2025-02-01');
+            $end = $request->input('end_date', '2025-08-31');
+
+            $alerts = Alert::where('user_id', $user->id)
+                ->whereBetween('created_at', [$start, $end])
+                ->where('is_read', false)
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
+
+            return view('alerts.index', compact('alerts'));
+        } catch (\Exception $e) {
+            Log::error('Failed to load alerts view', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return view('alerts.index', ['alerts' => collect(), 'error' => 'Failed to load alerts']);
+        }
     }
 
-    $start = $request->input('start_date', now()->startOfMonth()->toDateString());
-    $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+    public function read(Request $request, Alert $alert)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user || $alert->user_id != $user->id) {
+                Log::warning('Unauthorized attempt to mark alert as read', ['user_id' => $user->id ?? null, 'alert_id' => $alert->id]);
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
 
-    $alerts = Alert::where('user_id', $user->id)
-        ->whereBetween('created_at', [$start, $end])
-        ->where('is_read', false)
-        ->orderBy('created_at', 'desc')
-        ->paginate(10);
+            $alert->update(['is_read' => true, 'read_at' => now()]);
 
-    return view('alerts.index', compact('alerts'));
-}
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            Log::error('Failed to mark alert as read', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['error' => 'Failed to mark alert as read'], 500);
+        }
+    }
+
+    public function dismissAll(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                Log::warning('Unauthorized attempt to dismiss all alerts');
+                return response()->json(['error' => 'Unauthorized'], 401);
+            }
+
+            Alert::where('user_id', $user->id)
+                ->where('is_read', false)
+                ->update(['is_read' => true, 'read_at' => now()]);
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            Log::error('Failed to dismiss all alerts', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['error' => 'Failed to dismiss all alerts'], 500);
+        }
+    }
 }

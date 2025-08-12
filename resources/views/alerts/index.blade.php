@@ -1,117 +1,44 @@
-{{-- @extends('layouts.app')
+@extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto p-4">
-    <div class="text-2xl font-semibold mb-4">Alerts</div>
-    
-    <!-- Alerts Chart -->
-    <div class="bg-white dark:bg-gray-900 shadow-md rounded-lg p-4 mb-6">
-        <canvas id="alertsChart" height="100"></canvas>
-    </div>
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-6">Notifications</h1>
 
-     @include('alerts.index', ['alerts' => $alerts])
+        @if (isset($error))
+            <div class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-4 rounded-lg mb-6">
+                {{ $error }}
+            </div>
+        @endif
 
-    <!-- Alerts Table -->
-    @if ($alerts->isEmpty())
-        <p class="text-gray-600 dark:text-gray-400">No alerts found.</p>
-    @else
-        <div class="bg-white dark:bg-gray-900 shadow-md rounded-lg overflow-hidden">
-            <table class="w-full border-collapse">
-                <thead>
-                    <tr class="bg-gray-100 dark:bg-gray-700">
-                        <th class="border px-4 py-2 text-left">Message</th>
-                        <th class="border px-4 py-2 text-left">Created At</th>
-                        <th class="border px-4 py-2 text-left">Status</th>
-                        <th class="border px-4 py-2 text-left">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
+        @if ($alerts->isNotEmpty())
+            <div class="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
+                <form action="{{ route('alerts.dismiss-all') }}" method="POST" class="mb-4">
+                    @csrf
+                    <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition duration-200">
+                        Dismiss All
+                    </button>
+                </form>
+
+                <ul class="space-y-3">
                     @foreach ($alerts as $alert)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-600">
-                            <td class="border px-4 py-2">
-                                <a href="{{ $alert->url ?? '#' }}" class="text-blue-600 dark:text-blue-400 hover:underline">
+                        <li class="p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <a href="{{ $alert->url ?? '#' }}" class="text-{{ $alert->type === 'critical' ? 'red' : ($alert->type === 'warning' ? 'yellow' : ($alert->type === 'success' ? 'green' : 'blue')) }}-600 dark:text-{{ $alert->type === 'critical' ? 'red' : ($alert->type === 'warning' ? 'yellow' : ($alert->type === 'success' ? 'green' : 'blue')) }}-400 hover:underline">
                                     {{ $alert->message }}
                                 </a>
-                            </td>
-                            <td class="border px-4 py-2">
-                                {{ $alert->created_at ? $alert->created_at->format('Y-m-d H:i') : 'N/A' }}
-                            </td>
-                            <td class="border px-4 py-2">
-                                {{ $alert->is_read ? 'Read' : 'Unread' }}
-                            </td>
-                            <td class="border px-4 py-2">
-                                @if (!$alert->is_read && $alert->id)
-                                    <form method="POST" action="{{ route('alerts.read', $alert->id) }}" class="inline">
-                                        @csrf
-                                        <button type="submit" class="text-blue-600 hover:underline">Mark as Read</button>
-                                    </form>
-                                @elseif (!$alert->id)
-                                    <span class="text-gray-500">Cannot mark as read (No ID)</span>
-                                @endif
-                            </td>
-                        </tr>
+                                <form action="{{ route('alerts.read', $alert->id) }}" method="POST" class="inline">
+                                    @csrf
+                                    <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Mark as Read</button>
+                                </form>
+                            </div>
+                        </li>
                     @endforeach
-                </tbody>
-            </table>
-            <div class="p-4 border-t dark:border-gray-700">
-                <form method="POST" action="{{ route('alerts.dismiss-all') }}" class="inline">
-                    @csrf
-                    <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Dismiss All</button>
-                </form>
-            </div>
-            {{ $alerts->links() }}
-        </div>
-    @endif
-</div>
+                </ul>
 
-@push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        const ctx = document.getElementById('alertsChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Warning', 'Sale', 'Critical', 'Info'],
-                datasets: [{
-                    label: 'Number of Alerts',
-                    data: [
-                        {{ $alerts->where('type', 'warning')->count() }},
-                        {{ $alerts->where('type', 'sale')->count() }},
-                        {{ $alerts->where('type', 'critical')->count() }},
-                        {{ $alerts->where('type', 'info')->count() }}
-                    ],
-                    backgroundColor: [
-                        'rgba(255, 206, 86, 0.6)', // Warning
-                        'rgba(54, 162, 235, 0.6)', // Sale
-                        'rgba(255, 99, 132, 0.6)', // Critical
-                        'rgba(75, 192, 192, 0.6)' // Info
-                    ],
-                    borderColor: [
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(75, 192, 192, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: { display: true, text: 'Number of Alerts' }
-                    },
-                    x: {
-                        title: { display: true, text: 'Alert Type' }
-                    }
-                },
-                plugins: {
-                    legend: { display: true, position: 'top' },
-                    title: { display: true, text: 'Alerts by Type' }
-                }
-            }
-        });
-    </script>
-@endpush
-@endsection --}}
+                {{ $alerts->links() }}
+            </div>
+        @else
+            <p class="text-gray-500 dark:text-gray-400 italic text-center py-4">No notifications available.</p>
+        @endif
+    </div>
+@endsection

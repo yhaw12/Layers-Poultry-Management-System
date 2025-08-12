@@ -8,16 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-      Schema::create('alerts', function (Blueprint $table) {
-            $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->constrained('users');
-            $table->string('type');
+        Schema::create('alerts', function (Blueprint $table) {
+            $table->uuid('id')->primary(); // UUID as primary key
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->enum('type', [
+                'info', 'warning', 'critical', 'success',
+                'inventory', 'sale', 'mortality', 'backup_success', 'backup_failed'
+            ])->default('info');
             $table->text('message');
             $table->boolean('is_read')->default(false);
             $table->string('url')->nullable();
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
-
         });
     }
 
@@ -26,4 +28,3 @@ return new class extends Migration
         Schema::dropIfExists('alerts');
     }
 };
-

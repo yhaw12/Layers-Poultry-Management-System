@@ -123,6 +123,8 @@ Route::middleware('auth')->group(function () {
     // Soft delete routes
     Route::get('birds/trashed', [BirdsController::class, 'trashed'])->name('birds.trashed');
     Route::post('birds/{id}/restore', [BirdsController::class, 'restore'])->name('birds.restore');
+
+    
 });
 
 /*

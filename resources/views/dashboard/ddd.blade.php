@@ -20,80 +20,6 @@
                 </div>
             </form>
         </section>
-       
-        <!-- Alerts (Admin Only) -->
-        @role('admin')
-            <section id="alerts-section" class="mb-8 relative">
-                <div class="container-box bg-white dark:bg-gray-900 shadow-md rounded-lg p-6">
-                    <!-- Close Button -->
-                    <button id="close-alerts" class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:ring-2 focus:ring-blue-500 rounded-md p-1 transition duration-200" title="Close Alerts" aria-label="Close Alerts">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-
-                    <!-- Session Messages -->
-                    @if (session('error'))
-                        <div class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-4 rounded-2xl mb-4" role="alert">
-                            {{ session('error') }}
-                        </div>
-                    @endif
-                    @if (session('success'))
-                        <div class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 p-4 rounded-2xl mb-4" role="alert">
-                            {{ session('success') }}
-                        </div>
-                    @endif
-
-                    <!-- Alerts Header -->
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
-                            <svg class="w-5 h-5 mr-2 text-red-500 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            Alerts
-                        </h3>
-                        @if ($alerts->isNotEmpty())
-                            <form id="dismiss-all-form" action="{{ route('alerts.dismiss-all') }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit" id="dismiss-all-btn" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 text-sm font-medium transition duration-200" aria-label="Dismiss All Alerts">
-                                    Dismiss All
-                                </button>
-                            </form>
-                        @endif
-                    </div>
-
-                    <!-- Alerts Content -->
-                    <div id="alerts-content">
-                        @if ($alerts->isNotEmpty())
-                            <ul class="space-y-3">
-                                @foreach ($alerts as $item)
-                                    <li class="list-item p-3 bg-gray-50 dark:bg-gray-700 rounded-md transition-opacity duration-300" data-alert-id="{{ $item->id }}">
-                                        <div class="flex justify-between items-center">
-                                            <a href="{{ $item->url ?? '#' }}" class="{{ $item->type === 'warning' ? 'text-yellow-600 dark:text-yellow-400' : ($item->type === 'sale' ? 'text-green-600 dark:text-green-400' : ($item->type === 'critical' ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400')) }} hover:underline">
-                                                {{ $item->message }}
-                                            </a>
-                                            @if ($item->is_read)
-                                                <span class="text-gray-500 dark:text-gray-400 text-sm">Read</span>
-                                            @elseif ($item->id)
-                                                <form action="{{ route('alerts.read', $item->id) }}" method="POST" class="inline dismiss-single-form">
-                                                    @csrf
-                                                    <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Mark as Read</button>
-                                                </form>
-                                            @else
-                                                <span class="text-gray-500 dark:text-gray-400 text-sm">Cannot mark as read (No ID)</span>
-                                            @endif
-                                        </div>
-                                    </li>
-                                @endforeach
-                            </ul>
-                            {{ $alerts->links() }}
-                        @else
-                            <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No active alerts at this time.</p>
-                        @endif
-                    </div>
-                </div>
-            </section>
-        @endrole
 
         <!-- Daily Instructions (Labourer) -->
         @role('labourer')
@@ -119,120 +45,15 @@
         <section class="mb-8">
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-3">Quick Actions</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <!-- Admin Quick Actions -->
-                @role('admin')
-                    @can('create_birds')
-                        <a href="{{ route('birds.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Add Bird</a>
-                    @endcan
-                    @can('create_eggs')
-                        <a href="{{ route('eggs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Record Egg Production</a>
-                    @endcan
-                    @can('create_sales')
-                        <a href="{{ route('sales.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200">Add Sale</a>
-                    @endcan
-                    @can('create_expenses')
-                        <a href="{{ route('expenses.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200">Log Expense</a>
-                    @endcan
-                    @can('create_income')
-                        <a href="{{ route('income.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Log Income</a>
-                    @endcan
-                    @can('create_users')
-                        <a href="{{ route('users.create') }}" class="bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-center transition duration-200">Add User</a>
-                    @endcan
-                    @can('create_employees')
-                        <a href="{{ route('employees.create') }}" class="bg-yellow-600 text-white py-3 px-4 rounded-lg hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-center transition duration-200">Add Employee</a>
-                    @endcan
-                @endrole
-
-                <!-- Farm Manager Quick Actions -->
-                @role('farm_manager')
-                    @can('create_birds')
-                        <a href="{{ route('birds.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Add Bird</a>
-                    @endcan
-                    @can('create_eggs')
-                        <a href="{{ route('eggs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Record Egg Production</a>
-                    @endcan
-                    @can('create_mortalities')
-                        <a href="{{ route('mortalities.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200">Log Mortality</a>
-                    @endcan
-                    @can('create_feed')
-                        <a href="{{ route('feed.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200">Log Feed</a>
-                    @endcan
-                    @can('create_inventory')
-                        <a href="{{ route('inventory.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Add Inventory</a>
-                    @endcan
-                @endrole
-
-                <!-- Accountant Quick Actions -->
-                @role('accountant')
-                    @can('create_expenses')
-                        <a href="{{ route('expenses.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200">Log Expense</a>
-                    @endcan
-                    @can('create_income')
-                        <a href="{{ route('income.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Log Income</a>
-                    @endcan
-                    @can('create_payroll')
-                        <a href="{{ route('payroll.create') }}" class="bg-yellow-600 text-white py-3 px-4 rounded-lg hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-center transition duration-200">Log Payroll</a>
-                    @endcan
-                @endrole
-
-                <!-- Sales Manager Quick Actions -->
-                @role('sales_manager')
-                    @can('create_sales')
-                        <a href="{{ route('sales.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200">Add Sale</a>
-                    @endcan
-                    @can('create_customers')
-                        <a href="{{ route('customers.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Add Customer</a>
-                    @endcan
-                    @can('create_orders')
-                        <a href="{{ route('orders.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Create Order</a>
-                    @endcan
-                    @can('generate_invoices')
-                        <a href="{{ route('invoices.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Generate Invoice</a>
-                    @endcan
-                @endrole
-
-                <!-- Inventory Manager Quick Actions -->
-                @role('inventory_manager')
-                    @can('create_inventory')
-                        <a href="{{ route('inventory.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Add Inventory</a>
-                    @endcan
-                    @can('create_suppliers')
-                        <a href="{{ route('suppliers.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Add Supplier</a>
-                    @endcan
-                    @can('create_feed')
-                        <a href="{{ route('feed.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200">Log Feed</a>
-                    @endcan
-                    @can('create_medicine_logs')
-                        <a href="{{ route('medicine-logs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Log Medicine</a>
-                    @endcan
-                @endrole
-
-                <!-- Veterinarian Quick Actions -->
-                @role('veterinarian')
-                    @can('create_health_checks')
-                        <a href="{{ route('health-checks.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Log Health Check</a>
-                    @endcan
-                    @can('create_diseases')
-                        <a href="{{ route('diseases.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200">Log Disease</a>
-                    @endcan
-                    @can('create_vaccination_logs')
-                        <a href="{{ route('vaccination-logs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Log Vaccination</a>
-                    @endcan
-                    @can('create_medicine_logs')
-                        <a href="{{ route('medicine-logs.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Log Medicine</a>
-                    @endcan
-                @endrole
-
-                <!-- Labourer Quick Actions -->
-                @role('labourer')
-                    @can('create_eggs')
-                        <a href="{{ route('eggs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Record Egg Production</a>
-                    @endcan
-                    @can('create_mortalities')
-                        <a href="{{ route('mortalities.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200">Log Mortality</a>
-                    @endcan
-                @endrole
+                @can('create_sales')
+                    <a href="{{ route('sales.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Add Sale</a>
+                @endcan
+                @can('create_expenses')
+                    <a href="{{ route('expenses.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200">Log Expense</a>
+                @endcan
+                @can('create_eggs')
+                    <a href="{{ route('eggs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Record Egg Production</a>
+                @endcan
             </div>
         </section>
 
@@ -338,6 +159,61 @@
             </section>
         @endrole
 
+        <!-- Alerts (Admin Only) -->
+        @role('admin')
+            <section id="alerts-section" class="mb-8 relative">
+                <div class="container-box">
+                    <button id="close-alerts" class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none" title="Close Alerts">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                    @if (session('error'))
+                        <div class="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 p-4 rounded-2xl mb-4" role="alert">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+                    @if (session('success'))
+                        <div class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 p-4 rounded-2xl mb-4" role="alert">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Alerts</h3>
+                        @if ($alerts->isNotEmpty())
+                            <form action="{{ route('alerts.dismiss-all') }}" method="POST" class="inline">
+                                @csrf
+                                <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium">
+                                    Dismiss All
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                    <div id="alerts-content">
+                        @if ($alerts->isNotEmpty())
+                            <ul class="space-y-3">
+                                @foreach ($alerts as $item)
+                                    <li class="list-item">
+                                        <div class="flex justify-between items-center">
+                                            <span class="{{ $item->type === 'warning' ? 'text-red-600' : '' }}">{{ $item->message }}</span>
+                                            @if ($item->user_id)
+                                                <form action="{{ route('alerts.read', $item) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Mark as Read</button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <p class="no-data">No active alerts at this time.</p>
+                        @endif
+                    </div>
+                </div>
+            </section>
+        @endrole
+
         <!-- Financial Summary (Admins with Permission) -->
         @can('manage_finances')
             <section class="mb-8">
@@ -380,53 +256,25 @@
             </section>
         @endcan
 
-        <!-- Pending Approvals (Admins or Finance Managers) -->
-        @if ($pendingApprovals->isNotEmpty() && (auth()->user()->hasRole('admin') || auth()->user()->hasPermissionTo('manage_finances')))
+        <!-- Payroll Status (Accountant or Admin) -->
+        @hasanyrole('accountant|admin')
             <section class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Pending Approvals</h2>
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Payroll Status</h2>
                 <div class="container-box">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-700">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            @foreach ($pendingApprovals as $approval)
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ $approval->id }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ ucfirst($approval->type) }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${{ number_format($approval->amount, 2) }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ $approval->date }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                        @if ($approval->source_type === \App\Models\Sale::class)
-                                            Sale #{{ $approval->source_id }}
-                                        @elseif ($approval->source_type === \App\Models\Expense::class)
-                                            Expense: {{ $approval->source->category }}
-                                        @elseif ($approval->source_type === \App\Models\Income::class)
-                                            Income: {{ $approval->source->source }}
-                                        @elseif ($approval->source_type === \App\Models\Order::class)
-                                            Order #{{ $approval->source_id }}
-                                        @else
-                                            N/A
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                        <a href="{{ route('transactions.approve', $approval->id) }}" class="text-green-600 dark:text-green-400 hover:underline">Approve</a>
-                                        <a href="{{ route('transactions.reject', $approval->id) }}" class="text-red-600 dark:text-red-400 hover:underline ml-4">Reject</a>
-                                    </td>
-                                </tr>
+                    @if ($payrollStatus->isNotEmpty())
+                        <ul class="space-y-3">
+                            @foreach ($payrollStatus as $item)
+                                <li class="list-item">
+                                    <span class="highlight">{{ $item->date }}</span>: {{ $item->employees }} employees, ${{ number_format($item->total, 2) }}
+                                </li>
                             @endforeach
-                        </tbody>
-                    </table>
+                        </ul>
+                    @else
+                        <p class="no-data">No recent payroll activity.</p>
+                    @endif
                 </div>
             </section>
-        @endif
+        @endhasanyrole
 
         <!-- Key Performance Indicators (KPIs) -->
         <section class="mb-8">
@@ -484,68 +332,6 @@
                 </div>
             @endforeach
         </section>
-
-        <!-- Payroll Status (Admin/Accountant) -->
-    @if (auth()->user()->hasAnyRole(['admin', 'accountant']))
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Payroll Status
-            </h2>
-            <div class="container-box">
-                @if ($payrollStatus->isNotEmpty())
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(0, 'date')">Pay Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(1, 'number')">Employees</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(2, 'number')">Total</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @foreach ($payrollStatus as $item)
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
-                                        <td class="px-4 py-3 text-sm font-semibold text-blue-600 dark:text-blue-400">{{ $item->date }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{{ $item->employees }} {{ Str::plural('employee', $item->employees) }}</td>
-                                        <td class="px-4 py-3 text-sm font-bold text-green-600 dark:text-green-400">${{ number_format($item->total, 2) }}</td>
-                                        <td class="px-4 py-3 text-sm">
-                                            <span class="px-2 py-1 text-xs font-medium rounded-full {{ $item->status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100' }}">
-                                                {{ ucfirst($item->status) }}
-                                            </span>
-                                        </td>
-                                        <td class="px-4 py-3 text-sm">
-                                            <a href="{{ route('payroll.index', ['start_date' => $item->date, 'end_date' => $item->date]) }}" class="text-blue-600 dark:text-blue-400 hover:underline">View Details</a>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                        <!-- Add Pagination Links -->
-                        {{ $payrollStatus->links() }}
-                    </div>
-                @else
-                    <div class="text-center py-6">
-                        <svg class="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No recent payroll activity for the selected date range.</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                            Try adjusting the date filter or
-                            <form action="{{ route('payroll.generate') }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline">generate monthly payroll</button>
-                            </form>.
-                        </p>
-                    </div>
-                @endif
-            </div>
-        </section>
-    @endif
 
         <!-- Recent Activity -->
         <section class="mb-8">
@@ -643,7 +429,7 @@
 
         <!-- Invoice Status (Admin Only) -->
         @role('admin')
-            <section class="mb-8">
+            <section class="mb-2xl">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Invoice Status</h2>
                     <form action="{{ route('dashboard.export') }}" method="POST">
@@ -675,8 +461,6 @@
     </div>
 @endsection
 
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 @push('scripts')
     <script>
         // Chart instances

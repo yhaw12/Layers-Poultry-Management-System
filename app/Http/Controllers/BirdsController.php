@@ -6,16 +6,23 @@ use App\Models\Bird;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class BirdsController extends Controller
 {
     public function index()
     {
         $birds = Bird::paginate(10);
-        $totalQuantity = Bird::sum('quantity') ?? 0;
-        $layers = Bird::where('type', 'layer')->where('stage', '!=', 'chick')->sum('quantity') ?? 0;
-        $broilers = Bird::where('type', 'broiler')->where('stage', '!=', 'chick')->sum('quantity') ?? 0;
-        $chicks = Bird::where('stage', 'chick')->sum('quantity_bought') ?? 0;
+        $totalQuantity = Bird::whereNull('deleted_at')->sum('quantity') ?? 0;
+        $chicks = Bird::where('stage', 'chick')
+            ->whereNull('deleted_at')
+            ->sum('alive') ?? 0;
+        $layers = Bird::where('type', 'layer')
+            ->whereNull('deleted_at')
+            ->sum(Db::raw('CASE WHEN stage = "chick" THEN alive ELSE quantity END')) ?? 0;
+        $broilers = Bird::where('type', 'broiler')
+            ->whereNull('deleted_at')
+            ->sum(DB::raw('CASE WHEN stage = "chick" THEN alive ELSE quantity END')) ?? 0;
         return view('birds.index', compact('birds', 'totalQuantity', 'layers', 'broilers', 'chicks'));
     }
 
