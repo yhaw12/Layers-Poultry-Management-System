@@ -4,13 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\Supplier;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class SupplierController extends Controller
 {
     public function index()
     {
-        $suppliers = Supplier::orderBy('name')->paginate(10);
-        return view('suppliers.index', compact('suppliers'));
+        try {
+            $suppliers = Supplier::whereNull('deleted_at')->orderBy('name')->paginate(10);
+            return view('suppliers.index', compact('suppliers'));
+        } catch (\Exception $e) {
+            Log::error('Failed to load suppliers', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Failed to load suppliers.');
+        }
     }
 
     public function create()
@@ -20,21 +27,44 @@ class SupplierController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'contact' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'contact' => 'nullable|string|max:20',
+                'email' => 'nullable|email',
+            ]);
 
-        Supplier::create($validated);
-        return redirect()->route('suppliers.index')->with('success', 'Supplier added.');
+            $supplier = Supplier::create($validated);
+
+            \App\Models\UserActivityLog::create([
+                'user_id' => Auth::id() ?? 1,
+                'action' => 'created_supplier',
+                'details' => "Created supplier {$validated['name']}",
+            ]);
+
+            return redirect()->route('suppliers.index')->with('success', 'Supplier added.');
+        } catch (\Exception $e) {
+            Log::error('Failed to store supplier', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Failed to add supplier.');
+        }
     }
 
-    // Add edit, update, destroy methods
-     public function destroy($id)
+    public function destroy($id)
     {
-        $supplier = Supplier::findorFail($id);
-        $supplier->delete();
-        return redirect()->route('suppliers.index')->with('success', 'suppliers deleted successfully');
+        try {
+            $supplier = Supplier::findOrFail($id);
+            $supplier->delete();
+
+            \App\Models\UserActivityLog::create([
+                'user_id' => Auth::id() ?? 1,
+                'action' => 'deleted_supplier',
+                'details' => "Deleted supplier ID {$id}",
+            ]);
+
+            return redirect()->route('suppliers.index')->with('success', 'Supplier deleted successfully');
+        } catch (\Exception $e) {
+            Log::error('Failed to delete supplier', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Failed to delete supplier.');
+        }
     }
 }

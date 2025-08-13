@@ -5,49 +5,102 @@ namespace App\Http\Controllers;
 use App\Models\VaccinationLog;
 use App\Models\Bird;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class VaccinationLogController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $logs = VaccinationLog::with('bird')->orderBy('date_administered', 'desc')->paginate(10);
-        return view('vaccination-logs.index', compact('logs'));
+        try {
+            $request->validate([
+                'start_date' => 'nullable|date|before_or_equal:end_date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+            ]);
+
+            $start = $request->input('start_date', now()->subMonths(6)->startOfMonth()->toDateString());
+            $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+            $cacheKey = "vaccination_logs_{$start}_{$end}";
+
+            $logs = Cache::remember($cacheKey, 300, function () use ($start, $end) {
+                return VaccinationLog::with('bird')
+                    ->whereBetween('date_administered', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->orderBy('date_administered', 'desc')
+                    ->paginate(10);
+            });
+
+            return view('vaccination-logs.index', compact('logs', 'start', 'end'));
+        } catch (\Exception $e) {
+            Log::error('Failed to load vaccination logs', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Failed to load vaccination logs.');
+        }
     }
 
     public function create()
     {
-        $birds = Bird::all();
+        $birds = Bird::whereNull('deleted_at')->get();
         return view('vaccination-logs.create', compact('birds'));
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'bird_id' => 'required|exists:birds,id',
-            'vaccine_name' => 'required|string|max:255',
-            'date_administered' => 'required|date',
-            'notes' => 'nullable|string',
-            'next_vaccination_date' => 'nullable|date|after:date_administered',
-        ]);
+        try {
+            $validated = $request->validate([
+                'bird_id' => 'required|exists:birds,id',
+                'vaccine_name' => 'required|string|max:255',
+                'date_administered' => 'required|date',
+                'notes' => 'nullable|string',
+                'next_vaccination_date' => 'nullable|date|after:date_administered',
+            ]);
 
-        VaccinationLog::create($validated);
-        return redirect()->route('vaccination-logs.index')->with('success', 'Vaccination log added.');
+            $log = VaccinationLog::create($validated);
+
+            \App\Models\UserActivityLog::create([
+                'user_id' => Auth::id() ?? 1,
+                'action' => 'created_vaccination_log',
+                'details' => "Created vaccination log for bird ID {$validated['bird_id']} on {$validated['date_administered']}",
+            ]);
+
+            return redirect()->route('vaccination-logs.index')->with('success', 'Vaccination log added.');
+        } catch (\Exception $e) {
+            Log::error('Failed to store vaccination log', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Failed to add vaccination log.');
+        }
     }
 
-    // Add edit, update, destroy methods similarly
-     public function destroy($id)
+    public function destroy($id)
     {
-        $vaccine = VaccinationLog::findorFail($id);
-        $vaccine->delete();
-        return redirect()->route('vaccination-logs.index')->with('success', 'vaccines deleted successfully');
+        try {
+            $vaccine = VaccinationLog::findOrFail($id);
+            $vaccine->delete();
+
+            \App\Models\UserActivityLog::create([
+                'user_id' => Auth::id() ?? 1,
+                'action' => 'deleted_vaccination_log',
+                'details' => "Deleted vaccination log ID {$id}",
+            ]);
+
+            return redirect()->route('vaccination-logs.index')->with('success', 'Vaccination log deleted successfully');
+        } catch (\Exception $e) {
+            Log::error('Failed to delete vaccination log', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Failed to delete vaccination log.');
+        }
     }
 
     public function reminders()
     {
-        $reminders = VaccinationLog::where('next_vaccination_date', '<=', now()->addDays(7))
-            ->where('next_vaccination_date', '>=', now())
-            ->with('bird')
-            ->get();
-        return view('vaccination-logs.reminders', compact('reminders'));
+        try {
+            $reminders = VaccinationLog::where('next_vaccination_date', '<=', now()->addDays(7))
+                ->where('next_vaccination_date', '>=', now())
+                ->whereNull('deleted_at')
+                ->with('bird')
+                ->get();
+            return view('vaccination-logs.reminders', compact('reminders'));
+        } catch (\Exception $e) {
+            Log::error('Failed to load vaccination reminders', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Failed to load vaccination reminders.');
+        }
     }
 }

@@ -12,7 +12,7 @@ class IncomeController extends Controller
 {
     public function index()
     {
-        $incomes = Income::withoutTrashed()->get();
+        $income = Income::withoutTrashed()->get();
         $incomeData = [];
         $incomeLabels = [];
         for ($i = 0; $i < 6; $i++) {
@@ -26,7 +26,7 @@ class IncomeController extends Controller
         $incomeLabels = array_reverse($incomeLabels);
         $incomeData = array_reverse($incomeData);
 
-        return view('income.index', compact('incomes', 'incomeLabels', 'incomeData'));
+        return view('income.index', compact('income', 'incomeLabels', 'incomeData'));
     }
 
     public function create()

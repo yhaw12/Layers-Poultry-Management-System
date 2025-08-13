@@ -13,12 +13,14 @@ use App\Models\HealthCheck;
 use App\Models\Income;
 use App\Models\MedicineLog;
 use App\Models\Mortalities;
+use App\Models\Order;
 use App\Models\Payroll;
 use App\Models\Sale;
 use App\Models\Supplier;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\UserActivityLog;
+use App\Models\VaccinationLog;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -65,22 +67,37 @@ class DashboardController extends Controller
             $cacheTTL = 300; // Cache for 5 minutes
 
             // Fetch data from cache or database
-            $dashboardData = Cache::remember($cacheKey, $cacheTTL, function () use ($user, $start, $end) {
+            $dashboardData = Cache::remember($cacheKey, $cacheTTL, function () use ($start, $end) {
                 // Fetch paginated alerts
-                $alerts = Alert::where('user_id', $user->id)
+                $alerts = Alert::where('user_id', Auth::id())
                     ->where('is_read', false)
                     ->whereBetween('created_at', [$start, $end])
+                    ->whereNull('deleted_at')
                     ->orderBy('created_at', 'desc')
                     ->paginate(10);
 
                 // Dashboard metrics
                 $totalBirds = Bird::whereNull('deleted_at')->sum('quantity') ?? 0;
-                $layerBirds = Bird::where('type', 'layer')->where('stage', '!=', 'chick')->whereNull('deleted_at')->sum('quantity') ?? 0;
-                $broilerBirds = Bird::where('type', 'broiler')->where('stage', '!=', 'chick')->whereNull('deleted_at')->sum('quantity') ?? 0;
-                $chicks = Bird::where('stage', 'chick')->sum('quantity_bought') ?? 0;
-                $eggCrates = Egg::whereBetween('date_laid', [$start, $end])->whereNull('deleted_at')->sum('crates') ?? 0;
-                $feedQuantity = Feed::whereBetween('purchase_date', [$start, $end])->whereNull('deleted_at')->sum('quantity') ?? 0;
-                $mortalities = Mortalities::whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('quantity') ?? 0;
+                $layerBirds = Bird::where('type', 'layer')
+                    ->where('stage', '!=', 'chick')
+                    ->whereNull('deleted_at')
+                    ->sum('quantity') ?? 0;
+                $broilerBirds = Bird::where('type', 'broiler')
+                    ->where('stage', '!=', 'chick')
+                    ->whereNull('deleted_at')
+                    ->sum('quantity') ?? 0;
+                $chicks = Bird::where('stage', 'chick')
+                    ->whereNull('deleted_at')
+                    ->sum('quantity_bought') ?? 0;
+                $eggCrates = Egg::whereBetween('date_laid', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('crates') ?? 0;
+                $feedQuantity = Feed::whereBetween('purchase_date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('quantity') ?? 0;
+                $mortalities = Mortalities::whereBetween('date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('quantity') ?? 0;
                 $medicinePurchased = MedicineLog::where('type', 'purchase')
                     ->whereBetween('date', [$start, $end])
                     ->whereNull('deleted_at')
@@ -89,14 +106,83 @@ class DashboardController extends Controller
                     ->whereBetween('date', [$start, $end])
                     ->whereNull('deleted_at')
                     ->sum('quantity') ?? 0;
-                $totalIncome = Income::whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('amount') ?? 0;
-                $totalExpenses = Expense::whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('amount') ?? 0;
-                $totalSales = Sale::whereBetween('sale_date', [$start, $end])->whereNull('deleted_at')->sum('total_amount') ?? 0;
+                $totalIncome = Income::whereBetween('date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('amount') ?? 0;
+                $totalExpenses = Expense::whereBetween('date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('amount') ?? 0;
+                $totalSales = Sale::whereBetween('sale_date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('total_amount') ?? 0;
                 $customerCount = Customer::whereNull('deleted_at')->count();
-                $pendingSales = Sale::where('status', 'pending')->whereNull('deleted_at')->count();
-                $paidSales = Sale::where('status', 'paid')->whereNull('deleted_at')->count();
-                $partiallyPaidSales = Sale::where('status', 'partially_paid')->whereNull('deleted_at')->count();
-                $overdueSales = Sale::where('status', 'overdue')->whereNull('deleted_at')->count();
+                $pendingSales = Sale::where('status', 'pending')
+                    ->whereNull('deleted_at')
+                    ->count();
+                $paidSales = Sale::where('status', 'paid')
+                    ->whereNull('deleted_at')
+                    ->count();
+                $partiallyPaidSales = Sale::where('status', 'partially_paid')
+                    ->whereNull('deleted_at')
+                    ->count();
+                $overdueSales = Sale::where('status', 'overdue')
+                    ->whereNull('deleted_at')
+                    ->count();
+                $activeSuppliers = Supplier::whereNull('deleted_at')->count();
+                $pendingOrders = Order::where('status', 'pending')
+                    ->whereBetween('created_at', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->count();
+                $totalOrderAmount = Order::whereBetween('created_at', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('total_amount') ?? 0;
+                $pendingPayrolls = Payroll::where('status', 'pending')
+                    ->whereBetween('pay_date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->count();
+                $totalPayroll = Payroll::whereBetween('pay_date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('net_pay') ?? 0;
+                $upcomingVaccinations = VaccinationLog::where('next_vaccination_date', '<=', now()->addDays(7))
+                    ->where('next_vaccination_date', '>=', now())
+                    ->whereNull('deleted_at')
+                    ->with('bird')
+                    ->count();
+                $pendingTransactions = Transaction::where('status', 'pending')
+                    ->whereBetween('date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->count();
+                $totalTransactionAmount = Transaction::whereBetween('date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('amount') ?? 0;
+
+                // Additional data from other controllers
+                $vaccinationLogs = VaccinationLog::with('bird')
+                    ->whereBetween('date_administered', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->orderBy('date_administered', 'desc')
+                    ->take(5)
+                    ->get();
+                $recentSales = Sale::with('customer', 'saleable')
+                    ->whereBetween('sale_date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->orderBy('sale_date', 'desc')
+                    ->take(5)
+                    ->get();
+                $eggSales = Sale::where('saleable_type', Egg::class)
+                    ->whereBetween('sale_date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('total_amount') ?? 0;
+                $birdSales = Sale::where('saleable_type', Bird::class)
+                    ->whereBetween('sale_date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('total_amount') ?? 0;
+                $recentMortalities = Mortalities::with('bird')
+                    ->whereBetween('date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->orderBy('date', 'desc')
+                    ->take(5)
+                    ->get();
 
                 // Monthly income for the last 6 months
                 $monthlyIncome = [];
@@ -181,7 +267,8 @@ class DashboardController extends Controller
                     ->whereBetween('created_at', [$start, $end])
                     ->whereNull('deleted_at')
                     ->limit(5)
-                    ->get()->map(function ($log) {
+                    ->get()
+                    ->map(function ($log) {
                         $log->user_name = User::find($log->user_id)->name ?? 'Unknown';
                         return $log;
                     });
@@ -206,9 +293,6 @@ class DashboardController extends Controller
                 $mortalityRate = ($totalBirds > 0) ? ($mortalities / $totalBirds) * 100 : 0;
                 $fcr = ($eggCrates > 0 && $feedQuantity > 0) ? $feedQuantity / $eggCrates : 0;
                 $employees = Employee::whereNull('deleted_at')->count();
-                $payroll = Payroll::whereBetween('pay_date', [$start, $end])
-                    ->whereNull('deleted_at')
-                    ->sum('net_pay') ?? 0;
                 $eggTrend = $eggProduction;
                 $feedTrend = $feedConsumption;
                 $salesTrend = $salesData;
@@ -238,7 +322,10 @@ class DashboardController extends Controller
                 $dailyInstructions = collect();
                 $healthSummary = collect();
                 $vaccinationSchedule = collect();
-                $suppliers = collect();
+                $suppliers = Supplier::whereNull('deleted_at')
+                    ->orderBy('name')
+                    ->take(5)
+                    ->get();
 
                 return compact(
                     'alerts',
@@ -286,7 +373,20 @@ class DashboardController extends Controller
                     'dailyInstructions',
                     'healthSummary',
                     'vaccinationSchedule',
-                    'suppliers'
+                    'suppliers',
+                    'vaccinationLogs',
+                    'upcomingVaccinations',
+                    'pendingTransactions',
+                    'totalTransactionAmount',
+                    'activeSuppliers',
+                    'pendingOrders',
+                    'totalOrderAmount',
+                    'totalPayroll',
+                    'pendingPayrolls',
+                    'recentSales',
+                    'eggSales',
+                    'birdSales',
+                    'recentMortalities'
                 );
             });
 

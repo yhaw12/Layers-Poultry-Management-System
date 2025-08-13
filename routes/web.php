@@ -57,12 +57,16 @@ Route::middleware('auth')->group(function () {
          ->name('dashboard.export')
          ->middleware('role:admin');
 
-    // Alerts
-    Route::get('alerts', [AlertController::class, 'view'])->name('alerts.index');
-    Route::post('alerts/{id}/read', [AlertController::class, 'markAsRead'])->name('alerts.read');
+    
+
+// Alerts/Notifications
+    Route::get('alerts', [AlertController::class, 'index'])->name('alerts.index'); // JSON for bell/dropdown
+    Route::get('notifications', [AlertController::class, 'view'])->name('notifications.index'); // Full page view
+    Route::post('alerts/{alert}/read', [AlertController::class, 'read'])->name('alerts.read');
     Route::post('alerts/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismiss-all');
     Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])->name('alerts.custom.create')
-         ->middleware('role:admin');
+        ->middleware('role:admin');
+
 
     // Core resources
     Route::resources([

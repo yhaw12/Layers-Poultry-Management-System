@@ -115,152 +115,6 @@
             </section>
         @endrole
 
-        <!-- Quick Actions -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-3">Quick Actions</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <!-- Admin Quick Actions -->
-                @role('admin')
-                    @can('create_birds')
-                        <a href="{{ route('birds.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Add Bird</a>
-                    @endcan
-                    @can('create_eggs')
-                        <a href="{{ route('eggs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Record Egg Production</a>
-                    @endcan
-                    @can('create_sales')
-                        <a href="{{ route('sales.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200">Add Sale</a>
-                    @endcan
-                    @can('create_expenses')
-                        <a href="{{ route('expenses.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200">Log Expense</a>
-                    @endcan
-                    @can('create_income')
-                        <a href="{{ route('income.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Log Income</a>
-                    @endcan
-                    @can('create_users')
-                        <a href="{{ route('users.create') }}" class="bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-center transition duration-200">Add User</a>
-                    @endcan
-                    @can('create_employees')
-                        <a href="{{ route('employees.create') }}" class="bg-yellow-600 text-white py-3 px-4 rounded-lg hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-center transition duration-200">Add Employee</a>
-                    @endcan
-                @endrole
-
-                <!-- Farm Manager Quick Actions -->
-                @role('farm_manager')
-                    @can('create_birds')
-                        <a href="{{ route('birds.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Add Bird</a>
-                    @endcan
-                    @can('create_eggs')
-                        <a href="{{ route('eggs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Record Egg Production</a>
-                    @endcan
-                    @can('create_mortalities')
-                        <a href="{{ route('mortalities.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200">Log Mortality</a>
-                    @endcan
-                    @can('create_feed')
-                        <a href="{{ route('feed.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200">Log Feed</a>
-                    @endcan
-                    @can('create_inventory')
-                        <a href="{{ route('inventory.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Add Inventory</a>
-                    @endcan
-                @endrole
-
-                <!-- Accountant Quick Actions -->
-                @role('accountant')
-                    @can('create_expenses')
-                        <a href="{{ route('expenses.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200">Log Expense</a>
-                    @endcan
-                    @can('create_income')
-                        <a href="{{ route('income.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Log Income</a>
-                    @endcan
-                    @can('create_payroll')
-                        <a href="{{ route('payroll.create') }}" class="bg-yellow-600 text-white py-3 px-4 rounded-lg hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-center transition duration-200">Log Payroll</a>
-                    @endcan
-                @endrole
-
-                <!-- Sales Manager Quick Actions -->
-                @role('sales_manager')
-                    @can('create_sales')
-                        <a href="{{ route('sales.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200">Add Sale</a>
-                    @endcan
-                    @can('create_customers')
-                        <a href="{{ route('customers.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Add Customer</a>
-                    @endcan
-                    @can('create_orders')
-                        <a href="{{ route('orders.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Create Order</a>
-                    @endcan
-                    @can('generate_invoices')
-                        <a href="{{ route('invoices.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Generate Invoice</a>
-                    @endcan
-                @endrole
-
-                <!-- Inventory Manager Quick Actions -->
-                @role('inventory_manager')
-                    @can('create_inventory')
-                        <a href="{{ route('inventory.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Add Inventory</a>
-                    @endcan
-                    @can('create_suppliers')
-                        <a href="{{ route('suppliers.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Add Supplier</a>
-                    @endcan
-                    @can('create_feed')
-                        <a href="{{ route('feed.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200">Log Feed</a>
-                    @endcan
-                    @can('create_medicine_logs')
-                        <a href="{{ route('medicine-logs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Log Medicine</a>
-                    @endcan
-                @endrole
-
-                <!-- Veterinarian Quick Actions -->
-                @role('veterinarian')
-                    @can('create_health_checks')
-                        <a href="{{ route('health-checks.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Log Health Check</a>
-                    @endcan
-                    @can('create_diseases')
-                        <a href="{{ route('diseases.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200">Log Disease</a>
-                    @endcan
-                    @can('create_vaccination_logs')
-                        <a href="{{ route('vaccination-logs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Log Vaccination</a>
-                    @endcan
-                    @can('create_medicine_logs')
-                        <a href="{{ route('medicine-logs.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Log Medicine</a>
-                    @endcan
-                @endrole
-
-                <!-- Labourer Quick Actions -->
-                @role('labourer')
-                    @can('create_eggs')
-                        <a href="{{ route('eggs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Record Egg Production</a>
-                    @endcan
-                    @can('create_mortalities')
-                        <a href="{{ route('mortalities.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200">Log Mortality</a>
-                    @endcan
-                @endrole
-            </div>
-        </section>
-
-        <!-- Production Input Shortcut (Non-Admins) -->
-        @unlessrole('admin')
-            <section class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Quick Production Log</h2>
-                <div class="container-box">
-                    <form action="{{ route('eggs.store') }}" method="POST" class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="production-form">
-                        @csrf
-                        <div>
-                            <label for="crates" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Egg Crates</label>
-                            <input type="number" id="crates" name="crates" step="0.01" min="0" class="w-full border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200" placeholder="Enter crates">
-                            @error('crates') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label for="date_laid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date Laid</label>
-                            <input type="date" id="date_laid" name="date_laid" value="{{ now()->toDateString() }}" class="w-full border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200">
-                            @error('date_laid') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div class="sm:col-span-2">
-                            <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 transition duration-200 w-full sm:w-auto">Log Production</button>
-                        </div>
-                    </form>
-                </div>
-            </section>
-        @endunlessrole
-
         <!-- Flock Health Summary (Farm Manager) -->
         @role('farm_manager')
             <section class="mb-8">
@@ -388,10 +242,10 @@
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(0, 'date')">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(1, 'number')">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(2, 'number')">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(3, 'date')">Date</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -486,66 +340,66 @@
         </section>
 
         <!-- Payroll Status (Admin/Accountant) -->
-    @if (auth()->user()->hasAnyRole(['admin', 'accountant']))
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Payroll Status
-            </h2>
-            <div class="container-box">
-                @if ($payrollStatus->isNotEmpty())
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-700">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(0, 'date')">Pay Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(1, 'number')">Employees</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(2, 'number')">Total</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @foreach ($payrollStatus as $item)
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
-                                        <td class="px-4 py-3 text-sm font-semibold text-blue-600 dark:text-blue-400">{{ $item->date }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{{ $item->employees }} {{ Str::plural('employee', $item->employees) }}</td>
-                                        <td class="px-4 py-3 text-sm font-bold text-green-600 dark:text-green-400">${{ number_format($item->total, 2) }}</td>
-                                        <td class="px-4 py-3 text-sm">
-                                            <span class="px-2 py-1 text-xs font-medium rounded-full {{ $item->status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100' }}">
-                                                {{ ucfirst($item->status) }}
-                                            </span>
-                                        </td>
-                                        <td class="px-4 py-3 text-sm">
-                                            <a href="{{ route('payroll.index', ['start_date' => $item->date, 'end_date' => $item->date]) }}" class="text-blue-600 dark:text-blue-400 hover:underline">View Details</a>
-                                        </td>
+        @if (auth()->user()->hasAnyRole(['admin', 'accountant']))
+            <section class="mb-8">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Payroll Status
+                </h2>
+                <div class="container-box">
+                    @if ($payrollStatus->isNotEmpty())
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(0, 'date')">Pay Date</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(1, 'number')">Employees</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(2, 'number')">Total</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                                     </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                        <!-- Add Pagination Links -->
-                        {{ $payrollStatus->links() }}
-                    </div>
-                @else
-                    <div class="text-center py-6">
-                        <svg class="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No recent payroll activity for the selected date range.</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                            Try adjusting the date filter or
-                            <form action="{{ route('payroll.generate') }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline">generate monthly payroll</button>
-                            </form>.
-                        </p>
-                    </div>
-                @endif
-            </div>
-        </section>
-    @endif
+                                </thead>
+                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    @foreach ($payrollStatus as $item)
+                                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                                            <td class="px-4 py-3 text-sm font-semibold text-blue-600 dark:text-blue-400">{{ $item->date }}</td>
+                                            <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{{ $item->employees }} {{ Str::plural('employee', $item->employees) }}</td>
+                                            <td class="px-4 py-3 text-sm font-bold text-green-600 dark:text-green-400">${{ number_format($item->total, 2) }}</td>
+                                            <td class="px-4 py-3 text-sm">
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full {{ $item->status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100' }}">
+                                                    {{ ucfirst($item->status) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm">
+                                                <a href="{{ route('payroll.index', ['start_date' => $item->date, 'end_date' => $item->date]) }}" class="text-blue-600 dark:text-blue-400 hover:underline">View Details</a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                            <!-- Add Pagination Links -->
+                            {{ $payrollStatus->links() }}
+                        </div>
+                    @else
+                        <div class="text-center py-6">
+                            <svg class="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No recent payroll activity for the selected date range.</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                Try adjusting the date filter or
+                                <form action="{{ route('payroll.generate') }}" method="POST" class="inline">
+                                    @csrf
+                                    <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline">generate monthly payroll</button>
+                                </form>.
+                            </p>
+                        </div>
+                    @endif
+                </div>
+            </section>
+        @endif
 
         <!-- Recent Activity -->
         <section class="mb-8">
@@ -672,6 +526,196 @@
                 </div>
             </section>
         @endrole
+
+        <!-- Flock Breakdown -->
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Flock Breakdown</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                <div class="container-box">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-gray-700 dark:text-gray-300 font-medium text-base sm:text-lg">Total Birds</h4>
+                        <span class="text-xl sm:text-2xl">🐔</span>
+                    </div>
+                    <p class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2 truncate">{{ $totalBirds ?? 0 }}</p>
+                </div>
+                <div class="container-box">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-gray-700 dark:text-gray-300 font-medium text-base sm:text-lg">Layer Birds</h4>
+                        <span class="text-xl sm:text-2xl">🐔</span>
+                    </div>
+                    <p class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2 truncate">{{ $layerBirds ?? 0 }}</p>
+                </div>
+                <div class="container-box">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-gray-700 dark:text-gray-300 font-medium text-base sm:text-lg">Broiler Birds</h4>
+                        <span class="text-xl sm:text-2xl">🐔</span>
+                    </div>
+                    <p class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2 truncate">{{ $broilerBirds ?? 0 }}</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Monthly Income Summary -->
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Monthly Income Summary</h2>
+            <div class="container-box">
+                @if (!empty($monthlyIncome))
+                    <ul class="space-y-3">
+                        @foreach ($monthlyIncome as $month => $amount)
+                            <li class="list-item">
+                                <span class="highlight">{{ $month }}</span>: ${{ number_format($amount, 2) }}
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="no-data">No monthly income data available.</p>
+                @endif
+            </div>
+        </section>
+
+        <!-- Production Data -->
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Production Data</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="container-box">
+                    <h4 class="chart-title">Egg Production</h4>
+                    <div class="relative h-64">
+                        <canvas id="eggProductionChart" class="w-full h-full"></canvas>
+                    </div>
+                    @if (!isset($eggProduction) || $eggProduction->isEmpty())
+                        <p class="no-data">No egg production data available.</p>
+                    @endif
+                </div>
+                <div class="container-box">
+                    <h4 class="chart-title">Feed Consumption</h4>
+                    <div class="relative h-64">
+                        <canvas id="feedConsumptionChart" class="w-full h-full"></canvas>
+                    </div>
+                    @if (!isset($feedConsumption) || $feedConsumption->isEmpty())
+                        <p class="no-data">No feed consumption data available.</p>
+                    @endif
+                </div>
+            </div>
+        </section>
+
+        <!-- Vaccination Overview -->
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Vaccination Overview</h2>
+            <div class="container-box">
+                <div class="mb-4">
+                    <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Upcoming Vaccinations</h4>
+                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $upcomingVaccinations ?? 0 }}</p>
+                </div>
+                {{-- @if ($vaccinationLogs->isNotEmpty())
+                    <ul class="space-y-3">
+                        @foreach ($vaccinationLogs as $log)
+                            <li class="list-item">
+                                <span class="highlight">{{ $log->vaccine_name }}</span> for Bird #{{ $log->bird->id }} on {{ $log->date_administered }}
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="no-data">No recent vaccination logs.</p>
+                @endif --}}
+            </div>
+        </section>
+
+        <!-- Transaction Overview -->
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Transaction Overview</h2>
+            <div class="container-box">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Pending Transactions</h4>
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $pendingTransactions ?? 0 }}</p>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Total Transaction Amount</h4>
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">${{ number_format($totalTransactionAmount ?? 0, 2) }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Order Overview -->
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Order Overview</h2>
+            <div class="container-box">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Pending Orders</h4>
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $pendingOrders ?? 0 }}</p>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Total Order Amount</h4>
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">${{ number_format($totalOrderAmount ?? 0, 2) }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Payroll Overview -->
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Payroll Overview</h2>
+            <div class="container-box">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Total Payroll</h4>
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">${{ number_format($totalPayroll ?? 0, 2) }}</p>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Pending Payrolls</h4>
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $pendingPayrolls ?? 0 }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Sales -->
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Recent Sales</h2>
+            <div class="container-box">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Egg Sales</h4>
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">${{ number_format($eggSales ?? 0, 2) }}</p>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Bird Sales</h4>
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">${{ number_format($birdSales ?? 0, 2) }}</p>
+                    </div>
+                </div>
+                @if ($recentSales->isNotEmpty())
+                    <ul class="space-y-3">
+                        @foreach ($recentSales as $sale)
+                            <li class="list-item">
+                                <span class="highlight">Sale #{{ $sale->id }}</span> to {{ $sale->customer->name }} for ${{ number_format($sale->total_amount, 2) }} on {{ $sale->sale_date->format('Y-m-d') }}
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="no-data">No recent sales.</p>
+                @endif
+            </div>
+        </section>
+
+        <!-- Recent Mortalities -->
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Recent Mortalities</h2>
+            <div class="container-box">
+                @if ($recentMortalities->isNotEmpty())
+                    <ul class="space-y-3">
+                        @foreach ($recentMortalities as $mortality)
+                            <li class="list-item">
+                                <span class="highlight">{{ $mortality->quantity }} mortalities</span> for Bird #{{ $mortality->bird->id }} on {{ $mortality->date->format('Y-m-d') }} (Cause: {{ $mortality->cause ?? 'Unknown' }})
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="no-data">No recent mortalities.</p>
+                @endif
+            </div>
+        </section>
     </div>
 @endsection
 

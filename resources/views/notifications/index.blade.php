@@ -1,3 +1,4 @@
+{{-- notification.index --}}
 @extends('layouts.app')
 
 @section('content')
@@ -26,7 +27,7 @@
                                 <a href="{{ $alert->url ?? '#' }}" class="text-{{ $alert->type === 'critical' ? 'red' : ($alert->type === 'warning' ? 'yellow' : ($alert->type === 'success' ? 'green' : 'blue')) }}-600 dark:text-{{ $alert->type === 'critical' ? 'red' : ($alert->type === 'warning' ? 'yellow' : ($alert->type === 'success' ? 'green' : 'blue')) }}-400 hover:underline">
                                     {{ $alert->message }}
                                 </a>
-                                <form action="{{ route('alerts.read', $alert->id) }}" method="POST" class="inline">
+                                <form action="{{ route('alerts.read', $alert) }}" method="POST" class="inline"> <!-- Updated to use $alert (model binding) -->
                                     @csrf
                                     <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Mark as Read</button>
                                 </form>

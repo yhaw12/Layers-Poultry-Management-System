@@ -59,7 +59,7 @@
     </div>
 </div>
 
-<script src="{{ asset('js/chart.min.js') }}"></script>
+
 <script>
     const expenseCtx = document.getElementById('expenseChart').getContext('2d');
     new Chart(expenseCtx, {
