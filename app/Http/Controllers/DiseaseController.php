@@ -33,3 +33,5 @@ class DiseaseController extends Controller
         return view('diseases.history', compact('disease', 'history'));
     }
 }
+
+

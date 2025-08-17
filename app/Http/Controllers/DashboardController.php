@@ -9,7 +9,6 @@ use App\Models\Egg;
 use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\Feed;
-use App\Models\HealthCheck;
 use App\Models\Income;
 use App\Models\MedicineLog;
 use App\Models\Mortalities;
@@ -22,12 +21,12 @@ use App\Models\User;
 use App\Models\UserActivityLog;
 use App\Models\VaccinationLog;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
-use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
 
 class DashboardController extends Controller
@@ -35,13 +34,13 @@ class DashboardController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        $this->middleware('doNotCacheResponse')->only('index'); 
+        $this->middleware('doNotCacheResponse')->only('index');
     }
 
-    
     public function index(Request $request)
     {
         try {
+
             $user = Auth::user();
             if (!$user) {
                 Log::warning('Unauthorized access attempt to dashboard');
@@ -59,20 +58,20 @@ class DashboardController extends Controller
                 return back()->withErrors($e->errors())->withInput();
             }
 
-            $start = $request->input('start_date', now()->subMonths(6)->startOfMonth()->toDateString());
+            // default to start of current month unless user specified
+            $start = $request->input('start_date', now()->startOfMonth()->toDateString());
             $end = $request->input('end_date', now()->endOfMonth()->toDateString());
 
-            // Cache key for dashboard data
-            $cacheKey = "dashboard_data_{$user->id}_{$start}_{$end}";
+            // Cache key for dashboard data (versioned to force re-cache)
+            $cacheKey = "dashboard_data_v3_{$user->id}_{$start}_{$end}";
             $cacheTTL = 300; // Cache for 5 minutes
 
             // Fetch data from cache or database
-            $dashboardData = Cache::remember($cacheKey, $cacheTTL, function () use ($start, $end) {
-                // Fetch paginated alerts
-                $alerts = Alert::where('user_id', Auth::id())
+            $dashboardData = Cache::remember($cacheKey, $cacheTTL, function () use ($start, $end, $user) {
+                // Fetch paginated alerts (for the specific user)
+                $alerts = Alert::where('user_id', $user->id)
                     ->where('is_read', false)
                     ->whereBetween('created_at', [$start, $end])
-                    ->whereNull('deleted_at')
                     ->orderBy('created_at', 'desc')
                     ->paginate(10);
 
@@ -86,9 +85,12 @@ class DashboardController extends Controller
                     ->where('stage', '!=', 'chick')
                     ->whereNull('deleted_at')
                     ->sum('quantity') ?? 0;
+
+                // Use 'quantity' to match the fuller controller
                 $chicks = Bird::where('stage', 'chick')
                     ->whereNull('deleted_at')
-                    ->sum('quantity_bought') ?? 0;
+                    ->sum('quantity') ?? 0;
+
                 $eggCrates = Egg::whereBetween('date_laid', [$start, $end])
                     ->whereNull('deleted_at')
                     ->sum('crates') ?? 0;
@@ -112,22 +114,33 @@ class DashboardController extends Controller
                 $totalExpenses = Expense::whereBetween('date', [$start, $end])
                     ->whereNull('deleted_at')
                     ->sum('amount') ?? 0;
+
+                // Profit
+                $profit = $totalIncome - $totalExpenses;
+
                 $totalSales = Sale::whereBetween('sale_date', [$start, $end])
                     ->whereNull('deleted_at')
                     ->sum('total_amount') ?? 0;
                 $customerCount = Customer::whereNull('deleted_at')->count();
+
+                // Status counts within the date range (match fuller controller logic)
                 $pendingSales = Sale::where('status', 'pending')
+                    ->whereBetween('sale_date', [$start, $end])
                     ->whereNull('deleted_at')
                     ->count();
                 $paidSales = Sale::where('status', 'paid')
+                    ->whereBetween('sale_date', [$start, $end])
                     ->whereNull('deleted_at')
                     ->count();
                 $partiallyPaidSales = Sale::where('status', 'partially_paid')
+                    ->whereBetween('sale_date', [$start, $end])
                     ->whereNull('deleted_at')
                     ->count();
                 $overdueSales = Sale::where('status', 'overdue')
+                    ->whereBetween('sale_date', [$start, $end])
                     ->whereNull('deleted_at')
                     ->count();
+
                 $activeSuppliers = Supplier::whereNull('deleted_at')->count();
                 $pendingOrders = Order::where('status', 'pending')
                     ->whereBetween('created_at', [$start, $end])
@@ -143,11 +156,13 @@ class DashboardController extends Controller
                 $totalPayroll = Payroll::whereBetween('pay_date', [$start, $end])
                     ->whereNull('deleted_at')
                     ->sum('net_pay') ?? 0;
+
                 $upcomingVaccinations = VaccinationLog::where('next_vaccination_date', '<=', now()->addDays(7))
                     ->where('next_vaccination_date', '>=', now())
                     ->whereNull('deleted_at')
                     ->with('bird')
                     ->count();
+
                 $pendingTransactions = Transaction::where('status', 'pending')
                     ->whereBetween('date', [$start, $end])
                     ->whereNull('deleted_at')
@@ -156,45 +171,16 @@ class DashboardController extends Controller
                     ->whereNull('deleted_at')
                     ->sum('amount') ?? 0;
 
-                // Additional data from other controllers
-                $vaccinationLogs = VaccinationLog::with('bird')
-                    ->whereBetween('date_administered', [$start, $end])
+                // completionPercentage (match logic in fuller controller)
+                $completedOrdersCount = Order::where('status', 'completed')
+                    ->whereBetween('created_at', [$start, $end])
                     ->whereNull('deleted_at')
-                    ->orderBy('date_administered', 'desc')
-                    ->take(5)
-                    ->get();
-                $recentSales = Sale::with('customer', 'saleable')
-                    ->whereBetween('sale_date', [$start, $end])
-                    ->whereNull('deleted_at')
-                    ->orderBy('sale_date', 'desc')
-                    ->take(5)
-                    ->get();
-                $eggSales = Sale::where('saleable_type', Egg::class)
-                    ->whereBetween('sale_date', [$start, $end])
-                    ->whereNull('deleted_at')
-                    ->sum('total_amount') ?? 0;
-                $birdSales = Sale::where('saleable_type', Bird::class)
-                    ->whereBetween('sale_date', [$start, $end])
-                    ->whereNull('deleted_at')
-                    ->sum('total_amount') ?? 0;
-                $recentMortalities = Mortalities::with('bird')
-                    ->whereBetween('date', [$start, $end])
-                    ->whereNull('deleted_at')
-                    ->orderBy('date', 'desc')
-                    ->take(5)
-                    ->get();
+                    ->count();
+                $completionPercentage = ($pendingOrders + $completedOrdersCount) > 0
+                    ? round(($completedOrdersCount / ($pendingOrders + $completedOrdersCount)) * 100, 2)
+                    : 0;
 
-                // Monthly income for the last 6 months
-                $monthlyIncome = [];
-                for ($i = 0; $i < 6; $i++) {
-                    $month = now()->subMonths($i);
-                    $monthlyIncome[] = Income::whereMonth('date', $month->month)
-                        ->whereYear('date', $month->year)
-                        ->whereNull('deleted_at')
-                        ->sum('amount') ?? 0;
-                }
-
-                // Chart data with limits to prevent overload
+                // Chart data (consistent names with fuller controller)
                 $eggProduction = Egg::select(
                     DB::raw('DATE(date_laid) as date'),
                     DB::raw('SUM(crates) as value')
@@ -214,6 +200,17 @@ class DashboardController extends Controller
                     ->whereNull('deleted_at')
                     ->groupBy('purchase_date')
                     ->orderBy('purchase_date', 'asc')
+                    ->limit(50)
+                    ->get();
+
+                $salesData = Sale::select(
+                    DB::raw('DATE(sale_date) as date'),
+                    DB::raw('SUM(total_amount) as value')
+                )
+                    ->whereBetween('sale_date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->groupBy('sale_date')
+                    ->orderBy('sale_date', 'asc')
                     ->limit(50)
                     ->get();
 
@@ -239,11 +236,11 @@ class DashboardController extends Controller
                     ->limit(50)
                     ->get();
 
+                // profitTrend (net income - expenses) — mirror fuller controller approach
                 $netFinancialData = Income::select(
                     DB::raw('DATE(income.date) as date'),
-                    DB::raw('SUM(income.amount - COALESCE(expenses.amount, 0)) as value')
+                    DB::raw('SUM(income.amount - COALESCE((SELECT SUM(amount) FROM expenses WHERE expenses.date = income.date AND expenses.deleted_at IS NULL), 0)) as value')
                 )
-                    ->leftJoin('expenses', 'income.date', '=', 'expenses.date')
                     ->whereBetween('income.date', [$start, $end])
                     ->whereNull('income.deleted_at')
                     ->groupBy('income.date')
@@ -251,10 +248,48 @@ class DashboardController extends Controller
                     ->limit(50)
                     ->get();
 
-                $salesData = Sale::select(
-                    DB::raw('DATE(sale_date) as date'),
-                    DB::raw('SUM(total_amount) as value')
+                // Pending Transactions Trend (per-date) and totals
+                $pendingTransactionsTrend = Transaction::select(
+                    DB::raw('DATE(date) as date'),
+                    DB::raw('COUNT(*) as value')
                 )
+                    ->where('status', 'pending')
+                    ->whereBetween('date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->groupBy('date')
+                    ->orderBy('date', 'asc')
+                    ->limit(50)
+                    ->get();
+
+                $totalTransactionAmountTrend = Transaction::select(
+                    DB::raw('DATE(date) as date'),
+                    DB::raw('SUM(amount) as amount')
+                )
+                    ->whereBetween('date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->groupBy('date')
+                    ->orderBy('date', 'asc')
+                    ->limit(50)
+                    ->get();
+
+                $totalOrderAmountTrend = Order::select(
+                    DB::raw('DATE(created_at) as date'),
+                    DB::raw('SUM(total_amount) as amount')
+                )
+                    ->whereBetween('created_at', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->groupBy('created_at')
+                    ->orderBy('created_at', 'asc')
+                    ->limit(50)
+                    ->get();
+
+                // Sales Comparison (Egg vs. Bird Sales) — keep bindings
+                $salesComparison = Sale::select(
+                    DB::raw('DATE(sale_date) as date'),
+                    DB::raw('SUM(CASE WHEN saleable_type = ? THEN total_amount ELSE 0 END) as egg_sales'),
+                    DB::raw('SUM(CASE WHEN saleable_type = ? THEN total_amount ELSE 0 END) as bird_sales')
+                )
+                    ->setBindings([Egg::class, Bird::class])
                     ->whereBetween('sale_date', [$start, $end])
                     ->whereNull('deleted_at')
                     ->groupBy('sale_date')
@@ -262,7 +297,106 @@ class DashboardController extends Controller
                     ->limit(50)
                     ->get();
 
-                // Recent activity logs
+                // Mortality Trend
+                $mortalityTrend = Mortalities::select(
+                    DB::raw('DATE(date) as date'),
+                    DB::raw('SUM(quantity) as value')
+                )
+                    ->whereBetween('date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->groupBy('date')
+                    ->orderBy('date', 'asc')
+                    ->limit(50)
+                    ->get();
+
+                // Invoice statuses (both associative for internal use and numeric array for charts)
+                $invoiceStatusesAssoc = [
+                    'pending' => $pendingSales,
+                    'paid' => $paidSales,
+                    'partially_paid' => $partiallyPaidSales,
+                    'overdue' => $overdueSales,
+                ];
+                // numeric array for older chart code compatibility: Pending, Paid, Overdue (three)
+                $invoiceStatuses = [$pendingSales, $paidSales, $overdueSales];
+
+                // Monthly income for the last 6 months (associative keys like "March 2025")
+                $monthlyIncome = [];
+                for ($i = 0; $i < 6; $i++) {
+                    $month = now()->subMonths($i);
+                    $monthKey = $month->format('F Y');
+                    $monthlyIncome[$monthKey] = Income::whereMonth('date', $month->month)
+                        ->whereYear('date', $month->year)
+                        ->whereNull('deleted_at')
+                        ->sum('amount') ?? 0;
+                }
+
+                // Role-specific variables
+                $dailyInstructions = collect();
+                $healthSummary = collect();
+                $vaccinationSchedule = collect();
+                $suppliers = collect();
+
+                if ($user->hasRole('labourer')) {
+                    $dailyInstructions = \App\Models\DailyInstruction::whereBetween('created_at', [$start, $end])
+                        ->whereNull('deleted_at')
+                        ->orderBy('created_at', 'desc')
+                        ->take(5)
+                        ->get();
+                }
+
+                if ($user->hasRole('farm_manager')) {
+                    $healthSummary = Bird::select(
+                        DB::raw('DATE(updated_at) as date'),
+                        DB::raw('COUNT(*) as checks'),
+                        DB::raw('SUM(CASE WHEN health_status = "unhealthy" THEN 1 ELSE 0 END) as unhealthy')
+                    )
+                        ->whereBetween('updated_at', [$start, $end])
+                        ->whereNull('deleted_at')
+                        ->groupBy('updated_at')
+                        ->orderBy('updated_at', 'desc')
+                        ->limit(50)
+                        ->get();
+                }
+
+                if ($user->hasRole('veterinarian')) {
+                    $vaccinationSchedule = VaccinationLog::select('id', 'vaccine_name', 'next_vaccination_date')
+                        ->where('next_vaccination_date', '>=', now())
+                        ->whereNull('deleted_at')
+                        ->orderBy('next_vaccination_date', 'asc')
+                        ->take(5)
+                        ->get();
+                }
+
+                if ($user->hasRole('inventory_manager')) {
+                    $suppliers = Supplier::whereNull('deleted_at')
+                        ->orderBy('name')
+                        ->take(5)
+                        ->get();
+                }
+
+                // Additional data
+                $recentSales = Sale::with('customer', 'saleable')
+                    ->whereBetween('sale_date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->orderBy('sale_date', 'desc')
+                    ->take(5)
+                    ->get();
+                $eggSales = Sale::where('saleable_type', Egg::class)
+                    ->whereBetween('sale_date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('total_amount') ?? 0;
+                $birdSales = Sale::where('saleable_type', Bird::class)
+                    ->whereBetween('sale_date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->sum('total_amount') ?? 0;
+                $recentMortalities = Mortalities::with('bird')
+                    ->whereBetween('date', [$start, $end])
+                    ->whereNull('deleted_at')
+                    ->orderBy('date', 'desc')
+                    ->take(5)
+                    ->get();
+
+                // Recent activity logs (map to user_name)
                 $recentActivities = UserActivityLog::select('action', 'user_id', 'created_at')
                     ->whereBetween('created_at', [$start, $end])
                     ->whereNull('deleted_at')
@@ -290,9 +424,12 @@ class DashboardController extends Controller
                     'medicine_buy' => $medicinePurchased,
                     'medicine_use' => $medicineConsumed,
                 ];
-                $mortalityRate = ($totalBirds > 0) ? ($mortalities / $totalBirds) * 100 : 0;
-                $fcr = ($eggCrates > 0 && $feedQuantity > 0) ? $feedQuantity / $eggCrates : 0;
+
+                $mortalityRate = $totalBirds ? round(($mortalities / $totalBirds) * 100, 2) : 0;
+                $fcr = ($eggCrates && $feedQuantity) ? round($feedQuantity / $eggCrates, 2) : 0;
                 $employees = Employee::whereNull('deleted_at')->count();
+
+                // Keep both the "production" named sets and the alias names expected by views/scripts
                 $eggTrend = $eggProduction;
                 $feedTrend = $feedConsumption;
                 $salesTrend = $salesData;
@@ -300,7 +437,7 @@ class DashboardController extends Controller
                 $incomeTrend = $incomeData;
                 $expenseTrend = $expenseData;
                 $profitTrend = $netFinancialData;
-                $profit = $totalIncome - $totalExpenses;
+
                 $payrollStatus = Payroll::select(
                     DB::raw('DATE(pay_date) as date'),
                     DB::raw('COUNT(DISTINCT employee_id) as employees'),
@@ -311,23 +448,23 @@ class DashboardController extends Controller
                     ->whereNull('deleted_at')
                     ->groupBy('pay_date', 'status')
                     ->paginate(10);
-                $invoiceStatuses = [
-                    'pending' => $pendingSales,
-                    'paid' => $paidSales,
-                    'partially_paid' => $partiallyPaidSales,
-                    'overdue' => $overdueSales,
-                ];
 
-                // Role-specific variables
-                $dailyInstructions = collect();
-                $healthSummary = collect();
-                $vaccinationSchedule = collect();
-                $suppliers = Supplier::whereNull('deleted_at')
-                    ->orderBy('name')
-                    ->take(5)
-                    ->get();
-
+                // Return everything needed by the view (merged from fuller controller)
                 return compact(
+                    // trends & charts
+                    'eggTrend',
+                    'feedTrend',
+                    'salesTrend',
+                    'expenseTrend',
+                    'incomeTrend',
+                    'profitTrend',
+                    'pendingTransactionsTrend',
+                    'totalTransactionAmountTrend',
+                    'totalOrderAmountTrend',
+                    'salesComparison',
+                    'mortalityTrend',
+
+                    // core metrics & collections
                     'alerts',
                     'totalBirds',
                     'layerBirds',
@@ -340,53 +477,58 @@ class DashboardController extends Controller
                     'medicineConsumed',
                     'totalIncome',
                     'totalExpenses',
+                    'profit',
                     'totalSales',
                     'customerCount',
                     'pendingSales',
                     'paidSales',
                     'partiallyPaidSales',
                     'overdueSales',
+                    'activeSuppliers',
+                    'pendingOrders',
+                    'totalOrderAmount',
+                    'pendingPayrolls',
+                    'totalPayroll',
+                    'upcomingVaccinations',
+                    'pendingTransactions',
+                    'totalTransactionAmount',
+                    'completionPercentage',
+
+                    // invoice statuses
+                    'invoiceStatusesAssoc',
+                    'invoiceStatuses',
+
+                    // time series / monthly
                     'monthlyIncome',
-                    'eggProduction',
-                    'feedConsumption',
+                    'incomeLabels',
+
+                    // activity & approvals
                     'recentActivities',
-                    'expenseData',
-                    'incomeData',
-                    'netFinancialData',
-                    'salesData',
                     'pendingApprovals',
+
+                    // KPI, rates, misc
                     'metrics',
                     'mortalityRate',
                     'fcr',
                     'employees',
-                    'payroll',
-                    'eggTrend',
-                    'feedTrend',
-                    'salesTrend',
-                    'incomeLabels',
-                    'incomeTrend',
-                    'expenseTrend',
-                    'profitTrend',
-                    'profit',
                     'payrollStatus',
-                    'invoiceStatuses',
+
+                    // role-specific
                     'dailyInstructions',
                     'healthSummary',
                     'vaccinationSchedule',
                     'suppliers',
-                    'vaccinationLogs',
-                    'upcomingVaccinations',
-                    'pendingTransactions',
-                    'totalTransactionAmount',
-                    'activeSuppliers',
-                    'pendingOrders',
-                    'totalOrderAmount',
-                    'totalPayroll',
-                    'pendingPayrolls',
+
+                    // recent / lists
                     'recentSales',
                     'eggSales',
                     'birdSales',
-                    'recentMortalities'
+                    'recentMortalities',
+
+                    // extras
+                    'vaccinationLogs',
+                    'start',
+                    'end'
                 );
             });
 
@@ -416,22 +558,25 @@ class DashboardController extends Controller
 
             $data = [
                 ['Metric', 'Value'],
-                ['Total Expenses', number_format(Expense::whereBetween('date', [$start, $end])->sum('amount') ?? 0, 2)],
-                ['Total Income', number_format(Income::whereBetween('date', [$start, $end])->sum('amount') ?? 0, 2)],
-                ['Profit', number_format(Income::whereBetween('date', [$start, $end])->sum('amount') - Expense::whereBetween('date', [$start, $end])->sum('amount'), 2)],
-                ['Egg Crates', Egg::whereBetween('date_laid', [$start, $end])->sum('crates') ?? 0],
-                ['Feed (kg)', Feed::whereBetween('purchase_date', [$start, $end])->sum('quantity') ?? 0],
-                ['Total Birds', Bird::sum('quantity') ?? 0],
-                ['Layers', Bird::where('type', 'layer')->sum('quantity') ?? 0],
-                ['Broilers', Bird::where('type', 'broiler')->sum('quantity') ?? 0],
+                ['Total Expenses', number_format(Expense::whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('amount') ?? 0, 2)],
+                ['Total Income', number_format(Income::whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('amount') ?? 0, 2)],
+                ['Profit', number_format(Income::whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('amount') - Expense::whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('amount'), 2)],
+                ['Egg Crates', Egg::whereBetween('date_laid', [$start, $end])->whereNull('deleted_at')->sum('crates') ?? 0],
+                ['Feed (kg)', Feed::whereBetween('purchase_date', [$start, $end])->whereNull('deleted_at')->sum('quantity') ?? 0],
+                ['Total Birds', Bird::whereNull('deleted_at')->sum('quantity') ?? 0],
+                ['Layers', Bird::where('type', 'layer')->whereNull('deleted_at')->sum('quantity') ?? 0],
+                ['Broilers', Bird::where('type', 'broiler')->whereNull('deleted_at')->sum('quantity') ?? 0],
                 ['Mortality Rate (%)', number_format($this->calculateMortalityRate($start, $end), 2)],
                 ['FCR', number_format($this->calculateFCR($start, $end), 2)],
-                ['Employees', Employee::count() ?? 0],
-                ['Payroll', number_format(Payroll::whereBetween('pay_date', [$start, $end])->sum('net_pay') ?? 0, 2)],
-                ['Sales', number_format(Sale::whereBetween('sale_date', [$start, $end])->sum('total_amount') ?? 0, 2)],
-                ['Customers', Customer::count() ?? 0],
-                ['Medicine Bought', MedicineLog::where('type', 'purchase')->whereBetween('date', [$start, $end])->sum('quantity') ?? 0],
-                ['Medicine Used', MedicineLog::where('type', 'consumption')->whereBetween('date', [$start, $end])->sum('quantity') ?? 0],
+                ['Employees', Employee::whereNull('deleted_at')->count() ?? 0],
+                ['Payroll', number_format(Payroll::whereBetween('pay_date', [$start, $end])->whereNull('deleted_at')->sum('net_pay') ?? 0, 2)],
+                ['Sales', number_format(Sale::whereBetween('sale_date', [$start, $end])->whereNull('deleted_at')->sum('total_amount') ?? 0, 2)],
+                ['Customers', Customer::whereNull('deleted_at')->count() ?? 0],
+                ['Medicine Bought', MedicineLog::where('type', 'purchase')->whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('quantity') ?? 0],
+                ['Medicine Used', MedicineLog::where('type', 'consumption')->whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('quantity') ?? 0],
+                ['Total Order Amount', number_format(Order::whereBetween('created_at', [$start, $end])->whereNull('deleted_at')->sum('total_amount') ?? 0, 2)],
+                ['Pending Transactions', Transaction::where('status', 'pending')->whereBetween('date', [$start, $end])->whereNull('deleted_at')->count()],
+                ['Total Transaction Amount', number_format(Transaction::whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('amount') ?? 0, 2)],
             ];
 
             $filename = "dashboard_export_" . now()->format('Ymd_His') . ".csv";
@@ -474,8 +619,10 @@ class DashboardController extends Controller
     private function calculateMortalityRate($start, $end)
     {
         try {
-            $totalBirds = Bird::sum('quantity') ?? 0;
-            $mortality = Mortalities::whereBetween('date', [$start, $end])->sum('quantity') ?? 0;
+            $totalBirds = Bird::whereNull('deleted_at')->sum('quantity') ?? 0;
+            $mortality = Mortalities::whereBetween('date', [$start, $end])
+                ->whereNull('deleted_at')
+                ->sum('quantity') ?? 0;
             return $totalBirds ? round(($mortality / $totalBirds) * 100, 2) : 0;
         } catch (\Exception $e) {
             Log::error('Mortality rate calculation error', ['error' => $e->getMessage()]);
@@ -486,8 +633,12 @@ class DashboardController extends Controller
     private function calculateFCR($start, $end)
     {
         try {
-            $eggCrates = Egg::whereBetween('date_laid', [$start, $end])->sum('crates') ?? 0;
-            $feedKg = Feed::whereBetween('purchase_date', [$start, $end])->sum('quantity') ?? 0;
+            $eggCrates = Egg::whereBetween('date_laid', [$start, $end])
+                ->whereNull('deleted_at')
+                ->sum('crates') ?? 0;
+            $feedKg = Feed::whereBetween('purchase_date', [$start, $end])
+                ->whereNull('deleted_at')
+                ->sum('quantity') ?? 0;
             return $eggCrates ? round($feedKg / $eggCrates, 2) : 0;
         } catch (\Exception $e) {
             Log::error('FCR calculation error', ['error' => $e->getMessage()]);
