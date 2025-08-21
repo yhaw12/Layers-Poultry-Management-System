@@ -41,3 +41,5 @@
         @endif
     </div>
 @endsection
+
+ <!-- Quick Actions -->

@@ -61,7 +61,7 @@ class OrderController extends Controller
                 'type' => 'order',
                 'amount' => $validated['total_amount'],
                 'status' => $validated['status'],
-                'date' => now(),
+                'date' => $order->created_at,
                 'source_type' => Order::class,
                 'source_id' => $order->id,
                 'user_id' => Auth::id() ?? 1,

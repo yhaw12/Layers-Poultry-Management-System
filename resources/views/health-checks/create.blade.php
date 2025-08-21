@@ -1,4 +1,4 @@
-{{-- @extends('layouts.app')
+ @extends('layouts.app')
 
 @section('content')
 <div class="container mx-auto px-4 py-8 space-y-12 bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
@@ -58,8 +58,8 @@
                 </div>
                 <div class="flex space-x-4">
                     <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"> --}}
-                        {{-- Save --}}
-                    {{-- </button>
+                     Save
+                    </button>
                     <a href="{{ route('health-checks.index') }}" class="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
                         Cancel
                     </a>
@@ -68,4 +68,4 @@
         </div>
     </section>
 </div>
-@endsection --}}
+@endsection

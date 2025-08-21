@@ -2,7 +2,7 @@
 
 @section('content')
     <h1 class="text-2xl font-bold mb-4">Edit Expense</h1>
-    <form action="{{ route('expenses.update', $expense) }}" method="POST" class="bg-white p-6 rounded shadow">
+    <form action="{{ route('expenses.index', $expense) }}" method="POST" class="bg-white p-6 rounded shadow">
         @csrf
         @method('PUT')
         <div class="mb-4">

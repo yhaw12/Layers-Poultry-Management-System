@@ -1,4 +1,4 @@
-{{-- @extends('layouts.app')
+ @extends('layouts.app')
 
 @section('content')
 <div class="container mx-auto px-4 py-8 space-y-12 bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
@@ -58,4 +58,4 @@
         </div>
     </section>
 </div>
-@endsection --}}
+@endsection 

@@ -28,6 +28,7 @@ use App\Models\Egg;
 use App\Models\Customer;
 use App\Models\Sale;
 use Database\Factories\PenFactory;
+use Database\Factories\TransactionFactory;
 
 class DatabaseSeeder extends Seeder
 {
@@ -106,7 +107,7 @@ class DatabaseSeeder extends Seeder
 
         // Create Orders
         foreach ($customers as $customer) {
-            OrderFactory::new()->count(8)->create();
+            OrderFactory::new()->count(20)->create();
         }
 
         // Create Alerts
@@ -114,5 +115,9 @@ class DatabaseSeeder extends Seeder
 
         // Create Activity Logs
         UserActivityLogFactory::new()->count(50)->create();
+
+        // Create Transactions
+        TransactionFactory::new()->count(100)->create();
+
     }
 }

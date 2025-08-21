@@ -121,8 +121,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/search', [SearchController::class, 'index'])->name('search');
     Route::get('/alerts/low-stock', [InventoryController::class, 'lowStock'])->name('alerts.low-stock');
     Route::get('/transactions', [TransactionsController::class, 'index'])->name('transactions.index');
+    Route::get('/transactions/{transaction}', [TransactionsController::class, 'show'])->name('transactions.show');
     Route::post('/transactions/{transaction}/approve', [TransactionsController::class, 'approve'])->name('transactions.approve');
-    Route::post('/transactions/{transaction}/reject', [TransactionsController::class, 'reject'])->name('transactions.reject');
+    Route::post('/transactions/{transaction}/decline', [TransactionsController::class, 'reject'])->name('transactions.reject');
 
     // Soft delete routes
     Route::get('birds/trashed', [BirdsController::class, 'trashed'])->name('birds.trashed');

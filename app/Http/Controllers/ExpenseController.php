@@ -104,7 +104,7 @@ class ExpenseController extends Controller
             [
                 'type' => 'expense',
                 'amount' => $validated['amount'],
-                'status' => $expense->status ?? 'pending',
+                'status' =>  'pending',
                 'date' => $validated['date'],
                 'user_id' => auth()->id() ?? 1,
                 'description' => "Updated expense for {$validated['category']}: {$validated['description']}",

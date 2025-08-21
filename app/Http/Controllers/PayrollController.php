@@ -113,46 +113,75 @@ class PayrollController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
-    {
-        try {
-            $payroll = Payroll::whereNull('deleted_at')->findOrFail($id);
 
-            $validated = $request->validate([
-                'employee_id' => 'required|exists:employees,id',
-                'pay_date' => 'required|date',
-                'bonus' => 'nullable|numeric|min:0',
-                'deductions' => 'nullable|numeric|min:0',
-                'status' => 'required|in:pending,paid',
-                'notes' => 'nullable|string|max:500',
-            ]);
+        public function update(Request $request, $id)
+        {
+            try {
+                $payroll = Payroll::whereNull('deleted_at')->findOrFail($id);
 
-            $employee = Employee::findOrFail($validated['employee_id']);
-            $netPay = $employee->monthly_salary + ($validated['bonus'] ?? 0) - ($validated['deductions'] ?? 0);
+                $validated = $request->validate([
+                    'employee_id' => 'required|exists:employees,id',
+                    'pay_date' => 'required|date',
+                    'bonus' => 'nullable|numeric|min:0',
+                    'deductions' => 'nullable|numeric|min:0',
+                    'status' => 'required|in:pending,paid',
+                    'notes' => 'nullable|string|max:500',
+                ]);
 
-            $payroll->update([
-                'employee_id' => $validated['employee_id'],
-                'pay_date' => $validated['pay_date'],
-                'base_salary' => $employee->monthly_salary,
-                'bonus' => $validated['bonus'] ?? 0,
-                'deductions' => $validated['deductions'] ?? 0,
-                'net_pay' => $netPay,
-                'status' => $validated['status'],
-                'notes' => $validated['notes'],
-            ]);
+                return DB::transaction(function () use ($payroll, $validated) {
+                    $employee = Employee::findOrFail($validated['employee_id']);
+                    $netPay = $employee->monthly_salary + ($validated['bonus'] ?? 0) - ($validated['deductions'] ?? 0);
 
-            UserActivityLog::create([
-                'user_id' => Auth::id() ?? 1,
-                'action' => 'updated_payroll',
-                'details' => "Updated payroll ID {$payroll->id} for employee ID {$validated['employee_id']}",
-            ]);
+                    $payroll->update([
+                        'employee_id' => $validated['employee_id'],
+                        'pay_date' => $validated['pay_date'],
+                        'base_salary' => $employee->monthly_salary,
+                        'bonus' => $validated['bonus'] ?? 0,
+                        'deductions' => $validated['deductions'] ?? 0,
+                        'net_pay' => $netPay,
+                        'status' => $validated['status'],
+                        'notes' => $validated['notes'],
+                    ]);
 
-            return redirect()->route('payroll.index')->with('success', 'Payroll record updated successfully.');
-        } catch (\Exception $e) {
-            Log::error('Failed to update payroll', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to update payroll.');
+                    // Update or create corresponding Transaction
+                    $transaction = Transaction::where('reference_id', $payroll->id)
+                        ->where('reference_type', Payroll::class)
+                        ->first();
+
+                    if ($transaction) {
+                        $transaction->update([
+                            'amount' => $netPay,
+                            'date' => $validated['pay_date'],
+                            'status' => $validated['status'],
+                            'description' => "Payroll payment for employee ID {$validated['employee_id']}",
+                        ]);
+                    } else {
+                        Transaction::create([
+                            'type' => 'payroll',
+                            'amount' => $netPay,
+                            'description' => "Payroll payment for employee ID {$validated['employee_id']}",
+                            'reference_id' => $payroll->id,
+                            'reference_type' => Payroll::class,
+                            'user_id' => Auth::id(),
+                            'date' => $validated['pay_date'],
+                            'status' => $validated['status'],
+                        ]);
+                    }
+
+                    UserActivityLog::create([
+                        'user_id' => Auth::id(),
+                        'action' => 'updated_payroll',
+                        'details' => "Updated payroll ID {$payroll->id} for employee ID {$validated['employee_id']}",
+                    ]);
+
+                    return redirect()->route('payroll.index')->with('success', 'Payroll record updated successfully.');
+                });
+            } catch (\Exception $e) {
+                Log::error('Failed to update payroll', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                return back()->with('error', 'Failed to update payroll.');
+            }
         }
-    }
+
 
     public function destroy($id)
     {
@@ -196,47 +225,59 @@ class PayrollController extends Controller
         }
     }
 
-    public function generateMonthly(Request $request)
-    {
-        try {
-            $month = $request->input('month', now()->format('Y-m'));
-            $payDate = now()->endOfMonth()->toDateString();
+public function generateMonthly(Request $request)
+{
+    try {
+        $month = $request->input('month', now()->format('Y-m'));
+        $payDate = now()->endOfMonth()->toDateString();
 
-            $employees = Employee::whereNull('deleted_at')->get();
+        $employees = Employee::whereNull('deleted_at')->get();
 
-            DB::transaction(function () use ($employees, $payDate) {
-                foreach ($employees as $employee) {
-                    $exists = Payroll::where('employee_id', $employee->id)
-                        ->whereMonth('pay_date', substr($payDate, 5, 2))
-                        ->whereYear('pay_date', substr($payDate, 0, 4))
-                        ->whereNull('deleted_at')
-                        ->exists();
+        DB::transaction(function () use ($employees, $payDate, $month) {
+            foreach ($employees as $employee) {
+                $exists = Payroll::where('employee_id', $employee->id)
+                    ->whereMonth('pay_date', substr($payDate, 5, 2))
+                    ->whereYear('pay_date', substr($payDate, 0, 4))
+                    ->whereNull('deleted_at')
+                    ->exists();
 
-                    if (!$exists) {
-                        Payroll::create([
-                            'employee_id' => $employee->id,
-                            'pay_date' => $payDate,
-                            'base_salary' => $employee->monthly_salary,
-                            'bonus' => 0,
-                            'deductions' => 0,
-                            'net_pay' => $employee->monthly_salary,
-                            'status' => 'pending',
-                            'notes' => 'Auto-generated for ' . $payDate,
-                        ]);
-                    }
+                if (!$exists) {
+                    $payroll = Payroll::create([
+                        'employee_id' => $employee->id,
+                        'pay_date' => $payDate,
+                        'base_salary' => $employee->monthly_salary,
+                        'bonus' => 0,
+                        'deductions' => 0,
+                        'net_pay' => $employee->monthly_salary,
+                        'status' => 'pending',
+                        'notes' => 'Auto-generated for ' . $payDate,
+                    ]);
+
+                    Transaction::create([
+                        'type' => 'payroll',
+                        'amount' => $employee->monthly_salary,
+                        'description' => "Auto-generated payroll for employee ID {$employee->id}",
+                        'reference_id' => $payroll->id,
+                        'reference_type' => Payroll::class,
+                        'user_id' => Auth::id(),
+                        'date' => $payDate,
+                        'status' => 'pending',
+                    ]);
                 }
-            });
+            }
 
             UserActivityLog::create([
-                'user_id' => Auth::id() ?? 1,
+                'user_id' => Auth::id(),
                 'action' => 'generated_monthly_payroll',
                 'details' => "Generated monthly payroll for {$month}",
             ]);
+        });
 
-            return redirect()->route('payroll.index')->with('success', 'Monthly payroll generated successfully.');
-        } catch (\Exception $e) {
-            Log::error('Failed to generate monthly payroll', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to generate monthly payroll.');
-        }
+        return redirect()->route('payroll.index')->with('success', 'Monthly payroll generated successfully.');
+    } catch (\Exception $e) {
+        Log::error('Failed to generate monthly payroll', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        return back()->with('error', 'Failed to generate monthly payroll.');
     }
+}
+
 }

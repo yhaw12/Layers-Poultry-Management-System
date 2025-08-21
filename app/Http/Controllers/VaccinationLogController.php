@@ -70,6 +70,33 @@ class VaccinationLogController extends Controller
         }
     }
 
+    public function update(Request $request, $id)
+    {
+        try {
+            $validated = $request->validate([
+                'bird_id' => 'required|exists:birds,id',
+                'vaccine_name' => 'required|string|max:255',
+                'date_administered' => 'required|date',
+                'notes' => 'nullable|string',
+                'next_vaccination_date' => 'nullable|date|after:date_administered',
+            ]);
+
+            $log = VaccinationLog::findOrFail($id);
+            $log->update($validated);
+
+            \App\Models\UserActivityLog::create([
+                'user_id' => Auth::id() ?? 1,
+                'action' => 'updated_vaccination_log',
+                'details' => "Updated vaccination log for bird ID {$validated['bird_id']} on {$validated['date_administered']}",
+            ]);
+
+            return redirect()->route('vaccination-logs.index')->with('success', 'Vaccination log updated.');
+        } catch (\Exception $e) {
+            Log::error('Failed to update vaccination log', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Failed to update vaccination log.');
+        }
+    }
+
     public function destroy($id)
     {
         try {

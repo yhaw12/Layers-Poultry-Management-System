@@ -3,7 +3,7 @@
 @section('content')
 <div class="container mx-auto px-4 py-8 bg-gray-100 dark:bg-[#0a0a23]">
     <h1 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Edit Expense</h1>
-    <form action="{{ route('expenses.update', $expense) }}" method="POST" class="bg-white dark:bg-[#1a1a3a] p-6 rounded-lg shadow-md">
+    <form action="{{ route('expenses.show', $expense) }}" method="POST" class="bg-white dark:bg-[#1a1a3a] p-6 rounded-lg shadow-md">
         @csrf
         @method('PUT')
         <div class="mb-4">

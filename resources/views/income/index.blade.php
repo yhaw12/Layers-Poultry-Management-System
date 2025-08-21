@@ -28,7 +28,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($incomes as $income)
+                    @forelse ($income as $income)
                         <tr class="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200">
                             <td class="p-4">{{ $income->source }}</td>
                             <td class="p-4 text-gray-800 font-medium">${{ number_format($income->amount, 2) }}</td>

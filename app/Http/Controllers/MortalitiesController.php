@@ -9,6 +9,7 @@ use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class MortalitiesController extends Controller
@@ -52,8 +53,9 @@ class MortalitiesController extends Controller
         return view('mortalities.create', compact('birds'));
     }
 
-    public function store(Request $request)
+     public function store(Request $request)
     {
+        DB::beginTransaction();
         try {
             $validated = $request->validate([
                 'bird_id' => 'required|exists:birds,id',
@@ -62,9 +64,13 @@ class MortalitiesController extends Controller
                 'cause' => 'nullable|string|max:255',
             ]);
 
+            $bird = Bird::find($validated['bird_id']);
+            if (!$bird) {
+                return back()->withErrors(['bird_id' => 'The selected bird does not exist.']);
+            }
+
             $mortality = Mortalities::create($validated);
 
-            $bird = Bird::find($validated['bird_id']);
             if ($bird->stage === 'chick') {
                 $totalDead = Mortalities::where('bird_id', $bird->id)
                     ->whereNull('deleted_at')
@@ -79,8 +85,10 @@ class MortalitiesController extends Controller
                 'details' => "Recorded {$validated['quantity']} mortalities for bird ID {$validated['bird_id']} on {$validated['date']}",
             ]);
 
+            DB::commit();
             return redirect()->route('mortalities.index')->with('success', 'Mortality record added successfully.');
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Failed to store mortality', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return back()->with('error', 'Failed to add mortality record.');
         }

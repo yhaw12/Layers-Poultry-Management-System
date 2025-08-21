@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -178,8 +179,9 @@ class SalesController extends Controller
         return view('sales.create', compact('birds', 'eggs', 'customers'));
     }
 
-    public function store(StoreSaleRequest $request)
+     public function store(StoreSaleRequest $request)
     {
+        DB::beginTransaction();
         try {
             if (!Auth::check()) {
                 return back()->withErrors(['auth' => 'User must be authenticated to record a sale.']);
@@ -250,8 +252,10 @@ class SalesController extends Controller
                 'user_id' => Auth::id(),
             ]);
 
+            DB::commit();
             return redirect()->route('sales.index')->with('success', 'Sale recorded successfully.');
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Failed to store sale', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return back()->with('error', 'Failed to record sale.');
         }
@@ -544,3 +548,4 @@ class SalesController extends Controller
         }
     }
 }
+

@@ -7,6 +7,6 @@
         <p><strong>Description:</strong> {{ $expense->description }}</p>
         <p><strong>Amount:</strong> ${{ number_format($expense->amount, 2) }}</p>
         <p><strong>Date:</strong> {{ $expense->date->format('Y-m-d') }}</p>
-        <a href="{{ route('expenses.edit', $expense) }}" class="bg-green-500 text-white px-4 py-2 rounded mt-4 inline-block">Edit</a>
+        <a href="{{ route('expenses.create', $expense) }}" class="bg-green-500 text-white px-4 py-2 rounded mt-4 inline-block">Edit</a>
     </div>
 @endsection
