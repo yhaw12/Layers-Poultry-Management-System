@@ -282,43 +282,7 @@
             </section>
         @endcan
 
-        <!-- Pending Approvals (Admins or Finance Managers) -->
-        @can('manage_finances')
-            <section class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Pending Approvals</h2>
-                @if (isset($pendingApprovals) && $pendingApprovals->isNotEmpty())
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-sortable">
-                            <thead class="bg-gray-50 dark:bg-gray-800">
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Amount</th>
-                                    <th>Type</th>
-                                    <th>Description</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                @foreach ($pendingApprovals as $approval)
-                                    <tr>
-                                        <td>{{ $approval->date }}</td>
-                                        <td>{{ $approval->amount }}</td>
-                                        <td>{{ $approval->type }}</td>
-                                        <td>{{ $approval->description }}</td>
-                                        <td>
-                                            <a href="{{ route('transactions.approve', $approval->id) }}" class="text-blue-600">Approve</a>
-                                            <a href="{{ route('transactions.reject', $approval->id) }}" class="text-red-600">Reject</a>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @else
-                    <p class="text-gray-500 dark:text-gray-400">No pending approvals.</p>
-                @endif
-            </section>
-        @endcan
+
 
         <!-- Key Performance Indicators (KPIs) -->
         <section class="mb-8">
@@ -377,218 +341,213 @@
             @endforeach
         </section>
 
-        <!-- Payroll Status (Admin/Accountant) -->
-        @if (auth()->user()->hasAnyRole(['admin', 'accountant']))
-            <section class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    Payroll Status
-                </h2>
-                <div class="container-box">
-                    @if (isset($payrollStatus) && $payrollStatus->isNotEmpty())
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                                <thead class="bg-gray-50 dark:bg-gray-700">
-                                    <tr>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(0, 'date')">Pay Date</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(1, 'number')">Employees</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onclick="sortTable(2, 'number')">Total</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                    @foreach ($payrollStatus as $item)
-                                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
-                                            <td class="px-4 py-3 text-sm font-semibold text-blue-600 dark:text-blue-400">{{ $item->date }}</td>
-                                            <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{{ $item->employees }} {{ Str::plural('employee', $item->employees) }}</td>
-                                            <td class="px-4 py-3 text-sm font-bold text-green-600 dark:text-green-400">${{ number_format($item->total, 2) }}</td>
-                                            <td class="px-4 py-3 text-sm">
-                                                <span class="px-2 py-1 text-xs font-medium rounded-full {{ $item->status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100' }}">
-                                                    {{ ucfirst($item->status) }}
-                                                </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-sm">
-                                                <a href="{{ route('payroll.index', ['start_date' => $item->date, 'end_date' => $item->date]) }}" class="text-blue-600 dark:text-blue-400 hover:underline">View Details</a>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                            {{ $payrollStatus->links() }}
-                        </div>
-                    @else
-                        <div class="text-center py-6">
-                            <svg class="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No recent payroll activity for the selected date range.</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                Try adjusting the date filter or
-                                <form action="{{ route('payroll.generate') }}" method="POST" class="inline">
-                                    @csrf
-                                    <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline">generate monthly payroll</button>
-                                </form>.
-                            </p>
-                        </div>
-                    @endif
-                </div>
-            </section>
-        @endif
-
-        <!-- Production Trends -->
+                <!-- Pending Approvals (Admins or Finance Managers) -->
+       @can('manage_finances')
         <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Production Trends</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="chart-container">
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="chart-title">Egg Trend</h4>
-                        <select id="eggChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="line">Line</option>
-                            <option value="bar">Bar</option>
-                        </select>
-                    </div>
-                    <div class="relative h-64">
-                        <canvas id="eggTrend" class="w-full h-full"></canvas>
-                    </div>
-                    @if (!isset($eggTrend) || $eggTrend->isEmpty())
-                        <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No egg data available.</p>
-                    @endif
-                </div>
-                <div class="chart-container">
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="chart-title">Feed Trend</h4>
-                        <select id="feedChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="line">Line</option>
-                            <option value="bar">Bar</option>
-                        </select>
-                    </div>
-                    <div class="relative h-64">
-                        <canvas id="feedTrend" class="w-full h-full"></canvas>
-                    </div>
-                    @if (!isset($feedTrend) || $feedTrend->isEmpty())
-                        <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No feed data available.</p>
-                    @endif
-                </div>
-                @role('admin')
-                    <div class="chart-container">
-                        <div class="flex items-center justify-between mb-2">
-                            <h4 class="chart-title">Sales Trend</h4>
-                            <select id="salesChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                                <option value="line">Line</option>
-                                <option value="bar">Bar</option>
-                            </select>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-yellow-500 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Pending Approvals
+            </h2>
+
+            @if (isset($pendingApprovals) && $pendingApprovals->isNotEmpty())
+                <div class="space-y-3">
+                    @foreach ($pendingApprovals->take(3) as $approval)
+                        <div class="container-box p-4  rounded-xl flex justify-between items-center">
+                            <div>
+                                <p class="text-xl text-gray-500 dark:text-gray-400 text-base">{{ $approval->date }}</p>
+                                <p class="font-semibold text-gray-800 dark:text-white text-base">
+                                    ${{ number_format($approval->amount, 2) }} 
+                                    <span class="text-xl ml-2 px-2 py-1 rounded-xl 
+                                        {{ $approval->type === 'expense' ? 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100' : 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100' }}">
+                                        {{ ucfirst($approval->type) }}
+                                    </span>
+                                </p>
+                                <p class="text-lg text-gray-600 dark:text-gray-300 text-base">{{ Str::limit($approval->description, 40) }}</p>
+                            </div>
+                            <div class="flex space-x-3 text-base">
+                                <a href="{{ route('transactions.approve', $approval->id) }}" 
+                                class="text-green-600 hover:underline text-xl font-medium">Approve</a>
+                                <a href="{{ route('transactions.reject', $approval->id) }}" 
+                                class="text-red-600 hover:underline text-xl font-medium">Reject</a>
+                            </div>
                         </div>
-                        <div class="relative h-64">
-                            <canvas id="salesTrend" class="w-full h-full"></canvas>
-                        </div>
-                        @if (!isset($salesTrend) || $salesTrend->isEmpty())
-                            <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No sales data available.</p>
-                        @endif
+                    @endforeach
+                </div>
+
+                @if ($pendingApprovals->count() > 3)
+                    <div class="mt-4 text-right">
+                        <a href="{{ route('transactions.index') }}" 
+                        class="text-lg text-blue-600 dark:text-blue-400 hover:underline">
+                        View All Pending Approvals →
+                        </a>
                     </div>
-                @endrole
-            </div>
+                @endif
+            @else
+                <p class="text-gray-500 dark:text-gray-400 text-center py-6">No pending approvals.</p>
+            @endif
         </section>
+        @endcan
+
+
+        <!-- Payroll Status (Admin/Accountant) -->
+        <section class="mb-8">
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+            </path>
+        </svg>
+        Payroll Status
+    </h2>
+
+    <div class="container-box grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        @if (isset($payrollStatus) && $payrollStatus->isNotEmpty())
+            @php
+                $latest = $payrollStatus->first();
+            @endphp
+            <div class="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow">
+                <p class="text-xl text-gray-500 dark:text-gray-400">Latest Pay Date</p>
+                <p class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ $latest->date }}</p>
+            </div>
+            <div class="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow">
+                <p class="text-xl text-gray-500 dark:text-gray-400">Employees</p>
+                <p class="text-lg font-bold">{{ $latest->employees }}</p>
+            </div>
+            <div class="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow">
+                <p class="text-xl text-gray-500 dark:text-gray-400">Total Paid</p>
+                <p class="text-lg font-bold text-green-600 dark:text-green-400">
+                    ${{ number_format($latest->total, 2) }}
+                </p>
+            </div>
+            <div class="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow">
+                <p class="text-lg text-gray-500 dark:text-gray-400 mb-1">Status</p>
+                <span class="px-2 py-1 mt-4 text-xs font-medium rounded-full
+                    {{ $latest->status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100' }}">
+                    {{ ucfirst($latest->status) }}
+                </span>
+            </div>
+        @else
+            <div class="col-span-4 text-center py-6 text-gray-500 dark:text-gray-400">
+                No payroll activity yet.
+            </div>
+        @endif
+    </div>
+
+    <div class="mt-4 text-right">
+        <a href="{{ route('payroll.index') }}" 
+           class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+           View Full Payroll History →
+        </a>
+    </div>
+    </section>
+
+
+        
+
+   <!-- Dashboard Charts -->
+  <section class="mb-8">
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Dashboard Charts</h2>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Egg Trend -->
+        <div class="chart-container">
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="chart-title">Egg Trend</h4>
+                <select id="eggChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="line">Line</option>
+                    <option value="bar">Bar</option>
+                </select>
+            </div>
+            <div class="relative h-64">
+                <canvas id="eggTrend" class="w-full h-full"></canvas>
+            </div>
+            @if (!isset($eggTrend) || $eggTrend->isEmpty())
+                <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No egg data available.</p>
+            @endif
+        </div>
+
+        <!-- Feed Trend -->
+        <div class="chart-container">
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="chart-title">Feed Trend</h4>
+                <select id="feedChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="line">Line</option>
+                    <option value="bar">Bar</option>
+                </select>
+            </div>
+            <div class="relative h-64">
+                <canvas id="feedTrend" class="w-full h-full"></canvas>
+            </div>
+            @if (!isset($feedTrend) || $feedTrend->isEmpty())
+                <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No feed data available.</p>
+            @endif
+        </div>
+
+        <!-- Sales Trend (Admin Only) -->
+        @role('admin')
+        <div class="chart-container">
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="chart-title">Sales Trend</h4>
+                <select id="salesChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="line">Line</option>
+                    <option value="bar">Bar</option>
+                </select>
+            </div>
+            <div class="relative h-64">
+                <canvas id="salesTrend" class="w-full h-full"></canvas>
+            </div>
+            @if (!isset($salesTrend) || $salesTrend->isEmpty())
+                <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No sales data available.</p>
+            @endif
+        </div>
+        @endrole
 
         <!-- Income Trend -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Income Trend</h2>
-            <div class="chart-container">
-                <div class="flex items-center justify-between mb-2">
-                    <h4 class="chart-title">Income Trend</h4>
-                    <select id="incomeChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <option value="line">Line</option>
-                        <option value="bar">Bar</option>
-                    </select>
-                </div>
-                <div class="relative h-64">
-                    <canvas id="incomeChart" class="w-full h-full"></canvas>
-                </div>
-                @if (!isset($incomeTrend) || $incomeTrend->isEmpty())
-                    <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No income data available.</p>
-                @endif
+        <div class="chart-container">
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="chart-title">Income Trend</h4>
+                <select id="incomeChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="line">Line</option>
+                    <option value="bar">Bar</option>
+                </select>
             </div>
-        </section>
+            <div class="relative h-64">
+                <canvas id="incomeChart" class="w-full h-full"></canvas>
+            </div>
+            @if (!isset($incomeTrend) || $incomeTrend->isEmpty())
+                <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No income data available.</p>
+            @endif
+        </div>
 
         <!-- Invoice Status (Admin Only) -->
         @role('admin')
-            <section class="mb-8">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Invoice Status</h2>
-                    <form action="{{ route('dashboard.export') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 transition duration-200">
-                            Export to CSV
-                        </button>
-                    </form>
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="chart-container">
-                        <div class="flex items-center justify-between mb-2">
-                            <h4 class="chart-title">Invoice Status Distribution</h4>
-                            <select id="invoiceChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                                <option value="bar">Bar</option>
-                                <option value="line">Line</option>
-                            </select>
-                        </div>
-                        <div class="relative h-64">
-                            <canvas id="invoiceStatus" class="w-full h-full"></canvas>
-                        </div>
-                        @if (!isset($invoiceStatuses) || array_sum($invoiceStatuses) == 0)
-                            <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No invoice status data available.</p>
-                        @endif
-                    </div>
-                </div>
-            </section>
+        <div class="chart-container col-span-1 lg:col-span-2">
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="chart-title">Invoice Status Distribution</h4>
+                <select id="invoiceChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="bar">Bar</option>
+                    <option value="line">Line</option>
+                </select>
+            </div>
+            <div class="relative h-64">
+                <canvas id="invoiceStatus" class="w-full h-full"></canvas>
+            </div>
+            @if (!isset($invoiceStatuses) || array_sum($invoiceStatuses) == 0)
+                <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No invoice status data available.</p>
+            @endif
+        </div>
         @endrole
 
-        <!-- Monthly Income Summary -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Monthly Income Summary
-            </h2>
-            <div class="container-box bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
-                @if (!empty($monthlyIncome))
-                    <ul class="space-y-3">
-                        @foreach ($monthlyIncome as $month => $amount)
-                            <li class="list-item p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
-                                <span class="highlight font-medium text-green-600 dark:text-green-400">{{ $month }}</span>:
-                                ${{ number_format($amount, 2) }}
-                            </li>
-                        @endforeach
-                    </ul>
-                @else
-                    <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No monthly income data available.</p>
-                @endif
-            </div>
-        </section>
+    </div>
+    </section>
 
-        <!-- Monthly Income Trend -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Monthly Income Trend</h2>
-            <div class="chart-container">
-                <div class="flex items-center justify-between mb-2">
-                    <h4 class="chart-title">Monthly Income</h4>
-                    <select id="monthlyIncomeChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <option value="line">Line</option>
-                        <option value="bar">Bar</option>
-                    </select>
-                </div>
-                <div class="relative h-64">
-                    <canvas id="monthlyIncomeChart" class="w-full h-full"></canvas>
-                </div>
-                @if (empty($monthlyIncome))
-                    <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No monthly income data available.</p>
-                @endif
-            </div>
-        </section>
 
-        <!-- Vaccination Overview -->
+
+           <!-- Vaccination Overview -->
         <section class="mb-8">
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -681,9 +640,14 @@
                             <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Completion</span>
                             <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">{{ $completionPercentage ?? 0 }}%</span>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                            <div class="bg-purple-600 h-2.5 rounded-full transition-all duration-300" style="width: {{ $completionPercentage ?? 0 }}%"></div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700" aria-hidden="true">
+                            <div id="completionProgressBar" class="bg-purple-600 h-2.5 rounded-full transition-all duration-300" style="width: {{ $completionPercentage ?? 0 }}%"></div>
                         </div>
+                        <div class="mt-2 text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                            <span id="completionPercentageValue">{{ $completionPercentage ?? 0 }}%</span>
+                            <span class="text-[10px]">Completion</span>
+                        </div>
+
                     </div>
                 </div>
                 <div class="container-box bg-gradient-to-r from-purple-50 to-white dark:from-purple-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-purple-500 border-2 border-transparent">
@@ -834,11 +798,7 @@
     </div>
 @endsection
 
-<!-- Include Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
-{{-- Chart.js CDN + robust initializer --}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
 <script>
 /* ---------- Robust Dashboard Chart Init ---------- */

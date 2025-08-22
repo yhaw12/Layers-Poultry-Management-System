@@ -32,9 +32,9 @@
                     @endError
                 </div>
                 <div>
-                    <label for="telephone" class="block text-gray-700 dark:text-gray-300">Telephone</label>
-                    <input name="telephone" type="text" id="telephone" value="{{ old('telephone') }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('telephone') border-red-500 @enderror" maxlength="20">
-                    @error('telephone')
+                    <label for="phone" class="block text-gray-700 dark:text-gray-300">Telephone</label>
+                    <input name="phone" type="text" id="phone" value="{{ old('phone') }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('phone') border-red-500 @enderror" maxlength="20">
+                    @error('phone')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError
                 </div>

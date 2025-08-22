@@ -26,7 +26,7 @@ class EmployeeController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'monthly_salary' => 'required|numeric',
-            'telephone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:20',
         ]);
 
         Employee::create($request->all());
@@ -43,7 +43,7 @@ class EmployeeController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'monthly_salary' => 'required|numeric',
-            'telephone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:20',
         ]);
 
         $employee->update($request->all());

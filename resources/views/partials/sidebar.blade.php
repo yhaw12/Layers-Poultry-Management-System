@@ -105,36 +105,19 @@
                                aria-current="{{ Route::is('feed.index') ? 'page' : 'false' }}">
                                 Feed
                             </a>
-                            <a href="{{ route('feed.consumption') }}"
-                               class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('feed.consumption') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                               aria-current="{{ Route::is('feed.consumption') ? 'page' : 'false' }}">
-                                Feed Consumption
-                            </a>
+                            
                             <a href="{{ route('medicine-logs.index') }}"
                                class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('medicine-logs.index') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
                                aria-current="{{ Route::is('medicine-logs.index') ? 'page' : 'false' }}">
                                 Medicine Logs
                             </a>
-                            <a href="{{ route('medicine-logs.purchase') }}"
-                               class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('medicine-logs.purchase') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                               aria-current="{{ Route::is('medicine-logs.purchase') ? 'page' : 'false' }}">
-                                Medicine Purchases
-                            </a>
-                            <a href="{{ route('medicine-logs.consumption') }}"
-                               class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('medicine-logs.consumption') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                               aria-current="{{ Route::is('medicine-logs.consumption') ? 'page' : 'false' }}">
-                                Medicine Consumption
-                            </a>
+                            
                             <a href="{{ route('inventory.index') }}"
                                class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('inventory.*') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
                                aria-current="{{ Route::is('inventory.*') ? 'page' : 'false' }}">
                                 Inventory
                             </a>
-                            <a href="{{ route('alerts.low-stock') }}"
-                               class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('alerts.low-stock') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                               aria-current="{{ Route::is('alerts.low-stock') ? 'page' : 'false' }}">
-                                Low Stock Alerts
-                            </a>
+                            
                             <a href="{{ route('suppliers.index') }}"
                                class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('suppliers.*') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
                                aria-current="{{ Route::is('suppliers.*') ? 'page' : 'false' }}">
@@ -163,7 +146,7 @@
                                    aria-current="{{ Route::is('sales.index') ? 'page' : 'false' }}">
                                     Sales
                                 </a>
-                                <a href="{{ route('sales.birds') }}"
+                                {{-- <a href="{{ route('sales.birds') }}"
                                    class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('sales.birds') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
                                    aria DIY
 
@@ -173,7 +156,7 @@
                                 <a href="{{ route('eggs.sales') }}"
                                    class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('eggs.sales') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
                                    aria-current="{{ Route::is('eggs.sales') ? 'page' : 'false' }}">
-                                    Egg Sales
+                                    Egg Sales --}}
                                 </a>
                                 <a href="{{ route('invoices.index') }}"
                                    class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('invoices.index') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
@@ -246,40 +229,41 @@
                     @endrole
 
                     <!-- Reports -->
-                    <div>
-                        <button data-target="reports-submenu" class="toggle-btn flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200" aria-expanded="false" aria-controls="reports-submenu">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                Reports
-                            </div>
-                            <svg class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </button>
-                        <div id="reports-submenu" class="submenu hidden mt-1 ml-8 space-y-1 opacity-0 transition-opacity duration-300">
-                            <a href="{{ route('reports.index', ['type' => 'custom']) }}"
-                               class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ request()->query('type') === 'custom' ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                               aria-current="{{ request()->query('type') === 'custom' ? 'page' : 'false' }}">
-                                Analytics
-                            </a>
-                            @can('manage_finances')
-                                <a href="{{ route('reports.index', ['type' => 'profitability']) }}"
-                                   class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ request()->query('type') === 'profitability' ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                                   aria-current="{{ request()->query('type') === 'profitability' ? 'page' : 'false' }}">
-                                    Profitability
-                                </a>
-                            @endcan
-                            @role('admin')
-                                <a href="{{ route('activity-logs.index') }}"
-                                   class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('activity-logs.*') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                                   aria-current="{{ Route::is('activity-logs.*') ? 'page' : 'false' }}">
-                                    Activity Logs
-                                </a>
-                            @endrole
-                        </div>
-                    </div>
+<div>
+    <button data-target="reports-submenu" class="toggle-btn flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200" aria-expanded="false" aria-controls="reports-submenu">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Reports
+        </div>
+        <svg class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+    </button>
+    <div id="reports-submenu" class="submenu hidden mt-1 ml-8 space-y-1 opacity-0 transition-opacity duration-300">
+        <a href="{{ route('reports.index', ['type' => 'custom']) }}"
+           class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ request()->query('type') === 'custom' || in_array(request()->query('type'), ['weekly', 'monthly']) ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
+           aria-current="{{ request()->query('type') === 'custom' || in_array(request()->query('type'), ['weekly', 'monthly']) ? 'page' : 'false' }}">
+            Analytics
+        </a>
+        @can('manage_finances')
+            <a href="{{ route('reports.index', ['type' => 'profitability']) }}"
+               class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ in_array(request()->query('type'), ['profitability', 'profit-loss', 'forecast']) ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
+               aria-current="{{ in_array(request()->query('type'), ['profitability', 'profit-loss', 'forecast']) ? 'page' : 'false' }}">
+                Financial Reports
+            </a>
+        @endcan
+        @role('admin')
+            <a href="{{ route('activity-logs.index') }}"
+               class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('activity-logs.*') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
+               aria-current="{{ Route::is('activity-logs.*') ? 'page' : 'false' }}">
+                Activity Logs
+            </a>
+        @endrole
+    </div>
+</div>
+
 
                     <!-- Users (Admin Only) -->
                     @role('admin')
@@ -334,9 +318,9 @@
                     </div>
 
                     <!-- Alerts -->
-                    <a href="{{ route('alerts.index') }}"
+                    <a href="{{ route('notifications.index') }}"
                        class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 {{ Route::is('alerts.index') ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : '' }}"
-                       aria-current="{{ Route::is('alerts.index') ? 'page' : 'false' }}">
+                       aria-current="{{ Route::is('notifications.index') ? 'page' : 'false' }}">
                         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a2 2 0 10-4 0v.083A6 6 0 004 11v3.159c0 .538-.214 1.055-.595 1.436L2 17h5m5 0v1a3 3 0 11-6 0v-1m5 0H7" />
                         </svg>
@@ -368,131 +352,263 @@
 <div class="fixed inset-0 bg-black bg-opacity-50 hidden z-40" id="sidebar-overlay"></div>
 
 <script>
- // Sidebar Toggle Script
-            (function() {
-                const sidebar = document.getElementById('sidebar');
-                const sidebarToggle = document.getElementById('sidebar-toggle');
-                const mobileMenuButton = document.getElementById('mobile-menu-button');
-                const sidebarOverlay = document.getElementById('sidebar-overlay');
-                let openSubmenuId = null;
+(function () {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle'); // close button inside sidebar (mobile)
+    const mobileMenuButton = document.getElementById('mobile-menu-button'); // top-left hamburger
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const BODY = document.body;
+    let openSubmenuId = null;
+    let previouslyFocusedElement = null;
+    let focusTrapHandler = null;
 
-                const initializeSidebar = () => {
-                    if (window.innerWidth >= 768) {
-                        sidebar.classList.remove('hidden', '-translate-x-full');
-                        sidebar.classList.add('translate-x-0');
-                        sidebarOverlay.classList.add('hidden');
-                    } else {
-                        sidebar.classList.add('hidden', '-translate-x-full');
-                        sidebar.classList.remove('translate-x-0');
-                        sidebarOverlay.classList.add('hidden');
-                    }
-                };
+    // Utility: get all focusable elements inside sidebar
+    function getFocusableElements() {
+        if (!sidebar) return [];
+        const selectors = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+        return Array.from(sidebar.querySelectorAll(selectors)).filter(el => el.offsetParent !== null);
+    }
 
-                initializeSidebar();
+    // Open sidebar for mobile
+    function openSidebar() {
+        if (!sidebar) return;
+        previouslyFocusedElement = document.activeElement;
 
-                window.addEventListener('resize', () => {
-                    initializeSidebar();
-                    if (window.innerWidth >= 768 && openSubmenuId) {
-                        const prevSubmenu = document.getElementById(openSubmenuId);
-                        prevSubmenu.classList.remove('open', 'opacity-100');
-                        prevSubmenu.classList.add('hidden', 'opacity-0');
-                        const prevToggle = document.querySelector(`[data-target="${openSubmenuId}"]`);
-                        prevToggle.querySelector('svg').classList.remove('rotate-180');
-                        prevToggle.setAttribute('aria-expanded', 'false');
-                        openSubmenuId = null;
-                    }
-                });
+        // Visual classes
+        sidebar.classList.remove('hidden', '-translate-x-full');
+        sidebar.classList.add('translate-x-0');
+        sidebarOverlay.classList.remove('hidden');
 
-                const toggleSubmenu = (toggle, submenuId) => {
-                    const submenu = document.getElementById(submenuId);
-                    const chevron = toggle.querySelector('svg');
-                    const isOpen = submenu.classList.contains('open');
+        // Accessibility
+        sidebar.setAttribute('aria-hidden', 'false');
+        if (mobileMenuButton) mobileMenuButton.setAttribute('aria-expanded', 'true');
 
-                    if (openSubmenuId && openSubmenuId !== submenuId) {
-                        const prevSubmenu = document.getElementById(openSubmenuId);
-                        prevSubmenu.classList.remove('open', 'opacity-100');
-                        prevSubmenu.classList.add('hidden', 'opacity-0');
-                        const prevToggle = document.querySelector(`[data-target="${openSubmenuId}"]`);
-                        prevToggle.querySelector('svg').classList.remove('rotate-180');
-                        prevToggle.setAttribute('aria-expanded', 'false');
-                    }
+        // Prevent background scroll
+        BODY.classList.add('overflow-hidden', 'touch-none');
 
-                    if (isOpen) {
-                        submenu.classList.remove('open', 'opacity-100');
-                        submenu.classList.add('hidden', 'opacity-0');
-                        chevron.classList.remove('rotate-180');
-                        toggle.setAttribute('aria-expanded', 'false');
-                        openSubmenuId = null;
-                    } else {
-                        submenu.classList.add('open');
-                        submenu.classList.remove('hidden');
-                        setTimeout(() => submenu.classList.add('opacity-100'), 10);
-                        chevron.classList.add('rotate-180');
-                        toggle.setAttribute('aria-expanded', 'true');
-                        openSubmenuId = submenuId;
-                    }
-                };
+        // Focus trap: focus first focusable in sidebar
+        const focusables = getFocusableElements();
+        if (focusables.length) focusables[0].focus();
 
-                document.querySelectorAll('.toggle-btn').forEach(toggle => {
-                    toggle.addEventListener('click', () => {
-                        const submenuId = toggle.getAttribute('data-target');
-                        toggleSubmenu(toggle, submenuId);
-                    });
-                    toggle.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            const submenuId = toggle.getAttribute('data-target');
-                            toggleSubmenu(toggle, submenuId);
-                        }
-                    });
-                });
+        // Install focus trap handler
+        focusTrapHandler = function (e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                closeSidebar();
+                return;
+            }
+            if (e.key === 'Tab') {
+                const focusables = getFocusableElements();
+                if (!focusables.length) return;
+                const first = focusables[0];
+                const last = focusables[focusables.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+        document.addEventListener('keydown', focusTrapHandler, true);
+    }
 
-                const toggleSidebar = () => {
-                    const isOpen = !sidebar.classList.contains('hidden');
-                    if (isOpen) {
-                        sidebar.classList.add('-translate-x-full');
-                        setTimeout(() => {
-                            sidebar.classList.add('hidden');
-                            sidebar.classList.remove('translate-x-0');
-                        }, 300);
-                        sidebarOverlay.classList.add('hidden');
-                        mobileMenuButton.setAttribute('aria-label', 'Open sidebar');
-                        sidebarToggle.setAttribute('aria-label', 'Open sidebar');
-                        if (openSubmenuId) {
-                            const prevSubmenu = document.getElementById(openSubmenuId);
-                            prevSubmenu.classList.remove('open', 'opacity-100');
-                            prevSubmenu.classList.add('hidden', 'opacity-0');
-                            const prevToggle = document.querySelector(`[data-target="${openSubmenuId}"]`);
-                            prevToggle.querySelector('svg').classList.remove('rotate-180');
-                            prevToggle.setAttribute('aria-expanded', 'false');
-                            openSubmenuId = null;
-                        }
-                        mobileMenuButton.focus();
-                    } else {
-                        sidebar.classList.remove('hidden');
-                        sidebar.classList.add('translate-x-0');
-                        sidebar.classList.remove('-translate-x-full');
-                        sidebarOverlay.classList.remove('hidden');
-                        mobileMenuButton.setAttribute('aria-label', 'Close sidebar');
-                        sidebarToggle.setAttribute('aria-label', 'Close sidebar');
-                        sidebar.querySelector('a, button').focus();
-                    }
-                };
+    // Close sidebar
+    function closeSidebar() {
+        if (!sidebar) return;
 
-                if (mobileMenuButton) mobileMenuButton.addEventListener('click', toggleSidebar);
-                if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
-                if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+        // Animate out
+        sidebar.classList.add('-translate-x-full');
+        // After animation, hide completely
+        setTimeout(() => {
+            sidebar.classList.add('hidden');
+            // remove classes that keep it visible on mobile
+            sidebar.classList.remove('translate-x-0');
+        }, 260); // match Tailwind transition (300ms in your markup, 260ms safe)
 
-                document.querySelectorAll('nav a, nav button[type="submit"]').forEach(link => {
-                    link.addEventListener('click', () => {
-                        if (window.innerWidth < 768) {
-                            toggleSidebar();
-                        }
-                    });
-                });
+        if (sidebarOverlay) sidebarOverlay.classList.add('hidden');
 
-                document.querySelectorAll('.submenu').forEach(submenu => {
-                    submenu.classList.add('hidden', 'opacity-0');
-                });
-            })();
+        // Accessibility
+        sidebar.setAttribute('aria-hidden', 'true');
+        if (mobileMenuButton) mobileMenuButton.setAttribute('aria-expanded', 'false');
+
+        // Restore scroll
+        BODY.classList.remove('overflow-hidden', 'touch-none');
+
+        // Remove focus trap
+        if (focusTrapHandler) {
+            document.removeEventListener('keydown', focusTrapHandler, true);
+            focusTrapHandler = null;
+        }
+
+        // Close any open submenu
+        if (openSubmenuId) {
+            const prev = document.getElementById(openSubmenuId);
+            if (prev) {
+                prev.classList.remove('open', 'opacity-100');
+                prev.classList.add('hidden', 'opacity-0');
+            }
+            const prevToggle = document.querySelector(`[data-target="${openSubmenuId}"]`);
+            if (prevToggle) {
+                const svg = prevToggle.querySelector('svg');
+                if (svg) svg.classList.remove('rotate-180');
+                prevToggle.setAttribute('aria-expanded', 'false');
+            }
+            openSubmenuId = null;
+        }
+
+        // restore focus for keyboard users
+        if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === 'function') {
+            setTimeout(() => previouslyFocusedElement.focus(), 100);
+            previouslyFocusedElement = null;
+        }
+    }
+
+    // Toggle submenu with good mobile behavior (one open at a time)
+    function toggleSubmenu(toggleEl, submenuId) {
+        const submenu = document.getElementById(submenuId);
+        if (!submenu) return;
+
+        const chevron = toggleEl.querySelector('svg');
+        const isOpen = submenu.classList.contains('open');
+
+        // close previous if different
+        if (openSubmenuId && openSubmenuId !== submenuId) {
+            const prev = document.getElementById(openSubmenuId);
+            if (prev) {
+                prev.classList.remove('open', 'opacity-100');
+                prev.classList.add('hidden', 'opacity-0');
+            }
+            const prevToggle = document.querySelector(`[data-target="${openSubmenuId}"]`);
+            if (prevToggle) {
+                const prevSvg = prevToggle.querySelector('svg');
+                if (prevSvg) prevSvg.classList.remove('rotate-180');
+                prevToggle.setAttribute('aria-expanded', 'false');
+            }
+            openSubmenuId = null;
+        }
+
+        if (isOpen) {
+            submenu.classList.remove('open', 'opacity-100');
+            submenu.classList.add('hidden', 'opacity-0');
+            if (chevron) chevron.classList.remove('rotate-180');
+            toggleEl.setAttribute('aria-expanded', 'false');
+            openSubmenuId = null;
+        } else {
+            submenu.classList.add('open');
+            submenu.classList.remove('hidden');
+            // small delay so opacity transition works
+            setTimeout(() => submenu.classList.add('opacity-100'), 10);
+            if (chevron) chevron.classList.add('rotate-180');
+            toggleEl.setAttribute('aria-expanded', 'true');
+            openSubmenuId = submenuId;
+        }
+    }
+
+    // Initialize mobile / desktop stable states
+    function initializeSidebarState() {
+        if (!sidebar) return;
+        if (window.innerWidth >= 768) {
+            // Desktop: show sidebar
+            sidebar.classList.remove('hidden', '-translate-x-full');
+            sidebar.classList.add('translate-x-0');
+            sidebar.setAttribute('aria-hidden', 'false');
+            if (sidebarOverlay) sidebarOverlay.classList.add('hidden');
+            BODY.classList.remove('overflow-hidden', 'touch-none');
+        } else {
+            // Mobile: hide sidebar by default
+            sidebar.classList.add('hidden', '-translate-x-full');
+            sidebar.classList.remove('translate-x-0');
+            sidebar.setAttribute('aria-hidden', 'true');
+            if (sidebarOverlay) sidebarOverlay.classList.add('hidden');
+        }
+
+        // ensure submenus start hidden (for consistent animation)
+        document.querySelectorAll('.submenu').forEach(s => {
+            if (!s.classList.contains('open')) {
+                s.classList.add('hidden', 'opacity-0');
+                s.classList.remove('opacity-100');
+            }
+        });
+    }
+
+    // Event wiring
+    function wireEvents() {
+        // Header hamburger opens mobile sidebar
+        if (mobileMenuButton) {
+            mobileMenuButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openSidebar();
+            });
+        }
+
+        // Close button inside sidebar
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeSidebar();
+            });
+        }
+
+        // overlay click closes
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeSidebar();
+            });
+        }
+
+        // Escape at document level should also close when sidebar open
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sidebar && !sidebar.classList.contains('hidden')) {
+                closeSidebar();
+            }
+        });
+
+        // Submenu toggles (keyboard accessible)
+        document.querySelectorAll('.toggle-btn').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const submenuId = toggle.getAttribute('data-target');
+                toggleSubmenu(toggle, submenuId);
+            });
+            toggle.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const submenuId = toggle.getAttribute('data-target');
+                    toggleSubmenu(toggle, submenuId);
+                }
+            });
+        });
+
+        // Links inside nav should close menu on mobile after click
+        document.querySelectorAll('#sidebar nav a').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 768) closeSidebar();
+            });
+        });
+
+        // Keep layout responsive on resize
+        window.addEventListener('resize', () => {
+            // if desktop breakpoint reached, ensure overlay removed and body scroll restored
+            if (window.innerWidth >= 768) {
+                if (sidebarOverlay) sidebarOverlay.classList.add('hidden');
+                BODY.classList.remove('overflow-hidden', 'touch-none');
+                // ensure sidebar visible for desktop
+                sidebar.classList.remove('hidden', '-translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                sidebar.setAttribute('aria-hidden', 'false');
+            } else {
+                // mobile: hide sidebar by default
+                sidebar.classList.add('hidden', '-translate-x-full');
+                sidebar.classList.remove('translate-x-0');
+                sidebar.setAttribute('aria-hidden', 'true');
+            }
+        });
+    }
+
+    // Boot
+    initializeSidebarState();
+    wireEvents();
+})();
 </script>

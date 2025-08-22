@@ -38,7 +38,7 @@
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $employee->name }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ number_format($employee->monthly_salary, 2) }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $employee->telephone ?? '-' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">{{ $employee->phone ?? '-' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <a href="{{ route('employees.edit', $employee) }}" class="text-blue-600 dark:text-blue-400 hover:underline mr-2">Edit</a>
                                 <form action="{{ route('employees.destroy', $employee) }}" method="POST" class="inline">

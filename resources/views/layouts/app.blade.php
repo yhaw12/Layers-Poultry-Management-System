@@ -6,7 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="base-url" content="{{ url('/') }}"> <!-- Added for reliable base URL -->
     <title>Poultry Tracker</title>
-    @vite('resources/css/app.css')
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
 </head>
 <body class="bg-gray-100 text-gray-900 dark:bg-[#0a0a23] dark:text-white font-sans">
     <!-- Centralized Loader Overlay -->
@@ -124,13 +125,7 @@
                                         </svg>
                                     </button>
                                     <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 shadow-lg rounded-lg border dark:border-gray-700 z-50">
-                                        <div class="p-4 border-b dark:border-gray-700 flex items-center gap-3">
-                                            <img src="{{ auth()->user()->avatar ? asset('storage/avatars/' . auth()->user()->avatar) : asset('images/default-avatar.png') }}" alt="User Avatar" class="w-10 h-10 rounded-full object-cover">
-                                            <div>
-                                                <p class="text-sm font-semibold text-gray-800 dark:text-white">{{ auth()->user()->name ?? 'Unknown User' }}</p>
-                                                <p class="text-xs text-gray-600 dark:text-gray-400">{{ auth()->user()->email ?? 'No email' }}</p>
-                                            </div>
-                                        </div>
+                                        
                                         <div class="py-1">
                                             <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
                                             <a href="{{ route('settings.index') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
@@ -162,7 +157,7 @@
 
     <!-- Scripts -->
     {{-- <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.min.js"></script> --}}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+    {{-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  --}}
     
     <script>
         // Centralized Loader Class

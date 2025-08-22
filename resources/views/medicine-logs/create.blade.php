@@ -6,11 +6,11 @@
     <h1 class="text-3xl font-bold text-gray-800 mb-6">Farm Dashboard</h1>
 
     <!-- Date Range Filter -->
-    <form method="GET" action="{{ route('dashboard.index') }}" class="mb-6 bg-white p-4 rounded-lg shadow">
+    <form method="GET" action="{{ route('medicine-logs.index') }}" class="mb-6 bg-white p-4 rounded-lg shadow">
         <div class="flex flex-col md:flex-row gap-4 items-end">
             <div class="flex-1">
                 <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
-                <input type="date" name="start_date" id="start_date" value="{{ $start }}"
+                <input type="date" name="start_date" id="start_date" 
                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
             </div>
             <div class="flex-1">
@@ -124,10 +124,10 @@
     </div>
 
     <!-- Export Buttons -->
-    <div class="flex space-x-4 mb-6">
+    {{-- <div class="flex space-x-4 mb-6">
         <a href="{{ route('dashboard.export') }}" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Export CSV</a>
         <a href="{{ route('dashboard.exportPDF') }}" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Export PDF</a>
-    </div>
+    </div> --}}
 </div>
 
 <!-- Chart.js Scripts -->

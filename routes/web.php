@@ -84,6 +84,7 @@ Route::middleware('auth')->group(function () {
         'payroll'          => PayrollController::class,
         'sales'            => SalesController::class,
         'suppliers'        => SupplierController::class,
+        'medicine-logs'    => MedicineLogController::class,
         'vaccination-logs' => VaccinationLogController::class,
     ]);
 
@@ -93,8 +94,8 @@ Route::middleware('auth')->group(function () {
     // Other routes
     Route::delete('eggs/bulk', [EggController::class, 'bulkDelete'])->name('eggs.bulkDelete');
     Route::get('feed/consumption', [FeedController::class, 'consumption'])->name('feed.consumption');
-    Route::get('medicine-logs/purchase', [MedicineLogController::class, 'purchase'])->name('medicine-logs.purchase');
-    Route::get('medicine-logs/consumption', [MedicineLogController::class, 'consumption'])->name('medicine-logs.consumption');
+    // Route::get('medicine-logs/purchase', [MedicineLogController::class, 'purchase'])->name('medicine-logs.purchase');
+    // Route::get('medicine-logs/consumption', [MedicineLogController::class, 'consumption'])->name('medicine-logs.consumption');
     Route::get('sales/eggs', [SalesController::class, 'sales'])->name('eggs.sales');
     Route::get('sales/birds', [SalesController::class, 'birdSales'])->name('sales.birds');
     Route::post('sales/{sale}/status', [SalesController::class, 'updateStatus'])->name('sales.updateStatus');
@@ -104,11 +105,21 @@ Route::middleware('auth')->group(function () {
     Route::get('invoices', [SalesController::class, 'invoices'])->name('invoices.index');
     Route::post('payroll/generate', [PayrollController::class, 'generateMonthly'])->name('payroll.generate');
     Route::get('payroll/export', [PayrollController::class, 'exportPDF'])->name('payroll.export')->middleware('role:admin');
-    Route::prefix('reports')->name('reports.')->group(function () {
-        Route::get('export', [ReportController::class, 'export'])->name('export');
-        Route::match(['get', 'post'], '{type?}', [ReportController::class, 'index'])->name('index');
-        Route::get('custom', [ReportController::class, 'custom'])->name('custom');
-    });
+    // Route::prefix('reports')->name('reports.')->group(function () {
+    //     Route::get('export', [ReportController::class, 'export'])->name('export');
+    //     Route::match(['get', 'post'], '{type?}', [ReportController::class, 'index'])->name('index');
+    //     Route::get('custom', [ReportController::class, 'custom'])->name('custom');
+    // });
+
+    
+// Route::prefix('reports')->group(function () {
+//     Route::get('/{type}', [ReportController::class, 'generate'])
+//         ->name('reports.generate');
+// });
+
+Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+
     Route::get('diseases', [DiseaseController::class, 'index'])->name('diseases.index');
     Route::get('diseases/{disease}/history', [DiseaseController::class, 'history'])->name('diseases.history');
     Route::post('diseases', [DiseaseController::class, 'store'])->name('diseases.store');
@@ -119,7 +130,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::get('/search', [SearchController::class, 'index'])->name('search');
-    Route::get('/alerts/low-stock', [InventoryController::class, 'lowStock'])->name('alerts.low-stock');
+    Route::get('/inventory/low-stock', [InventoryController::class, 'lowStock'])->name('inventory.low-stock');
     Route::get('/transactions', [TransactionsController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/{transaction}', [TransactionsController::class, 'show'])->name('transactions.show');
     Route::post('/transactions/{transaction}/approve', [TransactionsController::class, 'approve'])->name('transactions.approve');
@@ -128,6 +139,9 @@ Route::middleware('auth')->group(function () {
     // Soft delete routes
     Route::get('birds/trashed', [BirdsController::class, 'trashed'])->name('birds.trashed');
     Route::post('birds/{id}/restore', [BirdsController::class, 'restore'])->name('birds.restore');
+
+
+
 
     
 });

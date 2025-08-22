@@ -27,7 +27,7 @@ class InventoryController extends Controller
 
         // Feed low stock
         $lowFeed = Feed::where('quantity', '<', DB::raw('threshold'))
-            ->get(['id', 'name', 'quantity as qty', 'threshold', DB::raw('"Feed" as type')]);
+            ->get(['id', 'name', 'quantity as qty', 'threshold', DB::raw('"feed" as type')]);
         $lowStockItems = $lowStockItems->concat($lowFeed);
 
         // Medicine low stock

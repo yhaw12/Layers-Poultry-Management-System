@@ -1,3 +1,4 @@
+{{-- feed.create --}}
 @extends('layouts.app')
 
 @section('content')

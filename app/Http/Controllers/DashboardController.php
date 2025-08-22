@@ -275,8 +275,8 @@ class DashboardController extends Controller
 
                 $dates = $incomeSums->keys()->merge($expenseSums->keys())->unique()->sort();
 
-                $netFinancialData = $dates->map(function ($date) use ($incomeSums, $expenseSums) {
-                    $inc = $incomeSums->get($date)->income ?? 0;
+               $netFinancialData = $dates->map(function ($date) use ($incomeSums, $expenseSums) {
+                     $inc = $incomeSums->get($date)->income ?? 0;
                     $exp = $expenseSums->get($date)->expense ?? 0;
                     return (object) ['date' => $date, 'value' => $inc - $exp];
                 });
@@ -488,6 +488,8 @@ class DashboardController extends Controller
                     'totalTransactionAmount',
                     'activeSuppliers',
                     'pendingOrders',
+                    'completedOrdersCount',
+                    'completionPercentage',
                     'totalOrderAmount',
                     'totalPayroll',
                     'pendingPayrolls',
