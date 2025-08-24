@@ -28,6 +28,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\VaccinationLogController;
+use App\Http\Controllers\WeatherController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -141,7 +142,9 @@ Route::get('/reports/export', [ReportController::class, 'export'])->name('report
     Route::post('birds/{id}/restore', [BirdsController::class, 'restore'])->name('birds.restore');
 
 
-
+    // Route::get('/weather/json', [WeatherController::class, 'current'])->name('weather.json'); // 
+    Route::middleware('auth')->get('/weather/fetch', [WeatherController::class, 'fetch'])->name('weather.fetch');
+    // Route::get('/reminders', [DashboardController::class, 'reminders'])->name('reminders.index');
 
     
 });
@@ -156,3 +159,11 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('roles', RoleController::class)->only(['index', 'store']);
     Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
 });
+
+// use Spatie\ResponseCache\Middlewares\DoNotCacheResponse;
+
+// Route::get('/alerts', function () {
+//     return response()->json([
+//         ['id' => 1, 'message' => 'Test notification', 'type' => 'info', 'url' => '#'],
+//     ]);
+// })->withoutMiddleware(\Spatie\ResponseCache\Middlewares\CacheResponse::class);

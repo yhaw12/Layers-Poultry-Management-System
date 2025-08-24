@@ -176,7 +176,7 @@
                     this.loader.classList.remove('hidden');
                     if (this.messageEl) {
                         if (message) {
-                            this.messageEl.textContent = message;
+                            // this.messageEl.textContent = message;
                             this.messageEl.classList.remove('hidden');
                         } else {
                             this.messageEl.classList.add('hidden');

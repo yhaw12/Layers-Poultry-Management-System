@@ -32,12 +32,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_sales', 'create_sales', 'edit_sales', 'delete_sales', 'manage_sales',
             'view_customers', 'create_customers', 'edit_customers', 'delete_customers', 'manage_customers',
             'view_orders', 'create_orders', 'edit_orders', 'delete_orders', 'manage_orders',
-            'view_invoices', 'generate_invoices', 'manage_invoices', 'view-sales',
+            'view_invoices', 'generate_invoices', 'manage_invoices',
 
             // Financial Management
             'view_expenses', 'create_expenses', 'edit_expenses', 'delete_expenses', 'manage_expenses',
             'view_income', 'create_income', 'edit_income', 'delete_income', 'manage_income',
-            'view_payroll', 'create_payroll', 'edit_payroll', 'delete_payroll', 'manage_payroll', 'generate_payroll','manage_finances',
+            'view_payroll', 'create_payroll', 'edit_payroll', 'delete_payroll', 'manage_payroll', 'generate_payroll', 'manage_finances',
 
             // Health Management
             'view_health_checks', 'create_health_checks', 'edit_health_checks', 'delete_health_checks', 'manage_health_checks',
@@ -52,6 +52,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_dashboard', 'export_dashboard',
             'view_reports', 'generate_reports', 'export_reports',
             'view_activity_logs', 'manage_activity_logs',
+            'view_kpis', // Added for KPI access control
         ];
 
         // Create permissions in batches
@@ -66,7 +67,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // Define and assign roles
         DB::transaction(function () use ($permissions) {
             $admin = Role::firstOrCreate(['name' => 'admin']);
-            $admin->syncPermissions($permissions);
+            $admin->syncPermissions($permissions); // Admin has all permissions
 
             $farmManager = Role::firstOrCreate(['name' => 'farm_manager']);
             $farmManager->syncPermissions([
@@ -75,7 +76,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_mortalities', 'create_mortalities', 'edit_mortalities', 'delete_mortalities', 'manage_mortalities',
                 'view_feed', 'create_feed', 'edit_feed', 'delete_feed', 'manage_feed',
                 'view_inventory', 'create_inventory', 'edit_inventory', 'delete_inventory', 'manage_inventory',
-                'view_dashboard',
+                'view_health_checks', // Added for Flock Health Summary
+                'view_dashboard', 'view_kpis',
             ]);
 
             $accountant = Role::firstOrCreate(['name' => 'accountant']);
@@ -83,7 +85,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_expenses', 'create_expenses', 'edit_expenses', 'delete_expenses', 'manage_expenses',
                 'view_income', 'create_income', 'edit_income', 'delete_income', 'manage_income',
                 'view_payroll', 'create_payroll', 'edit_payroll', 'delete_payroll', 'manage_payroll', 'generate_payroll',
-                'view_dashboard', 'view_reports', 'generate_reports', 'export_reports',
+                'view_dashboard', 'view_kpis',
+                'view_reports', 'generate_reports', 'export_reports',
             ]);
 
             $salesManager = Role::firstOrCreate(['name' => 'sales_manager']);
@@ -91,8 +94,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_sales', 'create_sales', 'edit_sales', 'delete_sales', 'manage_sales',
                 'view_customers', 'create_customers', 'edit_customers', 'delete_customers', 'manage_customers',
                 'view_orders', 'create_orders', 'edit_orders', 'delete_orders', 'manage_orders',
-                'view_invoices', 'generate_invoices', 'manage_invoices','manage_finances',
-                'view_dashboard', 'view-sales'
+                'view_invoices', 'generate_invoices', 'manage_invoices',
+                'manage_finances', // Required for Financial Summary and Pending Approvals
+                'view_dashboard', 'view_kpis',
             ]);
 
             $inventoryManager = Role::firstOrCreate(['name' => 'inventory_manager']);
@@ -101,7 +105,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_suppliers', 'create_suppliers', 'edit_suppliers', 'delete_suppliers', 'manage_suppliers',
                 'view_feed', 'create_feed', 'edit_feed', 'delete_feed', 'manage_feed',
                 'view_medicine_logs', 'create_medicine_logs', 'edit_medicine_logs', 'delete_medicine_logs', 'manage_medicine_logs',
-                'view_dashboard',
+                'view_dashboard', 'view_kpis',
             ]);
 
             $veterinarian = Role::firstOrCreate(['name' => 'veterinarian']);
@@ -110,14 +114,14 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view_diseases', 'create_diseases', 'edit_diseases', 'delete_diseases', 'manage_diseases',
                 'view_vaccination_logs', 'create_vaccination_logs', 'edit_vaccination_logs', 'delete_vaccination_logs', 'manage_vaccination_logs',
                 'view_medicine_logs', 'create_medicine_logs', 'edit_medicine_logs', 'delete_medicine_logs', 'manage_medicine_logs',
-                'view_dashboard',
+                'view_dashboard', 'view_kpis',
             ]);
 
             $labourer = Role::firstOrCreate(['name' => 'labourer']);
             $labourer->syncPermissions([
                 'view_birds', 'view_eggs', 'view_mortalities', 'view_feed',
                 'create_mortalities', 'create_eggs',
-                'view_dashboard',
+                'view_dashboard', 'view_kpis',
             ]);
         });
     }

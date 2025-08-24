@@ -35,4 +35,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Alert::class);
     }
+    protected $casts = [
+    'preferences' => 'array',
+    'notification_preferences' => 'array',
+    ];
+
 }

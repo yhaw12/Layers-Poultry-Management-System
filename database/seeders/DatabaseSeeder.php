@@ -28,6 +28,7 @@ use App\Models\Egg;
 use App\Models\Customer;
 use App\Models\Sale;
 use Database\Factories\PenFactory;
+use Database\Factories\ReminderFactory;
 use Database\Factories\TransactionFactory;
 
 class DatabaseSeeder extends Seeder
@@ -42,6 +43,8 @@ class DatabaseSeeder extends Seeder
 
         // Create Suppliers
         $suppliers = SupplierFactory::new()->count(10)->create();
+
+        $reminders = ReminderFactory::new()->count(20)->create();
 
         // Create Birds
         $birds = BirdFactory::new()->count(5000)->create();

@@ -9,7 +9,7 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule)
     {
-       
+        // $schedule->command('reminders:check')->daily();
     }
 
     protected function commands()
@@ -18,4 +18,6 @@ class Kernel extends ConsoleKernel
 
         require base_path('routes/console.php');
     }
+
+    
 }

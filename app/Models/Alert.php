@@ -28,5 +28,14 @@ class Alert extends Model
     {
         return $this->belongsTo(User::class);
     }
+    public function scopeUnread($q) { return $q->where('is_read', false); }
+    public function scopeForUserOrGlobal($q, $userId) {
+        return $q->where(function ($s) use ($userId) {
+            $s->where('user_id', $userId)->orWhereNull('user_id');
+        });
+    }
+    
 }
+
+
 

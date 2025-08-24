@@ -142,6 +142,85 @@
             </div>
         </section>
 
+        <section class="mb-8">
+            {{-- weather WIDGET --}}
+            <section class="mb-8">
+             <div class="container-box bg-gradient-to-r from-blue-100 to-gray-50 dark:from-blue-900 dark:to-gray-800 shadow-lg rounded-xl p-4 max-w-[300px] transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] animate-fade-in">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+                <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400 animate-bounce-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                </svg>
+                Weather
+            </h2>
+            {{-- dynamic icon placeholder --}}
+            <div id="weather-icon"></div>
+        </div>
+
+        <div id="weather-widget" class="space-y-1">
+            <p id="weather-temp" class="text-3xl font-extrabold text-blue-600 dark:text-blue-400 transition-all duration-500">
+                {{ $weather['ok'] ? $weather['temperature'] . '°C' : '--°C' }}
+            </p>
+            <p id="weather-condition" class="text-base text-gray-700 dark:text-gray-300 capitalize animate-fade-in-delay">
+                {{ $weather['ok'] ? $weather['condition'] : 'Unavailable' }}
+            </p>
+            <p id="weather-location" class="text-xs text-gray-500 dark:text-gray-400 animate-fade-in-delay-2">
+                {{ $weather['ok'] ? $weather['location'] : '---' }}
+            </p>
+        </div>
+    </div>
+            </div>
+        </section>
+
+     <!-- Alert Calendar Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 w-full max-w-[400px] mx-auto">
+        <div class="flex justify-between items-center mb-3">
+            <h2 class="text-lg font-bold text-gray-800 dark:text-white flex items-center">
+                <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Task Calendar
+            </h2>
+            <span id="reminder-count" class="text-sm text-gray-500 dark:text-gray-400">{{ $reminders->count() }} pending</span>
+        </div>
+
+        <div id="reminder-rotator" class="relative h-32 overflow-hidden">
+            @foreach($reminders as $i => $reminder)
+                <div class="absolute inset-0 transition-transform duration-500 ease-in-out transform 
+                            {{ $i === 0 ? 'translate-y-0' : 'translate-y-full' }}"
+                     data-reminder="{{ $i }}" data-id="{{ $reminder->id }}">
+                    <div class="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                        <div class="text-center mb-2">
+                            <span class="text-xl font-bold text-gray-800 dark:text-white">{{ \Carbon\Carbon::parse($reminder->due_date)->format('d') }}</span>
+                            <span class="block text-xs uppercase text-gray-600 dark:text-gray-400">{{ \Carbon\Carbon::parse($reminder->due_date)->format('M Y') }}</span>
+                        </div>
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $reminder->title }}</h3>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">{{ $reminder->message }}</p>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="px-2 py-1 text-xs font-bold rounded-full
+                                        @if($reminder->severity === 'critical') bg-red-100 text-red-700
+                                        @elseif($reminder->severity === 'warning') bg-yellow-100 text-yellow-700
+                                        @else bg-blue-100 text-blue-700 @endif">
+                                {{ strtoupper($reminder->severity) }}
+                            </span>
+                            <button class="mark-read-btn text-xs text-blue-600 dark:text-blue-400 hover:underline" 
+                                    data-id="{{ $reminder->id }}">Done</button>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="flex justify-center mt-3 space-x-2">
+            @foreach($reminders as $i => $reminder)
+                <button class="w-2 h-2 rounded-full reminder-dot {{ $i === 0 ? 'bg-blue-600' : 'bg-gray-400' }}" 
+                        data-index="{{ $i }}"></button>
+            @endforeach
+        </div>
+    </div>
+        </section>
+       
+
         <!-- Role-Specific Sections -->
         <!-- Daily Instructions (Labourer) -->
         @role('labourer')
@@ -340,109 +419,109 @@
                 </div>
             @endforeach
         </section>
+        
 
-                <!-- Pending Approvals (Admins or Finance Managers) -->
-       @can('manage_finances')
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-yellow-500 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Pending Approvals
-            </h2>
 
-            @if (isset($pendingApprovals) && $pendingApprovals->isNotEmpty())
-                <div class="space-y-3">
-                    @foreach ($pendingApprovals->take(3) as $approval)
-                        <div class="container-box p-4  rounded-xl flex justify-between items-center">
-                            <div>
-                                <p class="text-xl text-gray-500 dark:text-gray-400 text-base">{{ $approval->date }}</p>
-                                <p class="font-semibold text-gray-800 dark:text-white text-base">
-                                    ${{ number_format($approval->amount, 2) }} 
-                                    <span class="text-xl ml-2 px-2 py-1 rounded-xl 
-                                        {{ $approval->type === 'expense' ? 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100' : 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100' }}">
-                                        {{ ucfirst($approval->type) }}
-                                    </span>
-                                </p>
-                                <p class="text-lg text-gray-600 dark:text-gray-300 text-base">{{ Str::limit($approval->description, 40) }}</p>
-                            </div>
-                            <div class="flex space-x-3 text-base">
-                                <a href="{{ route('transactions.approve', $approval->id) }}" 
-                                class="text-green-600 hover:underline text-xl font-medium">Approve</a>
-                                <a href="{{ route('transactions.reject', $approval->id) }}" 
-                                class="text-red-600 hover:underline text-xl font-medium">Reject</a>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-
-                @if ($pendingApprovals->count() > 3)
-                    <div class="mt-4 text-right">
-                        <a href="{{ route('transactions.index') }}" 
-                        class="text-lg text-blue-600 dark:text-blue-400 hover:underline">
-                        View All Pending Approvals →
-                        </a>
+          <!-- Pending Approvals (Admins or Finance Managers) -->
+        @can('manage_finances')
+            <section class="mb-8">
+                <div class="container-box bg-gradient-to-r from-yellow-100 to-gray-50 dark:from-yellow-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl animate-fade-slide-up">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-yellow-500 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Pending Approvals
+                        </h2>
+                        <svg class="w-8 h-8 text-yellow-500 dark:text-yellow-400 approval-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
                     </div>
-                @endif
-            @else
-                <p class="text-gray-500 dark:text-gray-400 text-center py-6">No pending approvals.</p>
-            @endif
-        </section>
+                    <div id="pending-approvals">
+                        @if (isset($pendingApprovals) && $pendingApprovals->isNotEmpty())
+                            <ul class="space-y-3">
+                                @foreach ($pendingApprovals->take(3) as $approval)
+                                    <li class="transition-all duration-300">
+                                        <div class="flex justify-between items-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900">
+                                            <div>
+                                                <p class="text-base text-gray-600 dark:text-gray-400">{{ $approval->date }}</p>
+                                                <p class="text-2xl font-bold text-gray-800 dark:text-white">
+                                                    ₵{{ number_format($approval->amount, 2) }}
+                                                    <span class="text-sm ml-2 px-2 py-1 rounded-full {{ $approval->type === 'expense' ? 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100' : 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100' }}">
+                                                        {{ ucfirst($approval->type) }}
+                                                    </span>
+                                                </p>
+                                                <p class="text-base text-gray-600 dark:text-gray-300">{{ Str::limit($approval->description, 40) }}</p>
+                                            </div>
+                                            <div class="flex space-x-3">
+                                                <a href="{{ route('transactions.approve', $approval->id) }}" class="bg-blue-600 text-white py-1 px-3 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm font-medium transition duration-200 transform hover:scale-105">Approve</a>
+                                                <a href="{{ route('transactions.reject', $approval->id) }}" class="bg-red-600 text-white py-1 px-3 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-sm font-medium transition duration-200 transform hover:scale-105">Reject</a>
+                                            </div>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                            @if ($pendingApprovals->count() > 3)
+                                <div class="mt-4 text-right">
+                                    <a href="{{ route('transactions.index') }}" class="text-base text-blue-600 dark:text-blue-400 hover:underline transition duration-200">View All →</a>
+                                </div>
+                            @endif
+                        @else
+                            <p class="text-base text-gray-600 dark:text-gray-400 text-center py-4">No pending approvals.</p>
+                        @endif
+                    </div>
+                </div>
+            </section>
         @endcan
 
-
-        <!-- Payroll Status (Admin/Accountant) -->
+        <!-- Payroll Status -->
         <section class="mb-8">
-    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-        <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-            </path>
-        </svg>
-        Payroll Status
-    </h2>
-
-    <div class="container-box grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        @if (isset($payrollStatus) && $payrollStatus->isNotEmpty())
-            @php
-                $latest = $payrollStatus->first();
-            @endphp
-            <div class="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow">
-                <p class="text-xl text-gray-500 dark:text-gray-400">Latest Pay Date</p>
-                <p class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ $latest->date }}</p>
+            <div class="container-box bg-gradient-to-r from-blue-100 to-gray-50 dark:from-blue-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl animate-fade-slide-up">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Payroll Status
+                    </h2>
+                    <svg class="w-8 h-8 text-blue-500 dark:text-blue-400 payroll-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div id="payroll-status">
+                    @if (isset($payrollStatus) && $payrollStatus->isNotEmpty())
+                        @php
+                            $latest = $payrollStatus->first();
+                        @endphp
+                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
+                                <p class="text-base text-gray-600 dark:text-gray-400">Latest Pay Date</p>
+                                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $latest->date }}</p>
+                            </div>
+                            <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
+                                <p class="text-base text-gray-600 dark:text-gray-400">Employees</p>
+                                <p class="text-2xl font-bold">{{ $latest->employees }}</p>
+                            </div>
+                            <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
+                                <p class="text-base text-gray-600 dark:text-gray-400">Total Paid</p>
+                                <p class="text-2xl font-bold text-green-600 dark:text-green-400">₵{{ number_format($latest->total, 2) }}</p>
+                            </div>
+                            <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300">
+                                <p class="text-base text-gray-600 dark:text-gray-400 mb-1">Status</p>
+                                <span class="px-2 py-1 text-sm font-medium rounded-full {{ $latest->status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100' }}">
+                                    {{ ucfirst($latest->status) }}
+                                </span>
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-base text-gray-600 dark:text-gray-400 text-center py-4">No payroll activity yet.</p>
+                    @endif
+                    <div class="mt-4 text-right">
+                        <a href="{{ route('payroll.index') }}" class="bg-blue-600 text-white py-1 px-3 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm font-medium transition duration-200 transform hover:scale-105">View All</a>
+                    </div>
+                </div>
             </div>
-            <div class="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow">
-                <p class="text-xl text-gray-500 dark:text-gray-400">Employees</p>
-                <p class="text-lg font-bold">{{ $latest->employees }}</p>
-            </div>
-            <div class="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow">
-                <p class="text-xl text-gray-500 dark:text-gray-400">Total Paid</p>
-                <p class="text-lg font-bold text-green-600 dark:text-green-400">
-                    ${{ number_format($latest->total, 2) }}
-                </p>
-            </div>
-            <div class="p-4 bg-white dark:bg-gray-800 rounded-2xl shadow">
-                <p class="text-lg text-gray-500 dark:text-gray-400 mb-1">Status</p>
-                <span class="px-2 py-1 mt-4 text-xs font-medium rounded-full
-                    {{ $latest->status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100' }}">
-                    {{ ucfirst($latest->status) }}
-                </span>
-            </div>
-        @else
-            <div class="col-span-4 text-center py-6 text-gray-500 dark:text-gray-400">
-                No payroll activity yet.
-            </div>
-        @endif
-    </div>
-
-    <div class="mt-4 text-right">
-        <a href="{{ route('payroll.index') }}" 
-           class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-           View Full Payroll History →
-        </a>
-    </div>
-    </section>
+        </section>
 
 
         
@@ -670,46 +749,7 @@
             </div>
         </section>
 
-        <!-- Payroll Overview -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Payroll Overview
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div class="container-box bg-gradient-to-r from-teal-50 to-white dark:from-teal-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-teal-500 border-2 border-transparent">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center">
-                            <svg class="w-8 h-8 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Total Payroll</h4>
-                        </div>
-                        <a href="{{ route('payroll.index') }}" class="bg-teal-600 text-white py-1 px-3 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-sm font-medium transition duration-200 transform hover:scale-105" aria-label="View all payroll records">
-                            View All
-                        </a>
-                    </div>
-                    <p class="text-3xl font-bold text-teal-600 dark:text-teal-400">${{ number_format($totalPayroll ?? 0, 2) }}</p>
-                </div>
-                <div class="container-box bg-gradient-to-r from-teal-50 to-white dark:from-teal-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-teal-500 border-2 border-transparent">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center">
-                            <svg class="w-8 h-8 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Pending Payrolls</h4>
-                        </div>
-                        <a href="{{ route('payroll.index') }}" class="bg-teal-600 text-white py-1 px-3 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-sm font-medium transition duration-200 transform hover:scale-105" aria-label="View all pending payrolls">
-                            View All
-                        </a>
-                    </div>
-                    <p class="text-3xl font-bold text-teal-600 dark:text-teal-400">{{ $pendingPayrolls ?? 0 }}</p>
-                </div>
-            </div>
-        </section>
-
+       
         <!-- Recent Sales -->
         <section class="mb-8">
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
@@ -1061,4 +1101,115 @@ document.addEventListener('DOMContentLoaded', function () {
   observer.observe(document.documentElement, { attributes: true });
 
 }); // DOMContentLoaded
+
+
+// reminder WIDGET
+
+document.addEventListener('DOMContentLoaded', () => {
+        const reminders = document.querySelectorAll('#reminder-rotator [data-reminder]');
+        const dots = document.querySelectorAll('.reminder-dot');
+        const count = document.getElementById('reminder-count');
+        let index = 0;
+        let interval = setInterval(nextReminder, 5000);
+
+        function showReminder(i) {
+            reminders.forEach((el, j) => {
+                el.classList.toggle('translate-y-0', j === i);
+                el.classList.toggle('translate-y-full', j !== i);
+            });
+            dots.forEach((dot, j) => {
+                dot.classList.toggle('bg-blue-600', j === i);
+                dot.classList.toggle('bg-gray-400', j !== i);
+            });
+        }
+
+        function nextReminder() {
+            index = (index + 1) % reminders.length;
+            showReminder(index);
+        }
+
+        dots.forEach(dot => {
+            dot.addEventListener('click', () => {
+                index = parseInt(dot.dataset.index);
+                clearInterval(interval);
+                showReminder(index);
+                interval = setInterval(nextReminder, 5000);
+            });
+        });
+
+        document.querySelectorAll('.mark-read-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                fetch(`/alerts/mark-read/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const reminder = document.querySelector(`[data-id="${id}"]`);
+                        const dot = dots[parseInt(reminder.dataset.reminder)];
+                        reminder.remove();
+                        dot.remove();
+                        const remaining = document.querySelectorAll('#reminder-rotator [data-reminder]');
+                        count.textContent = `${remaining.length} pending`;
+                        if (remaining.length) {
+                            index = Math.min(index, remaining.length - 1);
+                            showReminder(index);
+                        } else {
+                            document.getElementById('reminder-rotator').innerHTML = 
+                                '<p class="text-xs text-gray-600 dark:text-gray-400 text-center">No pending tasks</p>';
+                            clearInterval(interval);
+                        }
+                    }
+                })
+                .catch(err => console.error('Error:', err));
+            });
+        });
+    });
+
+// WEATHER
+   document.addEventListener("DOMContentLoaded", () => {
+    const condition = document.getElementById("weather-condition").innerText.toLowerCase();
+    const iconEl = document.getElementById("weather-icon");
+
+    let iconSvg = "";
+
+    if (condition.includes("clear")) {
+        // ☀️ Sunny
+        iconSvg = `
+        <svg class="w-8 h-8 text-yellow-400 animate-spin-slow glow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.364-6.364l-2.121 2.121M8.757 17.243l-2.121 2.121m12.728 0l-2.121-2.121M8.757 6.757l-2.121-2.121" />
+        </svg>`;
+    } else if (condition.includes("cloud")) {
+        // ☁️ Cloudy
+        iconSvg = `
+        <svg class="w-8 h-8 text-gray-500 animate-bounce-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+        </svg>`;
+    } else if (condition.includes("rain")) {
+        // 🌧️ Rainy
+        iconSvg = `
+        <svg class="w-8 h-8 text-blue-500 animate-fade-in-delay" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 13v1m-4 2v1m-4-4v1m0 4v1M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+        </svg>`;
+    } else if (condition.includes("snow")) {
+        // ❄️ Snow
+        iconSvg = `
+        <svg class="w-8 h-8 text-blue-300 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18m9-9H3m16.95-6.95l-13.9 13.9M6.05 6.05l13.9 13.9" />
+        </svg>`;
+    } else {
+        // Default 🌙
+        iconSvg = `
+        <svg class="w-8 h-8 text-indigo-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z" />
+        </svg>`;
+    }
+
+    iconEl.innerHTML = iconSvg;
+});
 </script>
