@@ -509,7 +509,6 @@ class SalesController extends Controller
                 'amount' => 'required|numeric|min:0.01|max:' . ($sale->total_amount - $sale->paid_amount),
                 'payment_date' => 'required|date',
                 'payment_method' => 'nullable|string|in:cash,bank_transfer,mobile_money|max:255',
-                'notes' => 'nullable|string|max:1000',
             ]);
 
             $payment = Payment::create([
@@ -517,7 +516,7 @@ class SalesController extends Controller
                 'amount' => $validated['amount'],
                 'payment_date' => $validated['payment_date'],
                 'payment_method' => $validated['payment_method'] ?? null,
-                'notes' => $validated['notes'] ?? null,
+                'notes' => null,
             ]);
 
             $sale->increment('paid_amount', $validated['amount']);
@@ -529,22 +528,28 @@ class SalesController extends Controller
                     ->update(['synced_at' => now()]);
             }
 
+            $customerName = $sale->customer ? $sale->customer->name : 'Unknown';
             UserActivityLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'recorded_payment',
-                'details' => "Recorded payment of GH₵ {$validated['amount']} for sale #{$sale->id} to {$sale->customer->name}",
+                'details' => "Recorded payment of GH₵ {$validated['amount']} for sale #{$sale->id} to {$customerName}",
             ]);
 
             Alert::create([
-                'message' => "Payment of GH₵ {$validated['amount']} recorded for invoice #{$sale->id} ({$sale->customer->name})",
+                'message' => "Payment of GH₵ {$validated['amount']} recorded for invoice #{$sale->id} ({$customerName})",
                 'type' => 'payment',
                 'user_id' => Auth::id(),
             ]);
 
+            // Invalidate cache to refresh invoices list
+            $start = $request->input('start_date', now()->subMonths(6)->startOfMonth()->toDateString());
+            $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+            Cache::forget("invoices_{$start}_{$end}");
+
             return redirect()->route('invoices.index')->with('success', 'Payment recorded successfully.');
         } catch (\Exception $e) {
             Log::error('Failed to record payment', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to record payment.');
+            return back()->with('error', 'Failed to record payment: ' . $e->getMessage());
         }
     }
 }

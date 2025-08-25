@@ -24,7 +24,7 @@ class Sale extends Model
         'paid_amount' => 'decimal:2',
     ];
 
-    public function customer()
+   public function customer()
     {
         return $this->belongsTo(Customer::class);
     }
@@ -46,9 +46,15 @@ class Sale extends Model
 
     public function updatePaymentStatus()
     {
-        $status = $this->paid_amount >= $this->total_amount ? 'paid' :
-                  ($this->paid_amount > 0 ? 'partially_paid' :
-                  (now()->gt($this->due_date) ? 'overdue' : 'pending'));
-        $this->update(['status' => $status]);
+        if ($this->isPaid()) {
+            $this->status = 'paid';
+        } elseif ($this->paid_amount > 0) {
+            $this->status = 'partially_paid';
+        } elseif ($this->due_date && $this->due_date->isPast()) {
+            $this->status = 'overdue';
+        } else {
+            $this->status = 'pending';
+        }
+        $this->save();
     }
 }

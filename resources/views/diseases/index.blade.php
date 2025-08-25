@@ -3,43 +3,114 @@
 @section('title', 'Diseases')
 
 @section('content')
-    <div class="container mx-auto px-4 py-6">
-        <h1 class="text-2xl font-bold text-gray-800 mb-6">Diseases</h1>
+<div class="container mx-auto px-4 py-8 space-y-12 bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
+    <!-- Header -->
+    <section class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Diseases</h2>
+        <a href="{{ route('diseases.create') }}" 
+           class="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 
+                  dark:bg-blue-500 dark:hover:bg-blue-600 transition">
+            ➕ Add Disease
+        </a>
+    </section>
 
-        <div class="mb-4">
-            <form action="{{ route('diseases.store') }}" method="POST" class="inline-block">
+    <!-- Summary Card -->
+    <section>
+        <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
+            <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow flex flex-col items-center">
+                <span class="text-sm text-gray-500 dark:text-gray-400">Total Diseases</span>
+                <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ number_format($diseases->total(), 0) }}</p>
+                <span class="text-gray-600 dark:text-gray-300">Records</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Success Message -->
+    @if (session('success'))
+        <div class="mb-6 p-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-2xl border border-green-200 dark:border-green-700">
+            ✅ {{ session('success') }}
+        </div>
+    @endif
+
+    <!-- Add Disease Form -->
+    <section>
+        <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Add New Disease</h3>
+            <form action="{{ route('diseases.store') }}" method="POST" class="flex items-center gap-4">
                 @csrf
-                <input type="text" name="name" class="border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Add new disease" required>
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 ml-2">Add</button>
+                <input type="text" name="name" 
+                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-[#1a1a3a] dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition" 
+                       placeholder="Enter disease name" required>
+                <button type="submit" 
+                        class="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 
+                               dark:bg-blue-500 dark:hover:bg-blue-600 transition text-sm">
+                    ➕ Add
+                </button>
             </form>
         </div>
+    </section>
 
-        @if ($diseases->isEmpty())
-            <p class="text-gray-600">No diseases recorded.</p>
-        @else
-            <div class="bg-white shadow rounded-lg overflow-x-auto">
-                <table class="min-w-full table-auto">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Name</th>
-                            <th class="px-6 py-3 text-left text-sm font-medium text-gray-600">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($diseases as $disease)
-                            <tr class="border-t">
-                                <td class="px-6 py-4 text-gray-800">{{ $disease->name }}</td>
-                                <td class="px-6 py-4">
-                                    <a href="{{ route('diseases.history', $disease->id) }}" class="text-blue-600 hover:underline">View History</a>
-                                </td>
+    <!-- Diseases Table -->
+    <section>
+        <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Disease Records</h3>
+
+            @if ($diseases->isEmpty())
+                <div class="text-center py-12">
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">No diseases recorded yet.</p>
+                    <a href="{{ route('diseases.create') }}" 
+                       class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 
+                              dark:bg-blue-500 dark:hover:bg-blue-600 transition">
+                        ➕ Add Your First Disease
+                    </a>
+                </div>
+            @else
+                <div class="overflow-x-auto rounded-lg">
+                    <table class="w-full border-collapse rounded-lg overflow-hidden text-sm">
+                        <thead>
+                            <tr class="bg-gray-200 dark:bg-gray-700">
+                                <th class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Name</th>
+                                <th class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Actions</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            {{ $diseases->links() }}
-        @endif
-    </div>
-@endsection
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-600">
+                            @foreach ($diseases as $disease)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                                    <td class="p-4 text-gray-700 dark:text-gray-300">{{ $disease->name }}</td>
+                                    <td class="p-4 flex space-x-2">
+                                        <a href="{{ route('diseases.history', $disease->id) }}" 
+                                           class="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 
+                                                  dark:bg-blue-500 dark:hover:bg-blue-600 text-xs transition">
+                                           📜 View History
+                                        </a>
+                                        <a href="{{ route('diseases.edit', $disease->id) }}" 
+                                           class="inline-flex items-center px-3 py-1 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 text-xs transition">
+                                           ✏️ Edit
+                                        </a>
+                                        <form action="{{ route('diseases.destroy', $disease->id) }}" method="POST" 
+                                              onsubmit="return confirm('Are you sure you want to delete this disease record?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" 
+                                                    class="inline-flex items-center px-3 py-1 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 text-xs transition">
+                                                🗑 Delete
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
 
- <!-- Quick Actions -->
+                <!-- Pagination -->
+                @if ($diseases->hasPages())
+                    <div class="mt-6 flex justify-end">
+                        {{ $diseases->links() }}
+                    </div>
+                @endif
+            @endif
+        </div>
+    </section>
+</div>
+@endsection

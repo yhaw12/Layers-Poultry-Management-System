@@ -1,31 +1,38 @@
 @extends('layouts.app')
 
-@section('content')
-    <div class="container mx-auto px-4 py-8 max-w-7xl overflow-hidden">
-        <!-- Date Filter -->
-        <section class="mb-8">
-            <form method="GET" class="container-box">
-                <div class="flex flex-wrap items-end gap-4">
-                    <div class="flex-1 min-w-[150px]">
-                        <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
-                        <input type="date" id="start_date" name="start_date" value="{{ $start ?? now()->startOfMonth()->format('Y-m-d') }}" class="w-full border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200">
-                    </div>
-                    <div class="flex-1 min-w-[150px]">
-                        <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
-                        <input type="date" id="end_date" name="end_date" value="{{ $end ?? now()->endOfMonth()->format('Y-m-d') }}" class="w-full border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200">
-                    </div>
-                    <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 transition duration-200">
-                        Filter
-                    </button>
-                </div>
-            </form>
-        </section>
+{{-- @extends('layouts.app') --}}
 
-        <!-- Quick Actions -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-3">Quick Actions</h2>
+@section('content')
+<div class="container mx-auto px-4 py-8 max-w-7xl overflow-hidden">
+    <!-- Header Section -->
+    <header class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Dashboard</h1>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Your farm management overview</p>
+    </header>
+
+    <!-- Date Filter -->
+    <section class="mb-8">
+        <div class="container-box bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Date Range Filter</h2>
+            <form method="GET" class="flex flex-wrap items-end gap-4">
+                <div class="flex-1 min-w-[150px]">
+                    <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+                    <input type="date" id="start_date" name="start_date" value="{{ $start ?? now()->startOfMonth()->format('Y-m-d') }}" class="w-full border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200">
+                </div>
+                <div class="flex-1 min-w-[150px]">
+                    <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
+                    <input type="date" id="end_date" name="end_date" value="{{ $end ?? now()->endOfMonth()->format('Y-m-d') }}" class="w-full border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200">
+                </div>
+                <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 transition duration-200">Filter</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="mb-8">
+        <div class="container-box bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Quick Actions</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <!-- Admin Quick Actions -->
                 @role('admin')
                     @can('create_birds')
                         <a href="{{ route('birds.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Add Bird</a>
@@ -49,8 +56,6 @@
                         <a href="{{ route('employees.create') }}" class="bg-yellow-600 text-white py-3 px-4 rounded-lg hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-center transition duration-200">Add Employee</a>
                     @endcan
                 @endrole
-
-                <!-- Farm Manager Quick Actions -->
                 @role('farm_manager')
                     @can('create_birds')
                         <a href="{{ route('birds.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Add Bird</a>
@@ -68,8 +73,6 @@
                         <a href="{{ route('inventory.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Add Inventory</a>
                     @endcan
                 @endrole
-
-                <!-- Accountant Quick Actions -->
                 @role('accountant')
                     @can('create_expenses')
                         <a href="{{ route('expenses.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200">Log Expense</a>
@@ -81,8 +84,6 @@
                         <a href="{{ route('payroll.create') }}" class="bg-yellow-600 text-white py-3 px-4 rounded-lg hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-center transition duration-200">Log Payroll</a>
                     @endcan
                 @endrole
-
-                <!-- Sales Manager Quick Actions -->
                 @role('sales_manager')
                     @can('create_sales')
                         <a href="{{ route('sales.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200">Add Sale</a>
@@ -97,8 +98,6 @@
                         <a href="{{ route('invoices.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Generate Invoice</a>
                     @endcan
                 @endrole
-
-                <!-- Inventory Manager Quick Actions -->
                 @role('inventory_manager')
                     @can('create_inventory')
                         <a href="{{ route('inventory.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Add Inventory</a>
@@ -113,8 +112,6 @@
                         <a href="{{ route('medicine-logs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Log Medicine</a>
                     @endcan
                 @endrole
-
-                <!-- Veterinarian Quick Actions -->
                 @role('veterinarian')
                     @can('create_health_checks')
                         <a href="{{ route('health-checks.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200">Log Health Check</a>
@@ -129,8 +126,6 @@
                         <a href="{{ route('medicine-logs.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200">Log Medicine</a>
                     @endcan
                 @endrole
-
-                <!-- Labourer Quick Actions -->
                 @role('labourer')
                     @can('create_eggs')
                         <a href="{{ route('eggs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200">Record Egg Production</a>
@@ -140,188 +135,242 @@
                     @endcan
                 @endrole
             </div>
-        </section>
-
-        <section class="mb-8">
-            {{-- weather WIDGET --}}
-            <section class="mb-8">
-             <div class="container-box bg-gradient-to-r from-blue-100 to-gray-50 dark:from-blue-900 dark:to-gray-800 shadow-lg rounded-xl p-4 max-w-[300px] transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] animate-fade-in">
-        <div class="flex items-center justify-between mb-2">
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
-                <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400 animate-bounce-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                </svg>
-                Weather
-            </h2>
-            {{-- dynamic icon placeholder --}}
-            <div id="weather-icon"></div>
         </div>
+    </section>
 
-        <div id="weather-widget" class="space-y-1">
-            <p id="weather-temp" class="text-3xl font-extrabold text-blue-600 dark:text-blue-400 transition-all duration-500">
-                {{ $weather['ok'] ? $weather['temperature'] . '°C' : '--°C' }}
-            </p>
-            <p id="weather-condition" class="text-base text-gray-700 dark:text-gray-300 capitalize animate-fade-in-delay">
-                {{ $weather['ok'] ? $weather['condition'] : 'Unavailable' }}
-            </p>
-            <p id="weather-location" class="text-xs text-gray-500 dark:text-gray-400 animate-fade-in-delay-2">
-                {{ $weather['ok'] ? $weather['location'] : '---' }}
-            </p>
-        </div>
-    </div>
+    <!-- Overview Section -->
+    <section class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Weather Widget -->
+        <div class="container-box bg-gradient-to-r from-blue-100 to-gray-50 dark:from-blue-900 dark:to-gray-800 shadow-lg rounded-xl p-4 max-w-[300px] transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] animate-fade-in">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400 animate-bounce-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                    </svg>
+                    Weather
+                </h2>
+                <div id="weather-icon"></div>
             </div>
-        </section>
-
-     <!-- Alert Calendar Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 w-full max-w-[400px] mx-auto">
-        <div class="flex justify-between items-center mb-3">
-            <h2 class="text-lg font-bold text-gray-800 dark:text-white flex items-center">
-                <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Task Calendar
-            </h2>
-            <span id="reminder-count" class="text-sm text-gray-500 dark:text-gray-400">{{ $reminders->count() }} pending</span>
+            <div id="weather-widget" class="space-y-1">
+                <p id="weather-temp" class="text-3xl font-extrabold text-blue-600 dark:text-blue-400 transition-all duration-500">
+                    {{ $weather['ok'] ? $weather['temperature'] . '°C' : '--°C' }}
+                </p>
+                <p id="weather-condition" class="text-base text-gray-700 dark:text-gray-300 capitalize animate-fade-in-delay">
+                    {{ $weather['ok'] ? $weather['condition'] : 'Unavailable' }}
+                </p>
+                <p id="weather-location" class="text-xs text-gray-500 dark:text-gray-400 animate-fade-in-delay-2">
+                    {{ $weather['ok'] ? $weather['location'] : '---' }}
+                </p>
+            </div>
         </div>
 
-        <div id="reminder-rotator" class="relative h-32 overflow-hidden">
-            @foreach($reminders as $i => $reminder)
-                <div class="absolute inset-0 transition-transform duration-500 ease-in-out transform 
-                            {{ $i === 0 ? 'translate-y-0' : 'translate-y-full' }}"
-                     data-reminder="{{ $i }}" data-id="{{ $reminder->id }}">
-                    <div class="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                        <div class="text-center mb-2">
-                            <span class="text-xl font-bold text-gray-800 dark:text-white">{{ \Carbon\Carbon::parse($reminder->due_date)->format('d') }}</span>
-                            <span class="block text-xs uppercase text-gray-600 dark:text-gray-400">{{ \Carbon\Carbon::parse($reminder->due_date)->format('M Y') }}</span>
-                        </div>
-                        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $reminder->title }}</h3>
-                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">{{ $reminder->message }}</p>
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="px-2 py-1 text-xs font-bold rounded-full
-                                        @if($reminder->severity === 'critical') bg-red-100 text-red-700
-                                        @elseif($reminder->severity === 'warning') bg-yellow-100 text-yellow-700
-                                        @else bg-blue-100 text-blue-700 @endif">
-                                {{ strtoupper($reminder->severity) }}
-                            </span>
-                            <button class="mark-read-btn text-xs text-blue-600 dark:text-blue-400 hover:underline" 
-                                    data-id="{{ $reminder->id }}">Done</button>
+        <!-- Task Calendar -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-[400px] mx-auto perspective-1000">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-gray-800 dark:text-white flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Task Calendar
+                </h2>
+                <span id="reminder-count" class="text-sm text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">{{ $reminders->count() }} pending</span>
+            </div>
+            <div id="reminder-rotator" class="relative h-40 overflow-hidden">
+                @foreach($reminders as $i => $reminder)
+                    <div class="absolute inset-0 transition-transform duration-700 ease-in-out transform origin-top {{ $i === 0 ? 'rotate-x-0 opacity-100' : 'rotate-x-90 opacity-0' }}" data-reminder="{{ $i }}" data-id="{{ $reminder->id }}">
+                        <div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-inner">
+                            <div class="text-center mb-3 bg-white dark:bg-gray-800 rounded-md shadow p-2">
+                                <span class="text-3xl font-bold text-gray-800 dark:text-white block">{{ \Carbon\Carbon::parse($reminder->due_date)->format('d') }}</span>
+                                <span class="text-sm uppercase text-gray-600 dark:text-gray-400 block">{{ \Carbon\Carbon::parse($reminder->due_date)->format('M Y') }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-500 block">{{ \Carbon\Carbon::parse($reminder->due_date)->format('D') }}</span>
+                            </div>
+                            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1 truncate">{{ $reminder->title }}</h3>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{{ $reminder->message }}</p>
+                            <div class="flex justify-between items-center">
+                                <span class="px-2 py-1 text-xs font-bold rounded-full 
+                                    @if($reminder->severity === 'critical') bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300
+                                    @elseif($reminder->severity === 'warning') bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300
+                                    @else bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 @endif">
+                                    {{ strtoupper($reminder->severity) }}
+                                </span>
+                                <button class="mark-read-btn text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Done
+                                </button>
+                            </div>
                         </div>
                     </div>
+                @endforeach
+            </div>
+            <div class="flex justify-between items-center mt-4">
+                <button id="prev-reminder" class="p-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+                <div class="flex space-x-1">
+                    @foreach($reminders as $i => $reminder)
+                        <button class="w-2 h-2 rounded-full reminder-dot {{ $i === 0 ? 'bg-blue-600' : 'bg-gray-400' }}" data-index="{{ $i }}"></button>
+                    @endforeach
                 </div>
-            @endforeach
+                <button id="next-reminder" class="p-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
         </div>
+    </section>
 
-        <div class="flex justify-center mt-3 space-x-2">
-            @foreach($reminders as $i => $reminder)
-                <button class="w-2 h-2 rounded-full reminder-dot {{ $i === 0 ? 'bg-blue-600' : 'bg-gray-400' }}" 
-                        data-index="{{ $i }}"></button>
-            @endforeach
+    <!-- Key Performance Indicators (KPIs) -->
+    <section class="mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Key Performance Indicators (KPIs)</h2>
+        @php
+            $groupedKpis = [
+                'Flock Statistics' => [
+                    ['label' => 'Chicks', 'value' => $chicks ?? 0, 'icon' => '🐤'],
+                    ['label' => 'Layers', 'value' => $layerBirds ?? 0, 'icon' => '🐓'],
+                    ['label' => 'Broilers', 'value' => $broilerBirds ?? 0, 'icon' => '🥩'],
+                    ['label' => 'Total Birds', 'value' => $totalBirds ?? 0, 'icon' => '🥩'],
+                    ['label' => 'Mortality %', 'value' => number_format($mortalityRate ?? 0, 2), 'icon' => '⚰️'],
+                ],
+                'Production' => [
+                    ['label' => 'Egg Crates', 'value' => $metrics['egg_crates'] ?? 0, 'icon' => '🥚'],
+                    ['label' => 'Feed (kg)', 'value' => $metrics['feed_kg'] ?? 0, 'icon' => '🌾'],
+                    ['label' => 'FCR', 'value' => number_format($fcr ?? 0, 2), 'icon' => '⚖️'],
+                ],
+                'Operations' => [
+                    ['label' => 'Employees', 'value' => $employees ?? 0, 'icon' => '👨‍🌾'],
+                    ['label' => 'Payroll', 'value' => number_format($totalPayroll ?? 0, 2), 'icon' => '💵'],
+                    ['label' => 'Sales', 'value' => $metrics['sales'] ?? 0, 'icon' => '🛒'],
+                    ['label' => 'Customers', 'value' => $metrics['customers'] ?? 0, 'icon' => '👥'],
+                    ['label' => 'Med Bought', 'value' => $metrics['medicine_buy'] ?? 0, 'icon' => '💊'],
+                    ['label' => 'Med Used', 'value' => $metrics['medicine_use'] ?? 0, 'icon' => '🩺'],
+                ],
+            ];
+        @endphp
+        @foreach ($groupedKpis as $group => $kpis)
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-3">{{ $group }}</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    @foreach ($kpis as $item)
+                        @if ($group === 'Operations' && in_array($item['label'], ['Employees', 'Payroll', 'Sales', 'Customers']))
+                            @role('admin')
+                                <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
+                                    <div class="flex items-center justify-between">
+                                        <h4 class="text-gray-700 dark:text-gray-300 font-medium text-base sm:text-lg">{{ $item['label'] }}</h4>
+                                        <span class="text-xl sm:text-2xl">{{ $item['icon'] }}</span>
+                                    </div>
+                                    <p class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2 truncate">{{ $item['value'] }}</p>
+                                </div>
+                            @endrole
+                        @else
+                            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-gray-700 dark:text-gray-300 font-medium text-base sm:text-lg">{{ $item['label'] }}</h4>
+                                    <span class="text-xl sm:text-2xl">{{ $item['icon'] }}</span>
+                                </div>
+                                <p class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2 truncate">{{ $item['value'] }}</p>
+                            </div>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+        @endforeach
+    </section>
+
+    <!-- Dashboard Charts -->
+    <section class="mb-8">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Performance Trends</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="chart-title">Egg Trend</h4>
+                    <select id="eggChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="line">Line</option>
+                        <option value="bar">Bar</option>
+                    </select>
+                </div>
+                <div class="relative h-64">
+                    <canvas id="eggTrend" class="w-full h-full"></canvas>
+                </div>
+                @if (!isset($eggTrend) || $eggTrend->isEmpty())
+                    <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No egg data available.</p>
+                @endif
+            </div>
+            <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="chart-title">Feed Trend</h4>
+                    <select id="feedChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="line">Line</option>
+                        <option value="bar">Bar</option>
+                    </select>
+                </div>
+                <div class="relative h-64">
+                    <canvas id="feedTrend" class="w-full h-full"></canvas>
+                </div>
+                @if (!isset($feedTrend) || $feedTrend->isEmpty())
+                    <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No feed data available.</p>
+                @endif
+            </div>
+            @role('admin')
+                <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="chart-title">Sales Trend</h4>
+                        <select id="salesChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="line">Line</option>
+                            <option value="bar">Bar</option>
+                        </select>
+                    </div>
+                    <div class="relative h-64">
+                        <canvas id="salesTrend" class="w-full h-full"></canvas>
+                    </div>
+                    @if (!isset($salesTrend) || $salesTrend->isEmpty())
+                        <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No sales data available.</p>
+                    @endif
+                </div>
+            @endrole
+            <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="chart-title">Income Trend</h4>
+                    <select id="incomeChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="line">Line</option>
+                        <option value="bar">Bar</option>
+                    </select>
+                </div>
+                <div class="relative h-64">
+                    <canvas id="incomeChart" class="w-full h-full"></canvas>
+                </div>
+                @if (!isset($incomeTrend) || $incomeTrend->isEmpty())
+                    <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No income data available.</p>
+                @endif
+            </div>
+            @role('admin')
+                <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow col-span-1 lg:col-span-2">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="chart-title">Invoice Status Distribution</h4>
+                        <select id="invoiceChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="bar">Bar</option>
+                            <option value="line">Line</option>
+                        </select>
+                    </div>
+                    <div class="relative h-64">
+                        <canvas id="invoiceStatus" class="w-full h-full"></canvas>
+                    </div>
+                    @if (!isset($invoiceStatuses) || array_sum($invoiceStatuses) == 0)
+                        <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No invoice status data available.</p>
+                    @endif
+                </div>
+            @endrole
         </div>
-    </div>
-        </section>
-       
+    </section>
 
-        <!-- Role-Specific Sections -->
-        <!-- Daily Instructions (Labourer) -->
-        @role('labourer')
-            <section class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Daily Instructions</h2>
-                <div class="container-box">
-                    @if ($dailyInstructions->isNotEmpty())
-                        <ul class="space-y-3">
-                            @foreach ($dailyInstructions as $item)
-                                <li class="list-item">
-                                    <span class="highlight">{{ $item->content }}</span> (Posted: {{ $item->created_at->format('Y-m-d H:i') }})
-                                </li>
-                            @endforeach
-                        </ul>
-                    @else
-                        <p class="no-data">No instructions for today.</p>
-                    @endif
-                </div>
-            </section>
-        @endrole
-
-        <!-- Flock Health Summary (Farm Manager) -->
-        @role('farm_manager')
-            <section class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Flock Health Summary</h2>
-                <div class="container-box">
-                    @if ($healthSummary->isNotEmpty())
-                        <ul class="space-y-3">
-                            @foreach ($healthSummary as $item)
-                                <li class="list-item">
-                                    <span class="highlight">{{ $item->date->format('Y-m-d') }}</span>: {{ $item->checks }} checks, {{ $item->unhealthy }} unhealthy
-                                </li>
-                            @endforeach
-                        </ul>
-                    @else
-                        <p class="no-data">No recent health checks.</p>
-                    @endif
-                </div>
-            </section>
-        @endrole
-
-        <!-- Vaccination Schedule (Veterinarian) -->
-        @role('veterinarian')
-            <section class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Vaccination Schedule</h2>
-                <div class="container-box">
-                    @if ($vaccinationSchedule->isNotEmpty())
-                        <ul class="space-y-3">
-                            @foreach ($vaccinationSchedule as $item)
-                                <li class="list-item">
-                                    <div class="flex justify-between items-center">
-                                        <span>
-                                            <span class="highlight">{{ $item->vaccine_name }}</span> (Due: {{ $item->due_date->format('Y-m-d') }})
-                                        </span>
-                                        <form action="{{ route('vaccinations.complete', $item->id) }}" method="POST" class="inline">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Mark as Complete</button>
-                                        </form>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
-                    @else
-                        <p class="no-data">No upcoming vaccinations.</p>
-                    @endif
-                </div>
-            </section>
-        @endrole
-
-        <!-- Supplier Quick Links (Inventory Manager) -->
-        @role('inventory_manager')
-            <section class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Key Suppliers</h2>
-                <div class="container-box">
-                    @if ($suppliers->isNotEmpty())
-                        <ul class="space-y-3">
-                            @foreach ($suppliers as $item)
-                                <li class="list-item">
-                                    <div class="flex justify-between items-center">
-                                        <span>
-                                            <span class="highlight">{{ $item->name }}</span> ({{ $item->contact_info }})
-                                        </span>
-                                        <div>
-                                            <a href="{{ route('inventory.create', ['supplier_id' => $item->id]) }}" class="text-blue-600 dark:text-blue-400 hover:underline text-sm mr-4">Add Inventory</a>
-                                            <a href="{{ route('suppliers.show', $item->id) }}" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">View Details</a>
-                                        </div>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
-                    @else
-                        <p class="no-data">No suppliers found.</p>
-                    @endif
-                </div>
-            </section>
-        @endrole
-
-        <!-- Financial Summary (Admins with Permission) -->
+    <!-- Financial and Transaction Section -->
+    <section class="mb-8">
         @can('manage_finances')
-            <section class="mb-8">
+            <div class="mb-6">
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Financial Summary</h2>
                 @if (isset($totalExpenses, $totalIncome, $profit))
                     @php
@@ -333,14 +382,12 @@
                     @endphp
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                         @foreach ($cards as $card)
-                            <div class="container-box">
+                            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
                                 <div class="flex items-center justify-between">
                                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-base sm:text-lg">{{ $card['label'] }}</h3>
                                     <span class="text-xl sm:text-2xl text-{{ $card['color'] }}-500">{{ $card['icon'] }}</span>
                                 </div>
-                                <p class="text-xl sm:text-2xl font-bold text-{{ $card['color'] }}-600 dark:text-{{ $card['color'] }}-400 mt-4 truncate">
-                                    ${{ number_format($card['value'], 2) }}
-                                </p>
+                                <p class="text-xl sm:text-2xl font-bold text-{{ $card['color'] }}-600 dark:text-{{ $card['color'] }}-400 mt-4 truncate">${{ number_format($card['value'], 2) }}</p>
                                 <div class="relative h-12 mt-4">
                                     <canvas id="{{ strtolower($card['label']) }}Trend" class="w-full h-full"></canvas>
                                 </div>
@@ -352,80 +399,16 @@
                         Financial data is currently unavailable.
                     </div>
                 @endif
-            </section>
+            </div>
         @else
-            <section class="mb-8">
-                <div class="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 p-4 rounded-2xl" role="alert">
-                    You do not have permission to view the financial summary.
-                </div>
-            </section>
+            <div class="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 p-4 rounded-2xl mb-6" role="alert">
+                You do not have permission to view the financial summary.
+            </div>
         @endcan
 
-
-
-        <!-- Key Performance Indicators (KPIs) -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Key Performance Indicators (KPIs)</h2>
-            @php
-                $groupedKpis = [
-                    'Flock Statistics' => [
-                        ['label' => 'Chicks', 'value' => $chicks ?? 0, 'icon' => '🐤'],
-                        ['label' => 'Layers', 'value' => $layerBirds ?? 0, 'icon' => '🐓'],
-                        ['label' => 'Broilers', 'value' => $broilerBirds ?? 0, 'icon' => '🥩'],
-                        ['label' => 'Total Birds', 'value' => $totalBirds ?? 0, 'icon' => '🥩'],
-                        ['label' => 'Mortality %', 'value' => number_format($mortalityRate ?? 0, 2), 'icon' => '⚰️'],
-                    ],
-                    'Production' => [
-                        ['label' => 'Egg Crates', 'value' => $metrics['egg_crates'] ?? 0, 'icon' => '🥚'],
-                        ['label' => 'Feed (kg)', 'value' => $metrics['feed_kg'] ?? 0, 'icon' => '🌾'],
-                        ['label' => 'FCR', 'value' => number_format($fcr ?? 0, 2), 'icon' => '⚖️'],
-                    ],
-                    'Operations' => [
-                        ['label' => 'Employees', 'value' => $employees ?? 0, 'icon' => '👨‍🌾'],
-                        ['label' => 'Payroll', 'value' => number_format($totalPayroll ?? 0, 2), 'icon' => '💵'],
-                        ['label' => 'Sales', 'value' => $metrics['sales'] ?? 0, 'icon' => '🛒'],
-                        ['label' => 'Customers', 'value' => $metrics['customers'] ?? 0, 'icon' => '👥'],
-                        ['label' => 'Med Bought', 'value' => $metrics['medicine_buy'] ?? 0, 'icon' => '💊'],
-                        ['label' => 'Med Used', 'value' => $metrics['medicine_use'] ?? 0, 'icon' => '🩺'],
-                    ],
-                ];
-            @endphp
-            @foreach ($groupedKpis as $group => $kpis)
-                <div class="mb-6">
-                    <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-3">{{ $group }}</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                        @foreach ($kpis as $item)
-                            @if ($group === 'Operations' && in_array($item['label'], ['Employees', 'Payroll', 'Sales', 'Customers']))
-                                @role('admin')
-                                    <div class="container-box">
-                                        <div class="flex items-center justify-between">
-                                            <h4 class="text-gray-700 dark:text-gray-300 font-medium text-base sm:text-lg">{{ $item['label'] }}</h4>
-                                            <span class="text-xl sm:text-2xl">{{ $item['icon'] }}</span>
-                                        </div>
-                                        <p class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2 truncate">{{ $item['value'] }}</p>
-                                    </div>
-                                @endrole
-                            @else
-                                <div class="container-box">
-                                    <div class="flex items-center justify-between">
-                                        <h4 class="text-gray-700 dark:text-gray-300 font-medium text-base sm:text-lg">{{ $item['label'] }}</h4>
-                                        <span class="text-xl sm:text-2xl">{{ $item['icon'] }}</span>
-                                    </div>
-                                    <p class="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2 truncate">{{ $item['value'] }}</p>
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-                </div>
-            @endforeach
-        </section>
-        
-
-
-          <!-- Pending Approvals (Admins or Finance Managers) -->
         @can('manage_finances')
-            <section class="mb-8">
-                <div class="container-box bg-gradient-to-r from-yellow-100 to-gray-50 dark:from-yellow-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl animate-fade-slide-up">
+            <div class="mb-6">
+                <div class="container-box bg-gradient-to-r from-yellow-100 to-gray-50 dark:from-yellow-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
                             <svg class="w-5 h-5 mr-2 text-yellow-500 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -471,294 +454,154 @@
                         @endif
                     </div>
                 </div>
-            </section>
+            </div>
         @endcan
 
-        <!-- Payroll Status -->
-        <section class="mb-8">
-            <div class="container-box bg-gradient-to-r from-blue-100 to-gray-50 dark:from-blue-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl animate-fade-slide-up">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Payroll Status
-                    </h2>
-                    <svg class="w-8 h-8 text-blue-500 dark:text-blue-400 payroll-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        <div class="container-box bg-gradient-to-r from-blue-100 to-gray-50 dark:from-blue-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                </div>
-                <div id="payroll-status">
-                    @if (isset($payrollStatus) && $payrollStatus->isNotEmpty())
-                        @php
-                            $latest = $payrollStatus->first();
-                        @endphp
-                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
-                                <p class="text-base text-gray-600 dark:text-gray-400">Latest Pay Date</p>
-                                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $latest->date }}</p>
-                            </div>
-                            <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
-                                <p class="text-base text-gray-600 dark:text-gray-400">Employees</p>
-                                <p class="text-2xl font-bold">{{ $latest->employees }}</p>
-                            </div>
-                            <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
-                                <p class="text-base text-gray-600 dark:text-gray-400">Total Paid</p>
-                                <p class="text-2xl font-bold text-green-600 dark:text-green-400">₵{{ number_format($latest->total, 2) }}</p>
-                            </div>
-                            <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300">
-                                <p class="text-base text-gray-600 dark:text-gray-400 mb-1">Status</p>
-                                <span class="px-2 py-1 text-sm font-medium rounded-full {{ $latest->status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100' }}">
-                                    {{ ucfirst($latest->status) }}
-                                </span>
-                            </div>
+                    Payroll Status
+                </h2>
+                <svg class="w-8 h-8 text-blue-500 dark:text-blue-400 payroll-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div id="payroll-status">
+                @if (isset($payrollStatus) && $payrollStatus->isNotEmpty())
+                    @php
+                        $latest = $payrollStatus->first();
+                    @endphp
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
+                            <p class="text-base text-gray-600 dark:text-gray-400">Latest Pay Date</p>
+                            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $latest->date }}</p>
                         </div>
-                    @else
-                        <p class="text-base text-gray-600 dark:text-gray-400 text-center py-4">No payroll activity yet.</p>
-                    @endif
-                    <div class="mt-4 text-right">
-                        <a href="{{ route('payroll.index') }}" class="bg-blue-600 text-white py-1 px-3 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm font-medium transition duration-200 transform hover:scale-105">View All</a>
+                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
+                            <p class="text-base text-gray-600 dark:text-gray-400">Employees</p>
+                            <p class="text-2xl font-bold">{{ $latest->employees }}</p>
+                        </div>
+                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
+                            <p class="text-base text-gray-600 dark:text-gray-400">Total Paid</p>
+                            <p class="text-2xl font-bold text-green-600 dark:text-green-400">₵{{ number_format($latest->total, 2) }}</p>
+                        </div>
+                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300">
+                            <p class="text-base text-gray-600 dark:text-gray-400 mb-1">Status</p>
+                            <span class="px-2 py-1 text-sm font-medium rounded-full {{ $latest->status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100' }}">
+                                {{ ucfirst($latest->status) }}
+                            </span>
+                        </div>
                     </div>
+                @else
+                    <p class="text-base text-gray-600 dark:text-gray-400 text-center py-4">No payroll activity yet.</p>
+                @endif
+                <div class="mt-4 text-right">
+                    <a href="{{ route('payroll.index') }}" class="bg-blue-600 text-white py-1 px-3 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm font-medium transition duration-200 transform hover:scale-105">View All</a>
                 </div>
             </div>
-        </section>
-
-
-        
-
-   <!-- Dashboard Charts -->
-  <section class="mb-8">
-    <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Dashboard Charts</h2>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <!-- Egg Trend -->
-        <div class="chart-container">
-            <div class="flex items-center justify-between mb-2">
-                <h4 class="chart-title">Egg Trend</h4>
-                <select id="eggChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="line">Line</option>
-                    <option value="bar">Bar</option>
-                </select>
-            </div>
-            <div class="relative h-64">
-                <canvas id="eggTrend" class="w-full h-full"></canvas>
-            </div>
-            @if (!isset($eggTrend) || $eggTrend->isEmpty())
-                <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No egg data available.</p>
-            @endif
         </div>
-
-        <!-- Feed Trend -->
-        <div class="chart-container">
-            <div class="flex items-center justify-between mb-2">
-                <h4 class="chart-title">Feed Trend</h4>
-                <select id="feedChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="line">Line</option>
-                    <option value="bar">Bar</option>
-                </select>
-            </div>
-            <div class="relative h-64">
-                <canvas id="feedTrend" class="w-full h-full"></canvas>
-            </div>
-            @if (!isset($feedTrend) || $feedTrend->isEmpty())
-                <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No feed data available.</p>
-            @endif
-        </div>
-
-        <!-- Sales Trend (Admin Only) -->
-        @role('admin')
-        <div class="chart-container">
-            <div class="flex items-center justify-between mb-2">
-                <h4 class="chart-title">Sales Trend</h4>
-                <select id="salesChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="line">Line</option>
-                    <option value="bar">Bar</option>
-                </select>
-            </div>
-            <div class="relative h-64">
-                <canvas id="salesTrend" class="w-full h-full"></canvas>
-            </div>
-            @if (!isset($salesTrend) || $salesTrend->isEmpty())
-                <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No sales data available.</p>
-            @endif
-        </div>
-        @endrole
-
-        <!-- Income Trend -->
-        <div class="chart-container">
-            <div class="flex items-center justify-between mb-2">
-                <h4 class="chart-title">Income Trend</h4>
-                <select id="incomeChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="line">Line</option>
-                    <option value="bar">Bar</option>
-                </select>
-            </div>
-            <div class="relative h-64">
-                <canvas id="incomeChart" class="w-full h-full"></canvas>
-            </div>
-            @if (!isset($incomeTrend) || $incomeTrend->isEmpty())
-                <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No income data available.</p>
-            @endif
-        </div>
-
-        <!-- Invoice Status (Admin Only) -->
-        @role('admin')
-        <div class="chart-container col-span-1 lg:col-span-2">
-            <div class="flex items-center justify-between mb-2">
-                <h4 class="chart-title">Invoice Status Distribution</h4>
-                <select id="invoiceChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="bar">Bar</option>
-                    <option value="line">Line</option>
-                </select>
-            </div>
-            <div class="relative h-64">
-                <canvas id="invoiceStatus" class="w-full h-full"></canvas>
-            </div>
-            @if (!isset($invoiceStatuses) || array_sum($invoiceStatuses) == 0)
-                <p class="no-data text-gray-500 dark:text-gray-400 italic text-center py-4">No invoice status data available.</p>
-            @endif
-        </div>
-        @endrole
-
-    </div>
     </section>
 
-
-
-           <!-- Vaccination Overview -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Vaccination Overview
-            </h2>
-            <div class="container-box bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
-                <div class="mb-4">
-                    <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Upcoming Vaccinations</h4>
-                    <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $upcomingVaccinations ?? 0 }}</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Transaction Overview -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-                Transaction Overview
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div class="container-box bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-indigo-500 border-2 border-transparent">
-                    <a href="{{ route('transactions.index') }}" class="block" aria-label="View all transactions">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center">
-                                <svg class="w-8 h-8 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Pending Transactions</h4>
-                            </div>
-                            <button class="bg-blue-600 text-white py-1 px-3 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm font-medium transition duration-200 transform hover:scale-105" aria-label="View all pending transactions">
-                                View All
-                            </button>
-                        </div>
-                        <p class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{{ $pendingTransactions ?? 0 }}</p>
-                        <div class="h-12 mt-4">
-                            <canvas id="pendingTransactionsTrend" class="w-full h-full"></canvas>
-                        </div>
-                    </a>
-                </div>
-                <div class="container-box bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-indigo-500 border-2 border-transparent">
-                    <a href="{{ route('transactions.index') }}" class="block" aria-label="View total transaction amount">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center">
-                                <svg class="w-8 h-8 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Total Transaction Amount</h4>
-                            </div>
-                            <button class="bg-blue-600 text-white py-1 px-3 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm font-medium transition duration-200 transform hover:scale-105" aria-label="View all transactions">
-                                View All
-                            </button>
-                        </div>
-                        <p class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">${{ number_format($totalTransactionAmount ?? 0, 2) }}</p>
-                        <div class="h-12 mt-4">
-                            <canvas id="totalTransactionAmountTrend" class="w-full h-full"></canvas>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        <!-- Order Overview -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                </svg>
-                Order Overview
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div class="container-box bg-gradient-to-r from-purple-50 to-white dark:from-purple-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-purple-500 border-2 border-transparent">
+    <!-- Transaction and Order Overview -->
+    <section class="mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="container-box bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-indigo-500 border-2 border-transparent">
+                <a href="{{ route('transactions.index') }}" class="block" aria-label="View all transactions">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center">
                             <svg class="w-8 h-8 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Pending Orders</h4>
+                            <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Pending Transactions</h4>
                         </div>
-                        <a href="{{ route('orders.create') }}" class="bg-purple-600 text-white py-1 px-3 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-sm font-medium transition duration-200 transform hover:scale-105" aria-label="Create a new order">
-                            Create Order
-                        </a>
+                        <button class="bg-blue-600 text-white py-1 px-3 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm font-medium transition duration-200 transform hover:scale-105" aria-label="View all pending transactions">
+                            View All
+                        </button>
                     </div>
-                    <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ $pendingOrders ?? 0 }}</p>
-                    <div class="mt-4">
-                        <div class="flex mb-2 items-center justify-between">
-                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Completion</span>
-                            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">{{ $completionPercentage ?? 0 }}%</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700" aria-hidden="true">
-                            <div id="completionProgressBar" class="bg-purple-600 h-2.5 rounded-full transition-all duration-300" style="width: {{ $completionPercentage ?? 0 }}%"></div>
-                        </div>
-                        <div class="mt-2 text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                            <span id="completionPercentageValue">{{ $completionPercentage ?? 0 }}%</span>
-                            <span class="text-[10px]">Completion</span>
-                        </div>
-
+                    <p class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{{ $pendingTransactions ?? 0 }}</p>
+                    <div class="h-12 mt-4">
+                        <canvas id="pendingTransactionsTrend" class="w-full h-full"></canvas>
                     </div>
-                </div>
-                <div class="container-box bg-gradient-to-r from-purple-50 to-white dark:from-purple-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-purple-500 border-2 border-transparent">
+                </a>
+            </div>
+            <div class="container-box bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-indigo-500 border-2 border-transparent">
+                <a href="{{ route('transactions.index') }}" class="block" aria-label="View total transaction amount">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center">
                             <svg class="w-8 h-8 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Total Order Amount</h4>
+                            <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Total Transaction Amount</h4>
                         </div>
-                        <a href="{{ route('orders.index') }}" class="bg-purple-600 text-white py-1 px-3 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-sm font-medium transition duration-200 transform hover:scale-105" aria-label="View all orders">
+                        <button class="bg-blue-600 text-white py-1 px-3 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-sm font-medium transition duration-200 transform hover:scale-105" aria-label="View all transactions">
                             View All
-                        </a>
+                        </button>
                     </div>
-                    <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">${{ number_format($totalOrderAmount ?? 0, 2) }}</p>
+                    <p class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">${{ number_format($totalTransactionAmount ?? 0, 2) }}</p>
                     <div class="h-12 mt-4">
-                        <canvas id="totalOrderAmountTrend" class="w-full h-full"></canvas>
+                        <canvas id="totalTransactionAmountTrend" class="w-full h-full"></canvas>
+                    </div>
+                </a>
+            </div>
+            <div class="container-box bg-gradient-to-r from-purple-50 to-white dark:from-purple-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-purple-500 border-2 border-transparent">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <svg class="w-8 h-8 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Pending Orders</h4>
+                    </div>
+                    <a href="{{ route('orders.create') }}" class="bg-purple-600 text-white py-1 px-3 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-sm font-medium transition duration-200 transform hover:scale-105" aria-label="Create a new order">
+                        Create Order
+                    </a>
+                </div>
+                <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ $pendingOrders ?? 0 }}</p>
+                <div class="mt-4">
+                    <div class="flex mb-2 items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Completion</span>
+                        <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">{{ $completionPercentage ?? 0 }}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700" aria-hidden="true">
+                        <div id="completionProgressBar" class="bg-purple-600 h-2.5 rounded-full transition-all duration-300" style="width: {{ $completionPercentage ?? 0 }}%"></div>
+                    </div>
+                    <div class="mt-2 text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                        <span id="completionPercentageValue">{{ $completionPercentage ?? 0 }}%</span>
+                        <span class="text-[10px]">Completion</span>
                     </div>
                 </div>
             </div>
-        </section>
+            <div class="container-box bg-gradient-to-r from-purple-50 to-white dark:from-purple-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-purple-500stratification
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <svg class="w-8 h-8 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Total Order Amount</h4>
+                    </div>
+                    <a href="{{ route('orders.index') }}" class="bg-purple-600 text-white py-1 px-3 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-sm font-medium transition duration-200 transform hover:scale-105" aria-label="View all orders">
+                        View All
+                    </a>
+                </div>
+                <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">${{ number_format($totalOrderAmount ?? 0, 2) }}</p>
+                <div class="h-12 mt-4">
+                    <canvas id="totalOrderAmountTrend" class="w-full h-full"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
 
-       
-        <!-- Recent Sales -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-                Recent Sales
-            </h2>
+    <!-- Sales and Mortality -->
+    <section class="mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="container-box bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 22"></path>
+                    </svg>
+                    Recent Sales
+                </h2>
                 <div class="flex mb-4 space-x-2">
                     <button class="tab-btn px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border-b-2 border-transparent hover:border-green-500 focus:border-green-500 transition duration-200" data-tab="egg" aria-label="Show egg sales">
                         Egg Sales
@@ -767,7 +610,7 @@
                         Bird Sales
                     </button>
                 </div>
-                <div class="tab-content" id="egg-sales">
+               <div class="tab-content" id="egg-sales">
                     <div class="p-4 bg-green-50 dark:bg-green-900 rounded-lg">
                         <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Egg Sales</h4>
                         <p class="text-3xl font-bold text-green-600 dark:text-green-400">${{ number_format($eggSales ?? 0, 2) }}</p>
@@ -795,17 +638,13 @@
                     @endif
                 </div>
             </div>
-        </section>
-
-        <!-- Recent Mortalities -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Recent Mortalities
-            </h2>
             <div class="container-box bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Recent Mortalities
+                </h2>
                 <div class="flex justify-between mb-4">
                     <div class="relative">
                         <select class="border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="mortalityFilter" aria-label="Filter mortalities by cause">
@@ -834,8 +673,113 @@
                     @endif
                 </div>
             </div>
-        </section>
-    </div>
+        </div>
+    </section>
+
+    <!-- Role-Specific Sections -->
+    <section class="mb-8">
+        @role('labourer')
+            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Daily Instructions</h2>
+                @if ($dailyInstructions->isNotEmpty())
+                    <ul class="space-y-3">
+                        @foreach ($dailyInstructions as $item)
+                            <li class="list-item">
+                                <span class="highlight">{{ $item->content }}</span> (Posted: {{ $item->created_at->format('Y-m-d H:i') }})
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="no-data">No instructions for today.</p>
+                @endif
+            </div>
+        @endrole
+
+        @role('farm_manager')
+            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Flock Health Summary</h2>
+                @if ($healthSummary->isNotEmpty())
+                    <ul class="space-y-3">
+                        @foreach ($healthSummary as $item)
+                            <li class="list-item">
+                                <span class="highlight">{{ $item->date->format('Y-m-d') }}</span>: {{ $item->checks }} checks, {{ $item->unhealthy }} unhealthy
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="no-data">No recent health checks.</p>
+                @endif
+            </div>
+        @endrole
+
+        @role('veterinarian')
+            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Vaccination Schedule</h2>
+                @if ($vaccinationSchedule->isNotEmpty())
+                    <ul class="space-y-3">
+                        @foreach ($vaccinationSchedule as $item)
+                            <li class="list-item">
+                                <div class="flex justify-between items-center">
+                                    <span>
+                                        <span class="highlight">{{ $item->vaccine_name }}</span> (Due: {{ $item->due_date->format('Y-m-d') }})
+                                    </span>
+                                    <form action="{{ route('vaccinations.complete', $item->id) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Mark as Complete</button>
+                                    </form>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="no-data">No upcoming vaccinations.</p>
+                @endif
+            </div>
+        @endrole
+
+        @role('inventory_manager')
+            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Key Suppliers</h2>
+                @if ($suppliers->isNotEmpty())
+                    <ul class="space-y-3">
+                        @foreach ($suppliers as $item)
+                            <li class="list-item">
+                                <div class="flex justify-between items-center">
+                                    <span>
+                                        <span class="highlight">{{ $item->name }}</span> ({{ $item->contact_info }})
+                                    </span>
+                                    <div>
+                                        <a href="{{ route('inventory.create', ['supplier_id' => $item->id]) }}" class="text-blue-600 dark:text-blue-400 hover:underline text-sm mr-4">Add Inventory</a>
+                                        <a href="{{ route('suppliers.show', $item->id) }}" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">View Details</a>
+                                    </div>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="no-data">No suppliers found.</p>
+                @endif
+            </div>
+        @endrole
+    </section>
+
+    <!-- Vaccination Overview -->
+    <section class="mb-8">
+        <div class="container-box bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Vaccination Overview
+            </h2>
+            <div class="mb-4">
+                <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Upcoming Vaccinations</h4>
+                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $upcomingVaccinations ?? 0 }}</p>
+            </div>
+        </div>
+    </section>
+</div>
 @endsection
 
 
@@ -1108,14 +1052,20 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('DOMContentLoaded', () => {
         const reminders = document.querySelectorAll('#reminder-rotator [data-reminder]');
         const dots = document.querySelectorAll('.reminder-dot');
+        const prevBtn = document.getElementById('prev-reminder');
+        const nextBtn = document.getElementById('next-reminder');
         const count = document.getElementById('reminder-count');
         let index = 0;
         let interval = setInterval(nextReminder, 5000);
 
-        function showReminder(i) {
+        function showReminder(i, direction = 'next') {
             reminders.forEach((el, j) => {
-                el.classList.toggle('translate-y-0', j === i);
-                el.classList.toggle('translate-y-full', j !== i);
+                el.classList.remove('rotate-x-0', 'opacity-100', 'rotate-x-90', '-rotate-x-90', 'opacity-0');
+                if (j === i) {
+                    el.classList.add('rotate-x-0', 'opacity-100');
+                } else {
+                    el.classList.add(direction === 'next' ? 'rotate-x-90' : '-rotate-x-90', 'opacity-0');
+                }
             });
             dots.forEach((dot, j) => {
                 dot.classList.toggle('bg-blue-600', j === i);
@@ -1125,18 +1075,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function nextReminder() {
             index = (index + 1) % reminders.length;
-            showReminder(index);
+            showReminder(index, 'next');
         }
 
+        function prevReminder() {
+            index = (index - 1 + reminders.length) % reminders.length;
+            showReminder(index, 'prev');
+        }
+
+        // Pause on hover
+        const rotator = document.getElementById('reminder-rotator');
+        rotator.addEventListener('mouseenter', () => clearInterval(interval));
+        rotator.addEventListener('mouseleave', () => interval = setInterval(nextReminder, 5000));
+
+        // Navigation buttons
+        nextBtn.addEventListener('click', () => {
+            clearInterval(interval);
+            nextReminder();
+            interval = setInterval(nextReminder, 5000);
+        });
+
+        prevBtn.addEventListener('click', () => {
+            clearInterval(interval);
+            prevReminder();
+            interval = setInterval(nextReminder, 5000);
+        });
+
+        // Dot navigation
         dots.forEach(dot => {
             dot.addEventListener('click', () => {
-                index = parseInt(dot.dataset.index);
+                const newIndex = parseInt(dot.dataset.index);
+                const direction = newIndex > index ? 'next' : 'prev';
+                index = newIndex;
                 clearInterval(interval);
-                showReminder(index);
+                showReminder(index, direction);
                 interval = setInterval(nextReminder, 5000);
             });
         });
 
+        // Mark as Completed
         document.querySelectorAll('.mark-read-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.dataset.id;
@@ -1150,18 +1127,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        const reminder = document.querySelector(`[data-id="${id}"]`);
-                        const dot = dots[parseInt(reminder.dataset.reminder)];
+                        const reminder = reminders[index];
                         reminder.remove();
-                        dot.remove();
+                        dots[index].remove();
                         const remaining = document.querySelectorAll('#reminder-rotator [data-reminder]');
                         count.textContent = `${remaining.length} pending`;
                         if (remaining.length) {
-                            index = Math.min(index, remaining.length - 1);
+                            index = index % remaining.length;
                             showReminder(index);
                         } else {
-                            document.getElementById('reminder-rotator').innerHTML = 
-                                '<p class="text-xs text-gray-600 dark:text-gray-400 text-center">No pending tasks</p>';
+                            rotator.innerHTML = '<p class="text-xs text-gray-600 dark:text-gray-400 text-center py-8">No pending tasks</p>';
                             clearInterval(interval);
                         }
                     }
@@ -1170,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     });
+       
 
 // WEATHER
    document.addEventListener("DOMContentLoaded", () => {

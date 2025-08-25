@@ -1,224 +1,317 @@
 @extends('layouts.app')
 
+{{-- @section('title', 'Pending Transactions') --}}
+
 @section('content')
-<div class="container mx-auto p-4">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h1 class="text-2xl font-bold dark:text-gray-100">Pending Transactions</h1>
-
-        <div class="flex items-center gap-3">
-            <a href="{{ route('transactions.index') }}" class="text-sm text-gray-600 dark:text-gray-300 hover:underline">Reset filters</a>
-
-            {{-- Export (GET) --}}
+<div class="container mx-auto px-4 py-8 space-y-12 bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
+    <!-- Header -->
+    <section class="flex justify-between items-center">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Pending Transactions</h2>
+        <div class="flex items-center gap-4">
+            <a href="{{ route('transactions.index') }}" 
+               class="inline-flex items-center bg-gray-300 text-gray-800 px-4 py-2 rounded-lg shadow hover:bg-gray-400 
+                      dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-sm transition">
+                🔄 Reset Filters
+            </a>
             {{-- <a href="{{ route('transactions.export', array_filter([
                     'type' => request('type'),
+                    'status' => request('status'),
                     'start_date' => request('start_date'),
                     'end_date' => request('end_date'),
                     'q' => request('q'),
-                ])) }}"
-               class="inline-flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                ])) }}" 
+               class="inline-flex items-center bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 
+                      dark:bg-green-500 dark:hover:bg-green-600 text-sm transition"
+               onclick="return confirm('Export visible transactions to CSV?');"
                aria-label="Export visible transactions to CSV">
-               Export CSV
+                📥 Export CSV
             </a> --}}
         </div>
-    </div>
+    </section>
 
-    {{-- Success / Error --}}
-    @if(session('success'))
-        <div class="mb-4 rounded-md bg-green-50 p-3 text-green-800">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="mb-4 rounded-md bg-red-50 p-3 text-red-800">{{ session('error') }}</div>
-    @endif
-    @if($errors->any())
-        <div class="mb-4 rounded-md bg-red-50 p-3 text-red-800">
-            <ul class="list-disc list-inside">
-                @foreach($errors->all() as $err) <li>{{ $err }}</li> @endforeach
-            </ul>
+    <!-- Summary Cards -->
+    <section>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow flex flex-col items-center">
+                <span class="text-sm text-gray-500 dark:text-gray-400">Total Pending Transactions</span>
+                <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ number_format($transactions->total(), 0) }}</p>
+                <span class="text-gray-600 dark:text-gray-300">Records</span>
+            </div>
+            <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow flex flex-col items-center">
+                <span class="text-sm text-gray-500 dark:text-gray-400">Total Amount</span>
+                <p class="text-3xl font-bold text-green-600 dark:text-green-400">GHS {{ number_format($transactions->sum('amount'), 2) }}</p>
+                <span class="text-gray-600 dark:text-gray-300">GHS</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Success Message -->
+    @if (session('success'))
+        <div class="mb-6 p-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-2xl border border-green-200 dark:border-green-700">
+            ✅ {{ session('success') }}
         </div>
     @endif
 
-    {{-- Filters --}}
-    <form method="GET" action="{{ route('transactions.index') }}" id="transactions-filters" class="mb-6 bg-white dark:bg-gray-800 p-4 rounded shadow">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-                <label for="q" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Search</label>
-                <input id="q" name="q" value="{{ request('q') }}" placeholder="ID, description, customer..." type="search"
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:ring-blue-500 focus:border-blue-500" />
-            </div>
-
-            <div>
-                <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Type</label>
-                <select id="type" name="type" class="mt-1 block w-full rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
-                    <option value="">All types</option>
-                    <option value="sale" {{ request('type') === 'sale' ? 'selected' : '' }}>Sale</option>
-                    <option value="expense" {{ request('type') === 'expense' ? 'selected' : '' }}>Expense</option>
-                    <option value="income" {{ request('type') === 'income' ? 'selected' : '' }}>Income</option>
-                    <option value="order" {{ request('type') === 'order' ? 'selected' : '' }}>Order</option>
-                </select>
-            </div>
-
-            <div>
-                <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</label>
-                <input id="start_date" name="start_date" type="date" value="{{ request('start_date', $start ?? '') }}"
-                       class="mt-1 block w-full rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
-            </div>
-
-            <div>
-                <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">End Date</label>
-                <input id="end_date" name="end_date" type="date" value="{{ request('end_date', $end ?? '') }}"
-                       class="mt-1 block w-full rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
-            </div>
+    <!-- Error Message -->
+    @if (session('error') || $errors->any())
+        <div class="mb-6 p-4 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-2xl border border-red-200 dark:border-red-700">
+            ❌ 
+            @if (session('error'))
+                {{ session('error') }}
+            @else
+                <ul class="list-disc list-inside">
+                    @foreach ($errors->all() as $err)
+                        <li>{{ $err }}</li>
+                    @endforeach
+                </ul>
+            @endif
         </div>
+    @endif
 
-        <div class="mt-4 flex items-center gap-3">
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Apply</button>
-            <a href="{{ route('transactions.index') }}" class="text-sm text-gray-600 hover:underline">Clear</a>
-            <p class="ml-auto text-sm text-gray-500 dark:text-gray-400">Showing <strong>{{ $transactions->count() }}</strong> of <strong>{{ $transactions->total() }}</strong></p>
+    <!-- Filter Form -->
+    <section>
+        <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Filter Transactions</h3>
+            <form method="GET" action="{{ route('transactions.index') }}" id="transactions-filters" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div>
+                    <label for="q" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
+                    <input id="q" name="q" value="{{ request('q') }}" placeholder="ID, description, customer..." type="search"
+                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-[#1a1a3a] dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition"
+                           aria-describedby="q-error">
+                    @error('q')
+                        <p id="q-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
+                <div>
+                    <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                    <select id="type" name="type" 
+                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-[#1a1a3a] dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition">
+                        <option value="">All Types</option>
+                        <option value="sale" {{ request('type') === 'sale' ? 'selected' : '' }}>Sale</option>
+                        <option value="expense" {{ request('type') === 'expense' ? 'selected' : '' }}>Expense</option>
+                        <option value="income" {{ request('type') === 'income' ? 'selected' : '' }}>Income</option>
+                        <option value="order" {{ request('type') === 'order' ? 'selected' : '' }}>Order</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                    <select id="status" name="status" 
+                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-[#1a1a3a] dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition">
+                        <option value="">All Statuses</option>
+                        <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>Approved</option>
+                        <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+                    <input id="start_date" name="start_date" type="date" value="{{ request('start_date', $start ?? '') }}" 
+                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-[#1a1a3a] dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition"
+                           aria-describedby="start_date-error">
+                    @error('start_date')
+                        <p id="start_date-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
+                <div>
+                    <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
+                    <input id="end_date" name="end_date" type="date" value="{{ request('end_date', $end ?? '') }}" 
+                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-[#1a1a3a] dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition"
+                           aria-describedby="end_date-error">
+                    @error('end_date')
+                        <p id="end_date-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @endError
+                </div>
+                <div class="flex items-end gap-4">
+                    <button type="submit" 
+                            class="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 
+                                   dark:bg-blue-500 dark:hover:bg-blue-600 text-sm transition">
+                        🔍 Apply
+                    </button>
+                    <a href="{{ route('transactions.index') }}" 
+                       class="inline-flex items-center bg-gray-300 text-gray-800 px-4 py-2 rounded-lg shadow hover:bg-gray-400 
+                              dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-sm transition">
+                        🔄 Clear
+                    </a>
+                    <p class="ml-auto text-sm text-gray-500 dark:text-gray-400">Showing <strong>{{ $transactions->count() }}</strong> of <strong>{{ $transactions->total() }}</strong></p>
+                </div>
+            </form>
         </div>
-    </form>
+    </section>
 
-    {{-- Table --}}
-    <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" data-sort-order="asc" aria-describedby="transactions-table-desc">
-            <caption id="transactions-table-desc" class="sr-only">List of pending transactions with actions to approve or reject</caption>
-            <thead class="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Source</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
+    <!-- Transaction Chart -->
+    <section>
+        <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Transaction Trends</h3>
+            <canvas id="transactionChart" class="w-full h-64"></canvas>
+        </div>
+    </section>
 
-            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                @forelse($transactions as $transaction)
-                    @php
-                        // defensive / safe values
-                        $type = $transaction->type ?? 'unknown';
-                        $amount = is_numeric($transaction->amount) ? number_format($transaction->amount, 2) : ($transaction->amount ?? '0.00');
-                        try {
-                            $dateFormatted = \Carbon\Carbon::parse($transaction->date)->format('Y-m-d');
-                        } catch (\Exception $ex) {
-                            $dateFormatted = $transaction->date ?? '';
-                        }
+    <!-- Transactions Table -->
+    <section>
+        <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Transaction Records</h3>
+            @if ($transactions->isEmpty())
+                <div class="text-center py-12">
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">No pending transactions found.</p>
+                </div>
+            @else
+                <div class="overflow-x-auto rounded-lg">
+                    <table class="w-full border-collapse rounded-lg overflow-hidden text-sm" data-sort-order="asc" aria-describedby="transactions-table-desc">
+                        <caption id="transactions-table-desc" class="sr-only">List of pending transactions with actions to approve or reject</caption>
+                        <thead>
+                            <tr class="bg-gray-200 dark:bg-gray-700">
+                                <th class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">ID</th>
+                                <th class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Type</th>
+                                <th class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Status</th>
+                                <th class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Amount (GHS)</th>
+                                <th class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Date</th>
+                                <th class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Source</th>
+                                <th class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-600">
+                            @foreach ($transactions as $transaction)
+                                @php
+                                    $type = $transaction->type ?? 'unknown';
+                                    $status = $transaction->status ?? 'pending';
+                                    $amount = is_numeric($transaction->amount) ? number_format($transaction->amount, 2) : ($transaction->amount ?? '0.00');
+                                    $dateFormatted = $transaction->date ? \Carbon\Carbon::parse($transaction->date)->format('Y-m-d') : 'N/A';
+                                    $typeClass = match($type) {
+                                        'sale' => 'bg-blue-200 text-blue-800 dark:bg-blue-700 dark:text-blue-200',
+                                        'expense' => 'bg-red-200 text-red-800 dark:bg-red-700 dark:text-red-200',
+                                        'income' => 'bg-green-200 text-green-800 dark:bg-green-700 dark:text-green-200',
+                                        'order' => 'bg-yellow-200 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200',
+                                        default => 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+                                    };
+                                    $statusClass = match($status) {
+                                        'approved' => 'bg-green-200 text-green-800 dark:bg-green-700 dark:text-green-200',
+                                        'rejected' => 'bg-red-200 text-red-800 dark:bg-red-700 dark:text-red-200',
+                                        default => 'bg-yellow-200 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200',
+                                    };
+                                @endphp
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-600 transition" id="transaction-row-{{ $transaction->id }}">
+                                    <td class="p-4 font-semibold text-blue-600 dark:text-blue-400">{{ $transaction->id }}</td>
+                                    <td class="p-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $typeClass }}">
+                                            {{ ucfirst($type) }}
+                                        </span>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $statusClass }}">
+                                            {{ ucfirst($status) }}
+                                        </span>
+                                    </td>
+                                    <td class="p-4 text-gray-700 dark:text-gray-300 font-medium">GHS {{ $amount }}</td>
+                                    <td class="p-4 text-gray-700 dark:text-gray-300">{{ $dateFormatted }}</td>
+                                    <td class="p-4 text-gray-700 dark:text-gray-300">
+                                        @if ($transaction->source && $transaction->source_type === \App\Models\Sale::class)
+                                            <a href="{{ route('sales.show', $transaction->source_id) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Sale #{{ $transaction->source_id }}</a>
+                                        @elseif ($transaction->source && $transaction->source_type === \App\Models\Expense::class)
+                                            <a href="{{ route('expenses.show', $transaction->source_id) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Expense #{{ $transaction->source_id }}</a>
+                                        @elseif ($transaction->source && $transaction->source_type === \App\Models\Income::class)
+                                            <a href="{{ route('income.show', $transaction->source_id) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Income #{{ $transaction->source_id }}</a>
+                                        @elseif ($transaction->source && $transaction->source_type === \App\Models\Order::class)
+                                            <a href="{{ route('orders.show', $transaction->source_id) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Order #{{ $transaction->source_id }}</a>
+                                        @else
+                                            <span class="text-sm text-gray-500 dark:text-gray-400">N/A</span>
+                                        @endif
+                                    </td>
+                                    <td class="p-4 flex space-x-2">
+                                        <a href="{{ route('transactions.show', $transaction) }}" 
+                                           class="inline-flex items-center px-3 py-1 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 text-xs transition">
+                                            👀 View
+                                        </a>
+                                        <button type="button" 
+                                                class="inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 text-xs transition"
+                                                onclick="openApproveModal({{ $transaction->id }}, {{ (float) ($transaction->amount ?? 0) }})"
+                                                aria-label="Open approve modal for transaction {{ $transaction->id }}">
+                                            ✅ Approve
+                                        </button>
+                                        <button type="button" 
+                                                class="inline-flex items-center px-3 py-1 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 text-xs transition"
+                                                onclick="openRejectModal({{ $transaction->id }})"
+                                                aria-label="Open reject modal for transaction {{ $transaction->id }}">
+                                            ❌ Reject
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @if ($transactions instanceof \Illuminate\Pagination\LengthAwarePaginator)
+                    <div class="mt-6 flex justify-end">
+                        {{ $transactions->appends(request()->query())->links() }}
+                    </div>
+                @endif
+            @endif
+        </div>
+    </section>
 
-                        // type badge classes
-                        $typeClass = 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
-                        if ($type === 'sale') $typeClass = 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-                        if ($type === 'expense') $typeClass = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-                        if ($type === 'income') $typeClass = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-                    @endphp
-
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ $transaction->id }}</td>
-
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $typeClass }}">
-                                {{ ucfirst($type) }}
-                            </span>
-                        </td>
-
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">${{ $amount }}</td>
-
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ $dateFormatted }}</td>
-
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                            @if ($transaction->source && $transaction->source_type === \App\Models\Sale::class)
-                                <a href="{{ route('sales.show', $transaction->source_id) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Sale #{{ $transaction->source_id }}</a>
-                            @elseif ($transaction->source && $transaction->source_type === \App\Models\Expense::class)
-                                <a href="{{ route('expenses.show', $transaction->source_id) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Expense #{{ $transaction->source_id }}</a>
-                            @elseif ($transaction->source && $transaction->source_type === \App\Models\Income::class)
-                                <a href="{{ route('incomes.show', $transaction->source_id) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Income #{{ $transaction->source_id }}</a>
-                            @elseif ($transaction->source && $transaction->source_type === \App\Models\Order::class)
-                                <a href="{{ route('orders.show', $transaction->source_id) }}" class="text-blue-600 dark:text-blue-400 hover:underline">Order #{{ $transaction->source_id }}</a>
-                            @else
-                                <span class="text-sm text-gray-500 dark:text-gray-400">N/A</span>
-                            @endif
-                        </td>
-
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            {{-- View/detail --}}
-                            <a href="{{ route('transactions.show', $transaction->id) }}" class="text-indigo-600 dark:text-indigo-400 hover:underline mr-3">View</a>
-
-                            {{-- Approve button opens modal --}}
-                            <button
-                                type="button"
-                                class="text-green-600 dark:text-green-400 hover:underline mr-3"
-                                onclick="openApproveModal({{ $transaction->id }}, {{ (float) ($transaction->amount ?? 0) }})"
-                                aria-label="Open approve modal for transaction {{ $transaction->id }}">
-                                Approve
-                            </button>
-
-                            {{-- Reject button opens modal --}}
-                            <button
-                                type="button"
-                                class="text-red-600 dark:text-red-400 hover:underline"
-                                onclick="openRejectModal({{ $transaction->id }})"
-                                aria-label="Open reject modal for transaction {{ $transaction->id }}">
-                                Reject
-                            </button>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6" class="px-6 py-6 text-center text-sm text-gray-500 dark:text-gray-400">No pending transactions found.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+    <!-- Approve Modal -->
+    <div id="approveModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50" role="dialog" aria-modal="true" aria-labelledby="approveModalTitle">
+        <div class="bg-white dark:bg-[#1a1a3a] rounded-2xl p-6 w-full max-w-md shadow-lg border border-gray-200 dark:border-gray-700">
+            <h3 id="approveModalTitle" class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Approve Transaction</h3>
+            <form id="approveModalForm" method="POST" action="">
+                @csrf
+                <input type="hidden" name="transaction_id" id="approve_transaction_id">
+                <label for="approve_amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Approval Amount (leave blank to approve full amount)</label>
+                <input id="approve_amount" name="amount" type="number" step="0.01" min="0" 
+                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-[#1a1a3a] dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition mb-4"
+                       aria-describedby="approve_amount-error">
+                @error('amount')
+                    <p id="approve_amount-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                @endError
+                <div class="flex justify-end gap-4">
+                    <button type="button" 
+                            class="inline-flex items-center px-4 py-2 rounded-lg bg-gray-300 text-gray-800 shadow hover:bg-gray-400 
+                                   dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-sm transition"
+                            onclick="closeApproveModal()">Cancel</button>
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 rounded-lg bg-green-600 text-white shadow hover:bg-green-700 
+                                   dark:bg-green-500 dark:hover:bg-green-600 text-sm transition">
+                        ✅ Confirm Approve
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
-    {{-- Pagination --}}
-    <div class="mt-4">
-        {{ $transactions->appends(request()->query())->links() }}
+    <!-- Reject Modal -->
+    <div id="rejectModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50" role="dialog" aria-modal="true" aria-labelledby="rejectModalTitle">
+        <div class="bg-white dark:bg-[#1a1a3a] rounded-2xl p-6 w-full max-w-md shadow-lg border border-gray-200 dark:border-gray-700">
+            <h3 id="rejectModalTitle" class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Reject Transaction</h3>
+            <form id="rejectModalForm" method="POST" action="">
+                @csrf
+                <input type="hidden" name="transaction_id" id="reject_transaction_id">
+                <label for="reject_reason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Reason for Rejection</label>
+                <textarea id="reject_reason" name="reason" rows="4" required 
+                          class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-[#1a1a3a] dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-400 focus:ring-opacity-50 transition mb-4"
+                          aria-describedby="reject_reason-error"></textarea>
+                @error('reason')
+                    <p id="reject_reason-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                @endError
+                <div class="flex justify-end gap-4">
+                    <button type="button" 
+                            class="inline-flex items-center px-4 py-2 rounded-lg bg-gray-300 text-gray-800 shadow hover:bg-gray-400 
+                                   dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-sm transition"
+                            onclick="closeRejectModal()">Cancel</button>
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 rounded-lg bg-red-600 text-white shadow hover:bg-red-700 
+                                   dark:bg-red-500 dark:hover:bg-red-600 text-sm transition">
+                        ❌ Confirm Reject
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
-{{-- Approve Modal (accessible, form posts to approve route) --}}
-<div id="approveModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black bg-opacity-40" role="dialog" aria-modal="true" aria-labelledby="approveModalTitle">
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-lg">
-        <h3 id="approveModalTitle" class="text-lg font-semibold mb-3 dark:text-gray-100">Approve Transaction</h3>
 
-        <form id="approveModalForm" method="POST" action="">
-            @csrf
-            <input type="hidden" name="transaction_id" id="approve_transaction_id">
-
-            <label for="approve_amount" class="block text-sm text-gray-700 dark:text-gray-300">Approval Amount (leave blank to approve full amount)</label>
-            <input id="approve_amount" name="amount" type="number" step="0.01" min="0" class="mt-2 block w-full rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 p-2" />
-
-            <div class="mt-4 flex justify-end gap-3">
-                <button type="button" class="px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-700" onclick="closeApproveModal()">Cancel</button>
-                <button type="submit" class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">Confirm Approve</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- Reject Modal --}}
-<div id="rejectModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black bg-opacity-40" role="dialog" aria-modal="true" aria-labelledby="rejectModalTitle">
-    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-lg">
-        <h3 id="rejectModalTitle" class="text-lg font-semibold mb-3 dark:text-gray-100">Reject Transaction</h3>
-
-        <form id="rejectModalForm" method="POST" action="">
-            @csrf
-            <input type="hidden" name="transaction_id" id="reject_transaction_id">
-
-            <label for="reject_reason" class="block text-sm text-gray-700 dark:text-gray-300">Reason for rejection</label>
-            <textarea id="reject_reason" name="reason" rows="4" required class="mt-2 block w-full rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 p-2"></textarea>
-
-            <div class="mt-4 flex justify-end gap-3">
-                <button type="button" class="px-4 py-2 rounded bg-gray-600 text-white hover:bg-gray-700" onclick="closeRejectModal()">Cancel</button>
-                <button type="submit" class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700">Confirm Reject</button>
-            </div>
-        </form>
-    </div>
-</div>
 
 @push('scripts')
 <script>
-    /* Debounce helper for search */
+    // Debounce helper for search
     function debounce(fn, delay = 400) {
         let t;
         return (...args) => {
@@ -234,7 +327,6 @@
         const form = document.getElementById('transactions-filters');
 
         q.addEventListener('input', debounce(() => {
-            // optional: keep the page at top after submit
             form.submit();
         }, 700));
     })();
@@ -248,7 +340,7 @@
 
         hidden.value = id;
         amount.value = maxAmount ? parseFloat(maxAmount).toFixed(2) : '';
-        form.action = `/transactions/${id}/approve`; // hits your controller route (POST)
+        form.action = `/transactions/${id}/approve`;
         modal.classList.remove('hidden');
         amount.focus();
         trapFocus(modal);
@@ -268,7 +360,7 @@
 
         hidden.value = id;
         reason.value = '';
-        form.action = `/transactions/${id}/reject`; // hits your controller route (POST)
+        form.action = `/transactions/${id}/reject`;
         modal.classList.remove('hidden');
         reason.focus();
         trapFocus(modal);
@@ -280,8 +372,9 @@
         releaseFocus();
     }
 
-    // Simple focus trap for modal (keeps keyboard focus inside)
+    // Focus trap for modals
     let _previousActive = null;
+    let trapHandler = null;
     function trapFocus(modal) {
         _previousActive = document.activeElement;
         const focusable = modal.querySelectorAll('a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])');
@@ -290,9 +383,8 @@
         if (!first) return;
         first.focus();
 
-        modal.addEventListener('keydown', trapHandler = (e) => {
+        trapHandler = (e) => {
             if (e.key === 'Escape') {
-                // close whichever modal is visible
                 if (!document.getElementById('approveModal').classList.contains('hidden')) closeApproveModal();
                 if (!document.getElementById('rejectModal').classList.contains('hidden')) closeRejectModal();
             }
@@ -305,8 +397,10 @@
                     first.focus();
                 }
             }
-        });
+        };
+        modal.addEventListener('keydown', trapHandler);
     }
+
     function releaseFocus() {
         const modals = [document.getElementById('approveModal'), document.getElementById('rejectModal')];
         modals.forEach(m => m.removeEventListener('keydown', trapHandler));
@@ -331,7 +425,7 @@
         }
     });
 
-    // Optional: basic table sort (maintained from your earlier script)
+    // Table sort
     function sortTable(columnIndex, type) {
         const table = document.querySelector('table');
         const tbody = table.querySelector('tbody');
@@ -356,42 +450,5 @@
         rows.forEach(row => tbody.appendChild(row));
     }
 </script>
-
-<script>
-function approveTransaction(id) {
-    fetch(`/transactions/${id}/approve`, {
-        method: "POST",
-        headers: {
-            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-            "Accept": "application/json"
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            alert("Transaction approved ✅");
-            document.getElementById(`transaction-row-${id}`).remove();
-        }
-    });
-}
-
-function declineTransaction(id) {
-    fetch(`/transactions/${id}/decline`, {
-        method: "POST",
-        headers: {
-            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-            "Accept": "application/json"
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            alert("Transaction declined ❌");
-            document.getElementById(`transaction-row-${id}`).remove();
-        }
-    });
-}
-</script>
-
 @endpush
 @endsection

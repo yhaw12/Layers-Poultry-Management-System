@@ -186,7 +186,7 @@
                     if (timeout) {
                         this.timeoutId = setTimeout(() => {
                             this.hide();
-                            console.warn('Loader timeout: Page took too long to load.');
+                            // console.warn('Loader timeout: Page took too long to load.');
                             if (this.messageEl) {
                                 this.messageEl.textContent = 'Loading timed out. Click to dismiss.';
                                 this.messageEl.classList.remove('hidden');

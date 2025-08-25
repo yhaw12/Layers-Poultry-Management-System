@@ -11,15 +11,17 @@ class CreateSalesTable extends Migration
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_id')->constrained('customers')->onDelete('restrict');
-            $table->morphs('saleable'); 
+            $table->morphs('saleable');
             $table->integer('quantity');
             $table->decimal('unit_price', 8, 2);
             $table->decimal('total_amount', 8, 2);
-              $table->enum('status', ['pending', 'paid', 'overdue'])->default('pending');
+            $table->decimal('paid_amount', 8, 2)->default(0);
+            $table->enum('status', ['pending', 'paid', 'partially_paid', 'overdue'])->default('pending');
             $table->date('sale_date');
+            $table->date('due_date')->nullable();
             $table->string('product_variant')->nullable();
             $table->timestamps();
-             $table->softDeletes();
+            $table->softDeletes();
         });
     }
 
