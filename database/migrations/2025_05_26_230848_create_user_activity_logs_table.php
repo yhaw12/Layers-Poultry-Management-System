@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('action');
-            $table->text('details');
+            $table->text('details')->nullable();
             $table->timestamps();
              $table->softDeletes();
         });

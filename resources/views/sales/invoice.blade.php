@@ -1,4 +1,3 @@
-{{-- sales.invoice.blade.php --}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -85,8 +84,8 @@
                     <td>{{ $sale->saleable_type == 'App\Models\Bird' ? ($sale->saleable->breed . ' (' . $sale->saleable->type . ')') : ($sale->saleable ? 'Eggs' : 'Unknown Product') }}</td>
                     <td>{{ ucfirst($sale->product_variant ?? 'N/A') }}</td>
                     <td>{{ $sale->quantity }}</td>
-                    <td>${{ number_format($sale->unit_price, 2) }}</td>
-                    <td>${{ number_format($sale->total_amount, 2) }}</td>
+                    <td>GHS {{ number_format($sale->unit_price, 2) }}</td>
+                    <td>GHS {{ number_format($sale->total_amount, 2) }}</td>
                 </tr>
             </tbody>
         </table>
@@ -106,7 +105,7 @@
                     @foreach($sale->payments as $payment)
                         <tr>
                             <td>{{ $payment->payment_date->format('F j, Y') }}</td>
-                            <td>${{ number_format($payment->amount, 2) }}</td>
+                            <td>GHS {{ number_format($payment->amount, 2) }}</td>
                             <td>{{ $payment->payment_method ?? 'N/A' }}</td>
                             <td>{{ $payment->notes ?? 'N/A' }}</td>
                         </tr>
@@ -117,9 +116,9 @@
 
         <div class="footer">
             <div class="total">
-                <p><strong>Total Amount:</strong> ${{ number_format($sale->total_amount, 2) }}</p>
-                <p><strong>Paid Amount:</strong> ${{ number_format($sale->paid_amount, 2) }}</p>
-                <p><strong>Balance Due:</strong> ${{ number_format($sale->total_amount - $sale->paid_amount, 2) }}</p>
+                <p><strong>Total Amount:</strong> GHS {{ number_format($sale->total_amount, 2) }}</p>
+                <p><strong>Paid Amount:</strong> GHS {{ number_format($sale->paid_amount, 2) }}</p>
+                <p><strong>Balance Due:</strong> GHS {{ number_format($sale->total_amount - $sale->paid_amount, 2) }}</p>
             </div>
             <div class="company-info">
                 <p><strong>{{ $company['name'] }}</strong></p>

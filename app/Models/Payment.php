@@ -11,11 +11,15 @@ class Payment extends Model
 
     protected $fillable = [
         'sale_id', 'customer_id', 'amount', 'payment_date', 'payment_method', 'notes',
+        // 'created_by',
     ];
 
-    protected $casts = [
-        'payment_date' => 'date',
+        protected $dates = [
+        'payment_date',
+        'created_at',
+        'updated_at',
     ];
+
 
     public function sale()
     {

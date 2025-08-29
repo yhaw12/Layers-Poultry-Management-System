@@ -15,7 +15,7 @@ class AlertFactory extends Factory
     {
         $type = $this->faker->randomElement([
             'info', 'warning', 'critical', 'success',
-            'inventory', 'sale', 'mortality', 'backup_success', 'backup_failed'
+            'inventory', 'sale', 'mortality', 'backup_success', 'backup_failed', 'payment'
         ]);
 
         $isRead = $this->faker->boolean(50);

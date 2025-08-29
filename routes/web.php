@@ -58,16 +58,13 @@ Route::middleware('auth')->group(function () {
          ->name('dashboard.export')
          ->middleware('role:admin');
 
-    
-
-// Alerts/Notifications
-    Route::get('alerts', [AlertController::class, 'index'])->name('alerts.index'); // JSON for bell/dropdown
-    Route::get('notifications', [AlertController::class, 'view'])->name('notifications.index'); // Full page view
+    // Alerts/Notifications
+    Route::get('alerts', [AlertController::class, 'index'])->name('alerts.index');
+    Route::get('notifications', [AlertController::class, 'view'])->name('notifications.index');
     Route::post('alerts/{alert}/read', [AlertController::class, 'read'])->name('alerts.read');
     Route::post('alerts/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismiss-all');
     Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])->name('alerts.custom.create')
         ->middleware('role:admin');
-
 
     // Core resources
     Route::resources([
@@ -85,7 +82,6 @@ Route::middleware('auth')->group(function () {
         'payroll'          => PayrollController::class,
         'sales'            => SalesController::class,
         'suppliers'        => SupplierController::class,
-        'medicine-logs'    => MedicineLogController::class,
         'vaccination-logs' => VaccinationLogController::class,
     ]);
 
@@ -95,32 +91,17 @@ Route::middleware('auth')->group(function () {
     // Other routes
     Route::delete('eggs/bulk', [EggController::class, 'bulkDelete'])->name('eggs.bulkDelete');
     Route::get('feed/consumption', [FeedController::class, 'consumption'])->name('feed.consumption');
-    // Route::get('medicine-logs/purchase', [MedicineLogController::class, 'purchase'])->name('medicine-logs.purchase');
-    // Route::get('medicine-logs/consumption', [MedicineLogController::class, 'consumption'])->name('medicine-logs.consumption');
     Route::get('sales/eggs', [SalesController::class, 'sales'])->name('eggs.sales');
     Route::get('sales/birds', [SalesController::class, 'birdSales'])->name('sales.birds');
-    Route::post('sales/{sale}/status', [SalesController::class, 'updateStatus'])->name('sales.updateStatus');
-    Route::get('sales/{sale}/invoice', [SalesController::class, 'invoice'])->name('sales.invoice');
-    Route::get('sales/{sale}/email', [SalesController::class, 'emailInvoice'])->name('sales.emailInvoice');
-    Route::post('sales/{sale}/payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment');
-    Route::get('invoices', [SalesController::class, 'invoices'])->name('invoices.index');
+    // Route::post('sales/{sale}/status', [SalesController::class, 'updateStatus'])->name('sales.updateStatus');
+    // Route::get('sales/{sale}/invoice', [SalesController::class, 'invoice'])->name('sales.invoice');
+    // Route::get('sales/{sale}/email', [SalesController::class, 'emailInvoice'])->name('sales.emailInvoice');
+    // Route::post('sales/{sale}/payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment');
+    // Route::get('sales/pending-payments', [SalesController::class, 'pendingPayments'])->name('sales.pendingPayments');
     Route::post('payroll/generate', [PayrollController::class, 'generateMonthly'])->name('payroll.generate');
     Route::get('payroll/export', [PayrollController::class, 'exportPDF'])->name('payroll.export')->middleware('role:admin');
-    // Route::prefix('reports')->name('reports.')->group(function () {
-    //     Route::get('export', [ReportController::class, 'export'])->name('export');
-    //     Route::match(['get', 'post'], '{type?}', [ReportController::class, 'index'])->name('index');
-    //     Route::get('custom', [ReportController::class, 'custom'])->name('custom');
-    // });
-
-    
-// Route::prefix('reports')->group(function () {
-//     Route::get('/{type}', [ReportController::class, 'generate'])
-//         ->name('reports.generate');
-// });
-
-Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
-
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
     Route::get('diseases', [DiseaseController::class, 'index'])->name('diseases.index');
     Route::get('diseases/{disease}/history', [DiseaseController::class, 'history'])->name('diseases.history');
     Route::post('diseases', [DiseaseController::class, 'store'])->name('diseases.store');
@@ -136,17 +117,22 @@ Route::get('/reports/export', [ReportController::class, 'export'])->name('report
     Route::get('/transactions/{transaction}', [TransactionsController::class, 'show'])->name('transactions.show');
     Route::post('/transactions/{transaction}/approve', [TransactionsController::class, 'approve'])->name('transactions.approve');
     Route::post('/transactions/{transaction}/decline', [TransactionsController::class, 'reject'])->name('transactions.reject');
-
-    // Soft delete routes
     Route::get('birds/trashed', [BirdsController::class, 'trashed'])->name('birds.trashed');
     Route::post('birds/{id}/restore', [BirdsController::class, 'restore'])->name('birds.restore');
-
-
-    // Route::get('/weather/json', [WeatherController::class, 'current'])->name('weather.json'); // 
-    Route::middleware('auth')->get('/weather/fetch', [WeatherController::class, 'fetch'])->name('weather.fetch');
-    // Route::get('/reminders', [DashboardController::class, 'reminders'])->name('reminders.index');
+    Route::get('/weather/fetch', [WeatherController::class, 'fetch'])->name('weather.fetch');
+    
+// Route::get('sales/pending-payments', [SalesController::class, 'pendingPayments'])->name('sales.pendingPayments');
 
     
+});
+
+
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::resource('sales', SalesController::class);
+    Route::get('sales/{sale}/invoice', [SalesController::class, 'invoice'])->name('sales.invoice');
+    Route::post('sales/{sale}/record-payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment');
+    Route::post('sales/{sale}/update-status', [SalesController::class, 'updateStatus'])->name('sales.updateStatus');
+    // Add any other sale related routes you need...
 });
 
 /*
@@ -160,10 +146,17 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
 });
 
-// use Spatie\ResponseCache\Middlewares\DoNotCacheResponse;
+// Route::middleware(['web', 'auth'])->group(function () {
+//     Route::get('/sales/pending-payments', [SalesController::class, 'pendingPayments'])->name('sales.pendingPayments');
+//     Route::post('/sales/{sale}/payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment');
+// });
 
-// Route::get('/alerts', function () {
-//     return response()->json([
-//         ['id' => 1, 'message' => 'Test notification', 'type' => 'info', 'url' => '#'],
-//     ]);
-// })->withoutMiddleware(\Spatie\ResponseCache\Middlewares\CacheResponse::class);
+
+// Route::middleware(['auth'])->group(function () {
+// // Returns all unpaid (non-paid) sales as JSON. Optional ?status=pending|partially_paid|overdue
+// Route::get('sales/pending-json', [SalesController::class, 'pendingJson'])->name('sales.pendingJson');
+
+
+// // Returns a single sale as JSON (sale record + related customer + saleable summary)
+// Route::get('sales/{sale}/json', [SalesController::class, 'json'])->name('sales.json');
+// });

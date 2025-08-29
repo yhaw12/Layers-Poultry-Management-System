@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -10,21 +11,28 @@ class Sale extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'saleable_type', 'saleable_id', 'customer_id', 'quantity', 'unit_price',
-        'total_amount', 'sale_date', 'due_date', 'paid_amount', 'status',
+        'saleable_type',
+        'saleable_id',
+        'customer_id',
+        'quantity',
+        'unit_price',
+        'total_amount',
+        'sale_date',
+        'due_date',
+        'paid_amount',
+        'status',
+        'product_variant',
+        // 'created_by',
     ];
 
-    protected $casts = [
-        'sale_date' => 'date',
-        'due_date' => 'date',
-        'deleted_at' => 'datetime',
-        'quantity' => 'decimal:2',
-        'unit_price' => 'decimal:2',
-        'total_amount' => 'decimal:2',
-        'paid_amount' => 'decimal:2',
+     protected $dates = [
+        'sale_date',
+        'due_date',
+        'created_at',
+        'updated_at',
     ];
 
-   public function customer()
+    public function customer()
     {
         return $this->belongsTo(Customer::class);
     }
@@ -39,22 +47,46 @@ class Sale extends Model
         return $this->hasMany(Payment::class);
     }
 
-    public function isPaid()
+    /**
+     * Return true if sale is fully paid (with safe float compare).
+     */
+    public function isPaid(): bool
     {
-        return $this->paid_amount >= $this->total_amount;
+        return round((float) $this->paid_amount, 2) >= round((float) $this->total_amount, 2);
     }
 
-    public function updatePaymentStatus()
+    /**
+     * Update the status based on paid_amount and due_date.
+     */
+    public function updatePaymentStatus(): void
     {
-        if ($this->isPaid()) {
+        $paid = (float) $this->paid_amount;
+        $total = (float) $this->total_amount;
+
+        if (round($paid, 2) >= round($total, 2)) {
             $this->status = 'paid';
-        } elseif ($this->paid_amount > 0) {
+        } elseif ($paid > 0) {
             $this->status = 'partially_paid';
-        } elseif ($this->due_date && $this->due_date->isPast()) {
-            $this->status = 'overdue';
         } else {
-            $this->status = 'pending';
+            // not paid yet; check overdue
+            if ($this->due_date && Carbon::now()->greaterThan(Carbon::parse($this->due_date))) {
+                $this->status = 'overdue';
+            } else {
+                $this->status = 'pending';
+            }
         }
-        $this->save();
+
+        // Only save if dirty to avoid needless DB writes
+        if ($this->isDirty('status')) {
+            $this->save();
+        }
+    }
+
+    /**
+     * Convenience: balance remaining
+     */
+    public function balance(): float
+    {
+        return max(0, round((float)$this->total_amount - (float)$this->paid_amount, 2));
     }
 }

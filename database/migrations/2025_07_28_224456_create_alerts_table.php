@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->enum('type', [
                 'info', 'warning', 'critical', 'success',
-                'inventory', 'sale', 'mortality', 'backup_success', 'backup_failed'
+                'inventory', 'sale', 'mortality', 'backup_success', 'backup_failed','payment'
             ])->default('info');
             $table->text('message');
             $table->boolean('is_read')->default(false);

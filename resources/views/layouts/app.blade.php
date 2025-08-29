@@ -4,27 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="base-url" content="{{ url('/') }}"> <!-- Added for reliable base URL -->
+    <meta name="base-url" content="{{ url('/') }}">
     <title>Poultry Tracker</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
 </head>
 <body class="bg-gray-100 text-gray-900 dark:bg-[#0a0a23] dark:text-white font-sans">
     <!-- Centralized Loader Overlay -->
     <div id="global-loader" class="loader-overlay hidden" onclick="globalLoader && globalLoader.hide()">
         <div class="flex flex-col items-center">
             <div class="loader-spinner"></div>
-            <p id="loader-message" class="loader-message hidden"></p>
+            <!-- Removed loader-message element -->
         </div>
     </div>
 
-    <!-- Notification Container -->
-
-
     @auth
         <div class="flex h-screen relative">
-            <!-- Sidebar Overlay for Mobile -->
-            <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden"></div>
 
             <!-- Sidebar -->
             @include('partials.sidebar')
@@ -74,7 +68,6 @@
                                 @endif
 
                                 <!-- Notification Bell -->
-                            
                                 <div class="relative">
                                     <button id="notification-bell" 
                                             class="p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" 
@@ -88,19 +81,23 @@
                                     </button>
                                     
                                     <!-- Notification Dropdown -->
-                                    <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-gray-900 shadow-lg rounded-lg border dark:border-gray-700 z-50">
-                                        <div class="p-4 border-b dark:border-gray-700">
+                                    <!-- Notification Dropdown (improved look) -->
+                                    <div id="notification-dropdown"
+                                        class="hidden absolute right-0 mt-2 w-96 bg-white dark:bg-gray-900 shadow-2xl rounded-xl border dark:border-gray-700 z-50"
+                                        role="menu" aria-labelledby="notification-bell" aria-hidden="true">
+                                        <div class="px-4 py-3 border-b dark:border-gray-700 flex items-center justify-between">
                                             <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Notifications</h3>
+                                            <span id="notification-count" class="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded-full px-2 py-0.5 hidden">0</span>
                                         </div>
-                                        <div id="notification-list" class="max-h-64 overflow-y-auto">
-                                            <!-- Notifications will be loaded here -->
-                                        </div>
-                                        <div class="p-4 border-t dark:border-gray-700">
-                                            <button id="dismiss-all-notifications" class="text-blue-600 dark:text-blue-400 hover:underline text-sm w-full text-left">
-                                                Dismiss All
-                                            </button>
+
+                                        <div id="notification-list" class="max-h-80 overflow-y-auto divide-y dark:divide-gray-800"></div>
+
+                                        <div class="p-3 border-t dark:border-gray-700 flex items-center justify-between">
+                                            <button id="dismiss-all-notifications" class="text-sm hover:underline">Dismiss All</button>
+                                            <a href="{{ route('alerts.index') }}" class="text-sm hover:underline">View all</a>
                                         </div>
                                     </div>
+
                                 </div>
 
                                 <!-- Dark Mode Toggle -->
@@ -125,7 +122,6 @@
                                         </svg>
                                     </button>
                                     <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 shadow-lg rounded-lg border dark:border-gray-700 z-50">
-                                        
                                         <div class="py-1">
                                             <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile</a>
                                             <a href="{{ route('settings.index') }}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
@@ -154,43 +150,26 @@
             @yield('content')
         </main>
     @endguest
-
-    <!-- Scripts -->
-    {{-- <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.min.js"></script> --}}
-    {{-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  --}}
     
     <script>
         // Centralized Loader Class
         class Loader {
             constructor() {
                 this.loader = document.getElementById('global-loader');
-                this.messageEl = document.getElementById('loader-message');
                 this.timeoutId = null;
                 this.defaultTimeout = 10000;
                 this.isShowing = false;
             }
 
-            show(message = 'Loading...', timeout = this.defaultTimeout) {
+            show(timeout = this.defaultTimeout) {
                 if (this.loader && !this.isShowing) {
                     this.isShowing = true;
                     this.loader.classList.remove('hidden');
-                    if (this.messageEl) {
-                        if (message) {
-                            // this.messageEl.textContent = message;
-                            this.messageEl.classList.remove('hidden');
-                        } else {
-                            this.messageEl.classList.add('hidden');
-                        }
-                    }
                     if (this.timeoutId) clearTimeout(this.timeoutId);
                     if (timeout) {
                         this.timeoutId = setTimeout(() => {
                             this.hide();
-                            // console.warn('Loader timeout: Page took too long to load.');
-                            if (this.messageEl) {
-                                this.messageEl.textContent = 'Loading timed out. Click to dismiss.';
-                                this.messageEl.classList.remove('hidden');
-                            }
+                            console.warn('Loader timeout: Page took too long to load.');
                         }, timeout);
                     }
                 }
@@ -200,10 +179,6 @@
                 if (this.loader && this.isShowing) {
                     this.isShowing = false;
                     this.loader.classList.add('hidden');
-                    if (this.messageEl) {
-                        this.messageEl.classList.add('hidden');
-                        this.messageEl.textContent = '';
-                    }
                     if (this.timeoutId) {
                         clearTimeout(this.timeoutId);
                         this.timeoutId = null;
@@ -213,288 +188,266 @@
         }
 
         // Notification Manager
-// Fixed Notification Manager 
-class NotificationManager {
-    constructor() {
-        this.dropdown = document.getElementById('notification-dropdown');
-        this.notificationList = document.getElementById('notification-list');
-        this.notificationCount = document.getElementById('notification-count');
-        this.dismissAllButton = document.getElementById('dismiss-all-notifications');
-        this.bellButton = document.getElementById('notification-bell');
-        this.notifications = [];
-        this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-        this.baseUrl = window.location.origin;
-        this.pollInterval = null;
-        this.dropdownOpen = false;
-        
-        if (!this.csrfToken) {
-            console.error('CSRF token missing');
-        }
-        
-        if (!this.dropdown || !this.notificationList || !this.notificationCount || !this.bellButton) {
-            console.error('Notification DOM elements missing');
-            return;
-        }
-        
-        this.init();
-    }
-
-    init() {
-        // Bell button click handler
-        this.bellButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggleDropdown();
-        });
-        
-        // Dismiss all button click handler
-        if (this.dismissAllButton) {
-            this.dismissAllButton.addEventListener('click', () => {
-                this.dismissAll();
-            });
-        }
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!this.dropdown.contains(e.target) && !this.bellButton.contains(e.target)) {
-                this.closeDropdown();
-            }
-        });
-        
-        // Fetch notifications on load
-        this.fetchNotifications();
-        
-        // Start polling for new notifications
-        this.startPolling();
-    }
-
-    toggleDropdown() {
-        this.dropdownOpen = !this.dropdownOpen;
-        if (this.dropdownOpen) {
-            this.dropdown.classList.remove('hidden');
-            this.bellButton.setAttribute('aria-expanded', 'true');
-            // Fetch fresh notifications when opening
-            this.fetchNotifications();
-        } else {
-            this.dropdown.classList.add('hidden');
-            this.bellButton.setAttribute('aria-expanded', 'false');
-        }
-    }
-
-    closeDropdown() {
-        this.dropdownOpen = false;
-        this.dropdown.classList.add('hidden');
-        this.bellButton.setAttribute('aria-expanded', 'false');
-    }
-
-    async fetchNotifications() {
-        if (!this.csrfToken || !this.notificationList) {
-            console.error('CSRF token or notification list missing');
-            return;
-        }
-        
-        try {
-            const response = await fetch(`${this.baseUrl}/alerts`, {
-                method: 'GET',
-                headers: {
-                    'X-CSRF-TOKEN': this.csrfToken,
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
-            }
-            
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Response is not JSON');
-            }
-            
-            const notifications = await response.json();
-            
-            if (Array.isArray(notifications)) {
-                this.notifications = notifications;
-                this.updateNotificationDropdown();
-                this.updateNotificationCount();
-            } else if (notifications.error) {
-                console.error('Server error:', notifications.error);
-                this.showError('Failed to load notifications');
-            } else {
-                console.warn('Unexpected response format:', notifications);
-            }
-        } catch (error) {
-            console.error('Failed to fetch notifications:', error);
-            this.showError('Failed to load notifications. Please refresh.');
-        }
-    }
-
-    async markAsRead(id) {
-        if (!this.csrfToken) return;
-        
-        try {
-            const response = await fetch(`${this.baseUrl}/alerts/${id}/read`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': this.csrfToken,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            if (result.success) {
-                // Remove from local notifications array
-                this.notifications = this.notifications.filter(n => n.id !== id);
-                this.updateNotificationDropdown();
-                this.updateNotificationCount();
-            }
-        } catch (error) {
-            console.error(`Failed to mark notification ${id} as read:`, error);
-            this.showError('Failed to mark as read. Please try again.');
-        }
-    }
-
-    async dismissAll() {
-        if (!this.csrfToken) return;
-        
-        try {
-            const response = await fetch(`${this.baseUrl}/alerts/dismiss-all`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': this.csrfToken,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            if (result.success) {
+        class NotificationManager {
+            constructor() {
+                this.dropdown = document.getElementById('notification-dropdown');
+                this.notificationList = document.getElementById('notification-list');
+                this.notificationCount = document.getElementById('notification-count');
+                this.dismissAllButton = document.getElementById('dismiss-all-notifications');
+                this.bellButton = document.getElementById('notification-bell');
                 this.notifications = [];
-                this.updateNotificationDropdown();
-                this.updateNotificationCount();
-            }
-        } catch (error) {
-            console.error('Failed to dismiss all notifications:', error);
-            this.showError('Failed to dismiss notifications. Please try again.');
-        }
-    }
-
-    updateNotificationDropdown() {
-        if (!this.notificationList) return;
-        
-        if (this.notifications.length > 0) {
-            this.notificationList.innerHTML = this.notifications.map(n => {
-                const bgClass = this.getBackgroundClass(n.type);
-                const textClass = this.getTextClass(n.type);
+                this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                this.baseUrl = window.location.origin;
+                this.pollInterval = null;
+                this.dropdownOpen = false;
                 
-                return `
-                    <div class="p-3 border-b dark:border-gray-700 ${bgClass}">
-                        <p class="text-sm text-gray-800 dark:text-gray-200">${this.escapeHtml(n.message)}</p>
-                        <div class="flex gap-2 mt-1">
-                            ${n.url && n.url !== '#' ? `<a href="${this.escapeHtml(n.url)}" class="text-blue-600 dark:text-blue-400 hover:underline text-xs">View</a>` : ''}
-                            <button class="text-blue-600 dark:text-blue-400 hover:underline text-xs" onclick="window.notificationManager.markAsRead('${n.id}')">Mark as Read</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        } else {
-            this.notificationList.innerHTML = '<p class="p-3 text-sm text-gray-600 dark:text-gray-400">No new notifications.</p>';
+                if (!this.csrfToken) {
+                    console.error('CSRF token missing');
+                }
+                
+                if (!this.dropdown || !this.notificationList || !this.notificationCount || !this.bellButton) {
+                    console.error('Notification DOM elements missing');
+                    return;
+                }
+                
+                this.init();
+            }
+
+            init() {
+                this.bellButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleDropdown();
+                });
+                
+                if (this.dismissAllButton) {
+                    this.dismissAllButton.addEventListener('click', () => {
+                        this.dismissAll();
+                    });
+                }
+                
+                document.addEventListener('click', (e) => {
+                    if (!this.dropdown.contains(e.target) && !this.bellButton.contains(e.target)) {
+                        this.closeDropdown();
+                    }
+                });
+                
+                this.fetchNotifications();
+                this.startPolling();
+            }
+
+            toggleDropdown() {
+                this.dropdownOpen = !this.dropdownOpen;
+                if (this.dropdownOpen) {
+                    this.dropdown.classList.remove('hidden');
+                    this.bellButton.setAttribute('aria-expanded', 'true');
+                    this.fetchNotifications();
+                } else {
+                    this.dropdown.classList.add('hidden');
+                    this.bellButton.setAttribute('aria-expanded', 'false');
+                }
+            }
+
+            closeDropdown() {
+                this.dropdownOpen = false;
+                this.dropdown.classList.add('hidden');
+                this.bellButton.setAttribute('aria-expanded', 'false');
+            }
+
+            async fetchNotifications() {
+                if (!this.csrfToken || !this.notificationList) {
+                    console.error('CSRF token or notification list missing');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${this.baseUrl}/alerts`, {
+                        method: 'GET',
+                        headers: {
+                            'X-CSRF-TOKEN': this.csrfToken,
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+                    
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Response is not JSON');
+                    }
+                    
+                    const notifications = await response.json();
+                    
+                    if (Array.isArray(notifications)) {
+                        this.notifications = notifications;
+                        this.updateNotificationDropdown();
+                        this.updateNotificationCount();
+                    } else if (notifications.error) {
+                        console.error('Server error:', notifications.error);
+                        this.showError('Failed to load notifications');
+                    } else {
+                        console.warn('Unexpected response format:', notifications);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch notifications:', error);
+                    this.showError('Failed to load notifications. Please refresh.');
+                }
+            }
+
+            async markAsRead(id) {
+                if (!this.csrfToken) return;
+                
+                try {
+                    const response = await fetch(`${this.baseUrl}/alerts/${id}/read`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': this.csrfToken,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        this.notifications = this.notifications.filter(n => n.id !== id);
+                        this.updateNotificationDropdown();
+                        this.updateNotificationCount();
+                    }
+                } catch (error) {
+                    console.error(`Failed to mark notification ${id} as read:`, error);
+                    this.showError('Failed to mark as read. Please try again.');
+                }
+            }
+
+            async dismissAll() {
+                if (!this.csrfToken) return;
+                
+                try {
+                    const response = await fetch(`${this.baseUrl}/alerts/dismiss-all`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': this.csrfToken,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        this.notifications = [];
+                        this.updateNotificationDropdown();
+                        this.updateNotificationCount();
+                    }
+                } catch (error) {
+                    console.error('Failed to dismiss all notifications:', error);
+                    this.showError('Failed to dismiss notifications. Please try again.');
+                }
+            }
+
+            updateNotificationDropdown() {
+                if (!this.notificationList) return;
+                
+                if (this.notifications.length > 0) {
+                    this.notificationList.innerHTML = this.notifications.map(n => {
+                        const bgClass = this.getBackgroundClass(n.type);
+                        const textClass = this.getTextClass(n.type);
+                        
+                        return `
+                            <div class="p-3 border-b dark:border-gray-700 ${bgClass}">
+                                <p class="text-sm text-gray-800 dark:text-gray-200">${this.escapeHtml(n.message)}</p>
+                                <div class="flex gap-2 mt-1">
+                                    ${n.url && n.url !== '#' ? `<a href="${this.escapeHtml(n.url)}" class="text-blue-600 dark:text-blue-400 hover:underline text-xs">View</a>` : ''}
+                                    <button class="text-blue-600 dark:text-blue-400 hover:underline text-xs" onclick="window.notificationManager.markAsRead('${n.id}')">Mark as Read</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    this.notificationList.innerHTML = '<p class="p-3 text-sm text-gray-600 dark:text-gray-400">No new notifications.</p>';
+                }
+            }
+
+            updateNotificationCount() {
+                if (!this.notificationCount) return;
+                
+                const count = this.notifications.length;
+                this.notificationCount.textContent = count;
+                
+                if (count > 0) {
+                    this.notificationCount.classList.remove('hidden');
+                } else {
+                    this.notificationCount.classList.add('hidden');
+                }
+            }
+
+            getBackgroundClass(type) {
+                const classes = {
+                    'critical': 'bg-red-50 dark:bg-red-900/20',
+                    'warning': 'bg-yellow-50 dark:bg-yellow-900/20',
+                    'success': 'bg-green-50 dark:bg-green-900/20',
+                    'info': 'bg-blue-50 dark:bg-blue-900/20',
+                    'inventory': 'bg-indigo-50 dark:bg-indigo-900/20',
+                    'sale': 'bg-green-50 dark:bg-green-900/20',
+                    'mortality': 'bg-red-50 dark:bg-red-900/20',
+                    'backup_success': 'bg-green-50 dark:bg-green-900/20',
+                    'backup_failed': 'bg-red-50 dark:bg-red-900/20'
+                };
+                return classes[type] || classes['info'];
+            }
+
+            getTextClass(type) {
+                const classes = {
+                    'critical': 'text-red-600 dark:text-red-400',
+                    'warning': 'text-yellow-600 dark:text-yellow-400',
+                    'success': 'text-green-600 dark:text-green-400',
+                    'info': 'text-blue-600 dark:text-blue-400'
+                };
+                return classes[type] || classes['info'];
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            showError(message) {
+                if (this.notificationList) {
+                    this.notificationList.innerHTML = `<p class="p-3 text-sm text-red-600 dark:text-red-400">${this.escapeHtml(message)}</p>`;
+                }
+            }
+
+            startPolling(interval = 30000) {
+                if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                }
+                this.pollInterval = setInterval(() => {
+                    this.fetchNotifications();
+                }, interval);
+            }
+
+            stopPolling() {
+                if (this.pollInterval) {
+                    clearInterval(this.pollInterval);
+                    this.pollInterval = null;
+                }
+            }
         }
-    }
-
-    updateNotificationCount() {
-        if (!this.notificationCount) return;
-        
-        const count = this.notifications.length;
-        this.notificationCount.textContent = count;
-        
-        if (count > 0) {
-            this.notificationCount.classList.remove('hidden');
-        } else {
-            this.notificationCount.classList.add('hidden');
-        }
-    }
-
-    getBackgroundClass(type) {
-        const classes = {
-            'critical': 'bg-red-50 dark:bg-red-900/20',
-            'warning': 'bg-yellow-50 dark:bg-yellow-900/20',
-            'success': 'bg-green-50 dark:bg-green-900/20',
-            'info': 'bg-blue-50 dark:bg-blue-900/20',
-            'inventory': 'bg-indigo-50 dark:bg-indigo-900/20',
-            'sale': 'bg-green-50 dark:bg-green-900/20',
-            'mortality': 'bg-red-50 dark:bg-red-900/20',
-            'backup_success': 'bg-green-50 dark:bg-green-900/20',
-            'backup_failed': 'bg-red-50 dark:bg-red-900/20'
-        };
-        return classes[type] || classes['info'];
-    }
-
-    getTextClass(type) {
-        const classes = {
-            'critical': 'text-red-600 dark:text-red-400',
-            'warning': 'text-yellow-600 dark:text-yellow-400',
-            'success': 'text-green-600 dark:text-green-400',
-            'info': 'text-blue-600 dark:text-blue-400'
-        };
-        return classes[type] || classes['info'];
-    }
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    showError(message) {
-        if (this.notificationList) {
-            this.notificationList.innerHTML = `<p class="p-3 text-sm text-red-600 dark:text-red-400">${this.escapeHtml(message)}</p>`;
-        }
-    }
-
-    startPolling(interval = 30000) {
-        if (this.pollInterval) {
-            clearInterval(this.pollInterval);
-        }
-        this.pollInterval = setInterval(() => {
-            this.fetchNotifications();
-        }, interval);
-    }
-
-    stopPolling() {
-        if (this.pollInterval) {
-            clearInterval(this.pollInterval);
-            this.pollInterval = null;
-        }
-    }
-}
-
-// Initialize notification manager when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Make it globally accessible
-    window.notificationManager = new NotificationManager();
-});
-
-// Clean up on page unload
-window.addEventListener('beforeunload', function() {
-    if (window.notificationManager) {
-        window.notificationManager.stopPolling();
-    }
-});
 
         // Search Manager
         class SearchManager {
@@ -561,7 +514,7 @@ window.addEventListener('beforeunload', function() {
             async performSearch(query) {
                 if (!this.csrfToken || !this.results) return;
                 try {
-                    globalLoader.show('Searching...');
+                    globalLoader.show();
                     const response = await fetch(`${this.baseUrl}/search?q=${encodeURIComponent(query)}`, {
                         headers: {
                             'X-CSRF-TOKEN': this.csrfToken,
@@ -599,7 +552,7 @@ window.addEventListener('beforeunload', function() {
 
         // Consolidated DOMContentLoaded Handler
         document.addEventListener('DOMContentLoaded', () => {
-            globalLoader.show('Loading page...');
+            globalLoader.show();
 
             // Initialize notifications and start polling
             if (notificationManager.container && notificationManager.notificationList) {
@@ -611,20 +564,13 @@ window.addEventListener('beforeunload', function() {
             searchManager.init();
 
             // Notification Bell Toggle
-            const notificationBell = document.getElementById('notification-bell');
-            const notificationDropdown = document.getElementById('notification-dropdown');
-            if (notificationBell && notificationDropdown) {
-                notificationBell.addEventListener('click', () => {
-                    notificationDropdown.classList.toggle('hidden');
-                    notificationBell.setAttribute('aria-expanded', !notificationDropdown.classList.contains('hidden'));
-                });
-                document.addEventListener('click', (e) => {
-                    if (!notificationBell.contains(e.target) && !notificationDropdown.contains(e.target)) {
-                        notificationDropdown.classList.add('hidden');
-                        notificationBell.setAttribute('aria-expanded', 'false');
-                    }
-                });
-            }
+           // Guard: ensure NotificationManager will handle bell (no extra handlers)
+                const notificationBell = document.getElementById('notification-bell');
+                const notificationDropdown = document.getElementById('notification-dropdown');
+                if (!window.notificationManager && notificationBell && notificationDropdown) {
+                    // fallback: no-op — NotificationManager should be present
+                }
+
 
             // Dismiss All Notifications
             const dismissAllButton = document.getElementById('dismiss-all-notifications');
@@ -652,7 +598,7 @@ window.addEventListener('beforeunload', function() {
             document.addEventListener('submit', (event) => {
                 const form = event.target;
                 if (form.tagName === 'FORM') {
-                    globalLoader.show('Submitting form...');
+                    globalLoader.show();
                 }
             });
 
@@ -688,6 +634,15 @@ window.addEventListener('beforeunload', function() {
                     });
                 }
             })();
+
+            // Mobile Menu Toggle for Sidebar
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.openSidebar(); // Call the openSidebar function from partials.sidebar
+                });
+            }
 
             // Global Error Handler
             window.onerror = function(message, source, lineno, colno, error) {
