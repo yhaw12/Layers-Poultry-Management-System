@@ -53,10 +53,31 @@ class CustomerController extends Controller
                          ->with('success', 'Customer updated.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $customer = Customer::findOrFail($id);
-        $customer->delete();
-        return redirect()->route('customers.index')->with('success', 'Customer removed.');
-    }
+            try {
+                $customer = Customer::findOrFail($id);
+                $customer->delete();
+
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Customer deleted successfully.'
+                    ], 200);
+                }
+
+                return redirect()->route('customers.index')->with('success', 'Customer deleted successfully.');
+            } catch (\Exception $e) {
+                // Log::error('Failed to delete bird: ' . $e->getMessage());
+                
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to delete customer. ' . ($e->getCode() == 23000 ? 'This record is linked to other data.' : 'Please try again.')
+                    ], 500);
+                }
+
+            return redirect()->route('customers.index')->with('success', 'Customer removed.');
+        }
+   }
 }

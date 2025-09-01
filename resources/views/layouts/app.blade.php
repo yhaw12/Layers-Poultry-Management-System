@@ -94,7 +94,7 @@
 
                                         <div class="p-3 border-t dark:border-gray-700 flex items-center justify-between">
                                             <button id="dismiss-all-notifications" class="text-sm hover:underline">Dismiss All</button>
-                                            <a href="{{ route('alerts.index') }}" class="text-sm hover:underline">View all</a>
+                                            <a href="{{ route('notifications.index') }}" class="text-sm hover:underline">View all</a>
                                         </div>
                                     </div>
 

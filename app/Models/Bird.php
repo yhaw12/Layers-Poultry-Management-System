@@ -44,4 +44,19 @@ class Bird extends Model
     {
         return $this->morphMany(Sale::class, 'saleable');
     }
+
+    // Scope: only birds with quantity > 0 and not soft-deleted
+    public function scopeAvailable($query)
+    {
+        return $query->whereNull('deleted_at')->where('quantity', '>', 0);
+    }
+
+    // Nicely formatted display name for selects
+    public function displayName(): string
+    {
+        $parts = [$this->breed, $this->type];
+        if ($this->stage) $parts[] = $this->stage;
+        $parts[] = "{$this->quantity} available";
+        return implode(' — ', $parts);
+    }
 }

@@ -134,13 +134,12 @@ class MortalitiesController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         try {
             $mortality = Mortalities::whereNull('deleted_at')->findOrFail($id);
             $bird = Bird::find($mortality->bird_id);
 
-            $mortality->delete();
 
             if ($bird && $bird->stage === 'chick') {
                 $totalDead = Mortalities::where('bird_id', $bird->id)
@@ -151,15 +150,32 @@ class MortalitiesController extends Controller
             }
 
             UserActivityLog::create([
-                'user_id' => Auth::id() ?? 1,
-                'action' => 'deleted_mortality',
-                'details' => "Deleted mortality ID {$id}",
-            ]);
+            'user_id' => auth()->id() ?? 1,
+            'action' => 'deleted_mortality',
+            'details' => "Deleted mortality record of {$mortality->quantity} on {$mortality->date}" . ($mortality->cause ? " (Cause: {$mortality->cause})" : ""),
+        ]);
 
-            return redirect()->route('mortalities.index')->with('success', 'Mortality record deleted successfully.');
+        $mortality->delete();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Mortality record deleted successfully.'
+            ], 200);
+        }
+
+        return redirect()->route('mortalities.index')->with('success', 'Mortality record deleted successfully.');
         } catch (\Exception $e) {
-            Log::error('Failed to delete mortality', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to delete mortality record.');
+            Log::error('Failed to delete mortality record: ' . $e->getMessage());
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete mortality record. ' . ($e->getCode() == 23000 ? 'This record is linked to other data.' : 'Please try again.')
+                ], 500);
+            }
+
+            return redirect()->route('mortalities.index')->with('error', 'Failed to delete mortality record.');
         }
     }
 }

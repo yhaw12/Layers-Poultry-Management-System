@@ -235,4 +235,17 @@
         animation: pulse 2s infinite;
     }
 
+
+    #invoiceModalInner { transform: scale(.95); opacity: 0; transition: transform .18s ease, opacity .18s ease; }
+#invoiceModalInner.open { transform: scale(1); opacity: 1; }
+
+.pagination {
+    @apply flex justify-center space-x-2 mt-4;
+}
+.pagination a, .pagination span {
+    @apply px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-400;
+}
+.pagination .current {
+    @apply bg-blue-500 text-white;
+}
         

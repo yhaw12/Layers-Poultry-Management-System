@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class ExpenseController extends Controller
 {
@@ -120,22 +121,45 @@ class ExpenseController extends Controller
         return redirect()->route('expenses.index')->with('success', 'Expense updated successfully.');
     }
 
-    public function destroy($id)
+     public function destroy(Request $request, $id)
     {
-        $expense = Expense::findOrFail($id);
+        try {
+            $expense = Expense::findOrFail($id);
 
-        Transaction::where('source_type', Expense::class)
-            ->where('source_id', $expense->id)
-            ->delete();
+            // Delete related transactions
+            Transaction::where('source_type', Expense::class)
+                ->where('source_id', $expense->id)
+                ->delete();
 
-        UserActivityLog::create([
-            'user_id' => auth()->id() ?? 1,
-            'action' => 'deleted_expense',
-            'details' => "Deleted expense of \${$expense->amount} for {$expense->category} on {$expense->date}",
-        ]);
+            // Log the activity
+            UserActivityLog::create([
+                'user_id' => auth()->id() ?? 1,
+                'action' => 'deleted_expense',
+                'details' => "Deleted expense of ₵{$expense->amount} for {$expense->category} on {$expense->date}",
+            ]);
 
-        $expense->delete();
+            // Delete the expense (soft delete if enabled)
+            $expense->delete();
 
-        return redirect()->route('expenses.index')->with('success', 'Expense deleted successfully.');
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Expense deleted successfully.'
+                ], 200);
+            }
+
+            return redirect()->route('expenses.index')->with('success', 'Expense deleted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to delete expense: ' . $e->getMessage());
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete expense. ' . ($e->getCode() == 23000 ? 'This expense is linked to other data.' : 'Please try again.')
+                ], 500);
+            }
+
+            return redirect()->route('expenses.index')->with('error', 'Failed to delete expense.');
+        }
     }
 }

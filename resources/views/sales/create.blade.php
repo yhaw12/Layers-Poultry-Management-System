@@ -1,19 +1,16 @@
-
+{{-- sales.create --}}
 @extends('layouts.app')
 
 @section('content')
     <div class="container mx-auto px-4 py-8 space-y-12 bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
-        <!-- Header -->
         <section>
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Add New Sale</h2>
         </section>
 
-        <!-- Form -->
         <section>
             <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
-                <form method="POST" action="{{ route('sales.store') }}" class="space-y-6">
+                <form method="POST" action="{{ route('sales.store') }}" class="space-y-6" id="saleForm">
                     @csrf
-                    <!-- Success/Error Messages -->
                     @if (session('error'))
                         <div class="p-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-400 rounded-lg flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,7 +29,6 @@
                         </div>
                     @endif
 
-                    <!-- Customer Name -->
                     <div>
                         <label for="customer_name" class="block text-gray-700 dark:text-gray-300">Customer Name <span class="text-red-600">*</span></label>
                         <input type="text" name="customer_name" id="customer_name" value="{{ old('customer_name') }}" list="customer_suggestions"
@@ -45,10 +41,9 @@
                         </datalist>
                         @error('customer_name')
                             <p id="customer_name-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
-                    <!-- Customer Phone -->
                     <div>
                         <label for="customer_phone" class="block text-gray-700 dark:text-gray-300">Customer Phone</label>
                         <input type="text" name="customer_phone" id="customer_phone" value="{{ old('customer_phone') }}"
@@ -56,10 +51,9 @@
                                aria-describedby="customer_phone-error">
                         @error('customer_phone')
                             <p id="customer_phone-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
-                    <!-- Product Type -->
                     <div>
                         <label for="saleable_type" class="block text-gray-700 dark:text-gray-300">Product Type <span class="text-red-600">*</span></label>
                         <select name="saleable_type" id="saleable_type" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('saleable_type') border-red-500 @enderror"
@@ -70,10 +64,9 @@
                         </select>
                         @error('saleable_type')
                             <p id="saleable_type-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
-                    <!-- Product -->
                     <div>
                         <label for="saleable_id" class="block text-gray-700 dark:text-gray-300">Product <span class="text-red-600">*</span></label>
                         <select name="saleable_id" id="saleable_id" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('saleable_id') border-red-500 @enderror"
@@ -82,10 +75,10 @@
                         </select>
                         @error('saleable_id')
                             <p id="saleable_id-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
+                        <p id="availabilityInfo" class="text-sm mt-2 text-gray-600 dark:text-gray-300"></p>
                     </div>
 
-                    <!-- Product Variant -->
                     <div>
                         <label for="product_variant" class="block text-gray-700 dark:text-gray-300">Product Variant <span class="text-red-600">*</span></label>
                         <select name="product_variant" id="product_variant" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('product_variant') border-red-500 @enderror"
@@ -94,10 +87,9 @@
                         </select>
                         @error('product_variant')
                             <p id="product_variant-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
-                    <!-- Quantity -->
                     <div>
                         <label for="quantity" class="block text-gray-700 dark:text-gray-300">Quantity (Crates for Eggs, Number for Birds) <span class="text-red-600">*</span></label>
                         <input type="number" name="quantity" id="quantity" value="{{ old('quantity') }}"
@@ -105,10 +97,10 @@
                                min="1" required aria-describedby="quantity-error">
                         @error('quantity')
                             <p id="quantity-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
+                        <p id="quantityValidation" class="text-sm mt-2 text-red-600 dark:text-red-400 hidden"></p>
                     </div>
 
-                    <!-- Unit Price -->
                     <div>
                         <label for="unit_price" class="block text-gray-700 dark:text-gray-300">Unit Price <span class="text-red-600">*</span></label>
                         <input type="number" name="unit_price" id="unit_price" value="{{ old('unit_price') }}" step="0.01"
@@ -116,10 +108,9 @@
                                min="0" required aria-describedby="unit_price-error">
                         @error('unit_price')
                             <p id="unit_price-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
-                    <!-- Sale Date -->
                     <div>
                         <label for="sale_date" class="block text-gray-700 dark:text-gray-300">Sale Date <span class="text-red-600">*</span></label>
                         <input type="date" name="sale_date" id="sale_date" value="{{ old('sale_date', now()->format('Y-m-d')) }}"
@@ -127,10 +118,9 @@
                                required aria-describedby="sale_date-error">
                         @error('sale_date')
                             <p id="sale_date-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
-                    <!-- Due Date -->
                     <div>
                         <label for="due_date" class="block text-gray-700 dark:text-gray-300">Due Date</label>
                         <input type="date" name="due_date" id="due_date" value="{{ old('due_date', now()->addDays(7)->format('Y-m-d')) }}"
@@ -138,12 +128,11 @@
                                aria-describedby="due_date-error">
                         @error('due_date')
                             <p id="due_date-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
-                    <!-- Buttons -->
                     <div class="flex space-x-4">
-                        <button type="submit"
+                        <button type="submit" id="saveBtn"
                                 class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
                             Save
                         </button>
@@ -157,73 +146,246 @@
         </section>
     </div>
 
+    {{-- Confirmation Modal --}}
+    <div id="confirmModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/50" id="confirmBackdrop"></div>
+        <div class="bg-white dark:bg-[#0f1724] rounded-2xl shadow-lg p-6 z-10 max-w-lg w-full mx-4">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Large stock reduction</h3>
+            <p id="confirmText" class="mt-3 text-sm text-gray-700 dark:text-gray-300"></p>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="cancelConfirm" class="px-4 py-2 rounded bg-gray-200 dark:bg-gray-700">Cancel</button>
+                <button id="confirmProceed" class="px-4 py-2 rounded bg-red-600 text-white">Proceed & Save</button>
+            </div>
+        </div>
+    </div>
+
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const saleableTypeSelect = document.getElementById('saleable_type');
             const saleableIdSelect = document.getElementById('saleable_id');
             const productVariantSelect = document.getElementById('product_variant');
+            const quantityInput = document.getElementById('quantity');
+            const saveBtn = document.getElementById('saveBtn');
+            const quantityValidation = document.getElementById('quantityValidation');
+            const availabilityInfo = document.getElementById('availabilityInfo');
+            const saleForm = document.getElementById('saleForm');
+
+            // confirmation modal elements
+            const confirmModal = document.getElementById('confirmModal');
+            const confirmText = document.getElementById('confirmText');
+            const cancelConfirm = document.getElementById('cancelConfirm');
+            const confirmProceed = document.getElementById('confirmProceed');
+
+            // Data arrays prepared server-side
+            const birdsData = @json($birdsData ?? []);
+            const eggsData = @json($eggsData ?? []);
+
+            // threshold: if selling >= this fraction of stock, ask confirmation
+            const LARGE_DECREASE_THRESHOLD = 0.5; // 50%
+
+            function clearSelect(selectEl) {
+                while (selectEl.firstChild) selectEl.removeChild(selectEl.firstChild);
+            }
+
+            function appendPlaceholder(selectEl, text = 'Select') {
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                placeholder.text = text;
+                selectEl.appendChild(placeholder);
+            }
 
             function populateSaleableOptions(type) {
-                saleableIdSelect.innerHTML = '<option value="" disabled selected>Select Product</option>';
-                productVariantSelect.innerHTML = '<option value="" disabled selected>Select Variant</option>';
+                clearSelect(saleableIdSelect);
+                clearSelect(productVariantSelect);
 
-                try {
-                    if (type === 'App\\Models\\Bird') {
-                        const birds = @json($birds ?? []);
-                        if (birds.length === 0) {
-                            saleableIdSelect.innerHTML = '<option value="" disabled>No birds available</option>';
-                            return;
-                        }
-                        birds.forEach(bird => {
-                            const option = document.createElement('option');
-                            option.value = bird.id;
-                            option.text = `${bird.breed} (${bird.type})`;
-                            option.selected = '{{ old('saleable_id') }}' == bird.id;
-                            saleableIdSelect.appendChild(option);
-                        });
-                        ['broiler', 'layer'].forEach(variant => {
-                            const option = document.createElement('option');
-                            option.value = variant;
-                            option.text = variant.charAt(0).toUpperCase() + variant.slice(1);
-                            option.selected = '{{ old('product_variant') }}' === variant;
-                            productVariantSelect.appendChild(option);
-                        });
-                    } else if (type === 'App\\Models\\Egg') {
-                        const eggs = @json($eggs ?? []);
-                        if (eggs.length === 0) {
-                            saleableIdSelect.innerHTML = '<option value="" disabled>No eggs available</option>';
-                            return;
-                        }
-                        eggs.forEach(egg => {
-                            const option = document.createElement('option');
-                            option.value = egg.id;
-                            option.text = `Egg Batch ${egg.id} (${egg.date_laid})`;
-                            option.selected = '{{ old('saleable_id') }}' == egg.id;
-                            saleableIdSelect.appendChild(option);
-                        });
-                        ['big', 'small', 'cracked'].forEach(variant => {
-                            const option = document.createElement('option');
-                            option.value = variant;
-                            option.text = variant.charAt(0).toUpperCase() + variant.slice(1);
-                            option.selected = '{{ old('product_variant') }}' === variant;
-                            productVariantSelect.appendChild(option);
-                        });
+                appendPlaceholder(saleableIdSelect, 'Select Product');
+                appendPlaceholder(productVariantSelect, 'Select Variant');
+
+                if (type === 'App\\Models\\Bird') {
+                    if (!birdsData || birdsData.length === 0) {
+                        const opt = document.createElement('option');
+                        opt.value = '';
+                        opt.disabled = true;
+                        opt.text = 'No birds available';
+                        saleableIdSelect.appendChild(opt);
+                        availabilityInfo.textContent = '';
+                        return;
                     }
-                } catch (error) {
-                    console.error('Error populating saleable options:', error);
-                    saleableIdSelect.innerHTML = '<option value="" disabled>Error loading products</option>';
+                    birdsData.forEach(bird => {
+                        const option = document.createElement('option');
+                        option.value = bird.id;
+                        option.text = bird.display;
+                        saleableIdSelect.appendChild(option);
+                    });
+                    ['broiler','layer'].forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v;
+                        opt.text = v.charAt(0).toUpperCase() + v.slice(1);
+                        productVariantSelect.appendChild(opt);
+                    });
+                } else if (type === 'App\\Models\\Egg') {
+                    if (!eggsData || eggsData.length === 0) {
+                        const opt = document.createElement('option');
+                        opt.value = '';
+                        opt.disabled = true;
+                        opt.text = 'No egg batches available';
+                        saleableIdSelect.appendChild(opt);
+                        availabilityInfo.textContent = '';
+                        return;
+                    }
+                    eggsData.forEach(egg => {
+                        const option = document.createElement('option');
+                        option.value = egg.id;
+                        option.text = egg.display;
+                        saleableIdSelect.appendChild(option);
+                    });
+                    ['regular','cracked'].forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v;
+                        opt.text = v.charAt(0).toUpperCase() + v.slice(1);
+                        productVariantSelect.appendChild(opt);
+                    });
+                } else {
+                    availabilityInfo.textContent = '';
+                }
+                quantityValidation.classList.add('hidden');
+                saveBtn.disabled = false;
+            }
+
+            function findSelectedAvailability() {
+                const type = saleableTypeSelect.value;
+                const id = saleableIdSelect.value;
+                if (!type || !id) {
+                    availabilityInfo.textContent = '';
+                    return { available: null, label: null, meta: {} };
+                }
+
+                if (type === 'App\\Models\\Bird') {
+                    const bird = birdsData.find(b => String(b.id) === String(id));
+                    if (bird) {
+                        return {
+                            available: bird.quantity,
+                            label: bird.display,
+                            meta: { stage: bird.stage, type: bird.type, breed: bird.breed }
+                        };
+                    }
+                } else if (type === 'App\\Models\\Egg') {
+                    const egg = eggsData.find(e => String(e.id) === String(id));
+                    if (egg) {
+                        return {
+                            available: egg.crates,
+                            label: egg.display,
+                            meta: { date_laid: egg.date_laid, pen_name: egg.pen_name, egg_size: egg.egg_size, is_cracked: egg.is_cracked }
+                        };
+                    }
+                }
+                return { available: null, label: null, meta: {} };
+            }
+
+            function showAvailabilityDetails() {
+                const { available, label, meta } = findSelectedAvailability();
+                if (available === null) {
+                    availabilityInfo.textContent = '';
+                    return;
+                }
+
+                // Build details string (include size/cracked for eggs, stage for birds)
+                let parts = [`Available: ${available}`];
+                if (meta.stage) parts.push(`Stage: ${meta.stage}`);
+                if (meta.type) parts.push(`${meta.type}`);
+                if (meta.egg_size) parts.push(`Size: ${meta.egg_size}`);
+                if (meta.is_cracked !== undefined && meta.is_cracked) parts.push('Cracked: Yes');
+
+                availabilityInfo.textContent = parts.join(' • ');
+            }
+
+            function validateQuantityAgainstStock() {
+                const q = parseInt(quantityInput.value, 10);
+                const { available } = findSelectedAvailability();
+
+                if (available === null) {
+                    quantityValidation.classList.add('hidden');
+                    saveBtn.disabled = false;
+                    availabilityInfo.textContent = '';
+                    return { valid: true, shouldConfirm: false, available };
+                }
+
+                availabilityInfo.textContent = `Available: ${available}`;
+
+                if (isNaN(q) || q <= 0) {
+                    quantityValidation.classList.add('hidden');
+                    saveBtn.disabled = false;
+                    return { valid: true, shouldConfirm: false, available };
+                }
+
+                if (q > available) {
+                    quantityValidation.textContent = `Insufficient stock: only ${available} available.`;
+                    quantityValidation.classList.remove('hidden');
+                    saveBtn.disabled = true;
+                    return { valid: false, shouldConfirm: false, available };
+                } else {
+                    quantityValidation.classList.add('hidden');
+                    // decide if this is a "large decrease" requiring confirmation
+                    const shouldConfirm = (q / available) >= LARGE_DECREASE_THRESHOLD;
+                    saveBtn.disabled = false;
+                    return { valid: true, shouldConfirm, available, q };
                 }
             }
 
             // Initialize on page load to handle old input
             if (saleableTypeSelect.value) {
                 populateSaleableOptions(saleableTypeSelect.value);
+
+                const oldSaleableId = '{{ old('saleable_id') }}';
+                if (oldSaleableId) saleableIdSelect.value = oldSaleableId;
+
+                const oldVariant = '{{ old('product_variant') }}';
+                if (oldVariant) productVariantSelect.value = oldVariant;
             }
 
-            // Update on change
             saleableTypeSelect.addEventListener('change', function() {
                 populateSaleableOptions(this.value);
+            });
+
+            saleableIdSelect.addEventListener('change', function() {
+                showAvailabilityDetails();
+                validateQuantityAgainstStock();
+            });
+
+            quantityInput.addEventListener('input', function() {
+                validateQuantityAgainstStock();
+            });
+
+            // handle submit: if shouldConfirm, show modal; else submit normally
+            saleForm.addEventListener('submit', function(e) {
+                const { valid, shouldConfirm, available, q } = validateQuantityAgainstStock();
+                if (! valid) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                if (shouldConfirm) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // build message
+                    confirmText.textContent = `You're about to sell ${q} of ${available} available (${Math.round((q/available)*100)}%). Are you sure? This will significantly reduce stock.`;
+                    confirmModal.classList.remove('hidden');
+                    return false;
+                }
+                // otherwise allow
+            });
+
+            cancelConfirm.addEventListener('click', function() {
+                confirmModal.classList.add('hidden');
+            });
+
+            confirmProceed.addEventListener('click', function() {
+                confirmModal.classList.add('hidden');
+                // allow final submit
+                saleForm.submit();
             });
         });
     </script>

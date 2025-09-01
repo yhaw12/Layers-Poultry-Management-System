@@ -15,7 +15,7 @@ class AlertController extends Controller
     try {
         $user = Auth::user();
         if (!$user) {
-            \Log::warning('Unauthorized access attempt to alerts index', ['request' => $request->all()]);
+            Log::warning('Unauthorized access attempt to alerts index', ['request' => $request->all()]);
             return response()->json(['error' => 'Unauthorized'], 401)->header('Content-Type', 'application/json');
         }
 
@@ -52,7 +52,7 @@ class AlertController extends Controller
 
         return response()->json($notifications)->header('Content-Type', 'application/json');
     } catch (\Exception $e) {
-        \Log::error('Failed to fetch notifications', [
+        Log::error('Failed to fetch notifications', [
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString(),
             'user_id' => $user->id ?? 'none',

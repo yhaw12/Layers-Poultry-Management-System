@@ -24,7 +24,6 @@ class Egg extends Model
 
     protected $casts = [
         'date_laid' => 'date',
-        // 'is_cracked' => 'boolean',
     ];
 
     protected $dates = ['deleted_at'];
@@ -42,5 +41,23 @@ class Egg extends Model
     public function sales()
     {
         return $this->morphMany(Sale::class, 'saleable');
+    }
+
+    // Scope: only egg batches with crates > 0
+    public function scopeAvailable($query)
+    {
+        return $query->whereNull('deleted_at')->where('crates', '>', 0);
+    }
+
+    // Nicely formatted display name for selects
+    public function displayName(): string
+    {
+        // $pen = optional($this->pen)->name;
+        $date = optional($this->date_laid)->format('Y-m-d');
+        $extra = $this->additional_eggs ? "+{$this->additional_eggs} eggs" : null;
+        $parts = ["Batch #{$this->id}", $date, "{$this->crates} crates"];
+        // if ($pen) $parts[] = $pen;
+        if ($extra) $parts[] = $extra;
+        return implode(' — ', array_filter($parts));
     }
 }

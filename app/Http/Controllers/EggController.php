@@ -123,18 +123,41 @@ class EggController extends Controller
         return redirect()->route('eggs.index')->with('success', 'Egg record updated successfully');
     }
 
-    public function destroy(Egg $egg)
-    {
-        $egg->delete();
+    
 
-        UserActivityLog::create([
-            'user_id' => auth()->id(),
-            'action' => 'deleted_egg',
-            'details' => "Deleted egg record with {$egg->crates} crates on {$egg->date_laid}",
-        ]);
+    public function destroy(Request $request, $id)
+    {
+            try {
+                $egg = Egg::findOrFail($id);
+                $egg->delete();
+
+                UserActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'deleted_egg',
+                'details' => "Deleted egg record with {$egg->crates} crates on {$egg->date_laid}",
+             ]);
+
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Egg deleted successfully.'
+                    ], 200);
+                }
+
+                return redirect()->route('eggs.index')->with('success', 'Egg deleted successfully.');
+            } catch (\Exception $e) {
+                // Log::error('Failed to delete bird: ' . $e->getMessage());
+                
+                if ($request->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to delete bird batch. ' . ($e->getCode() == 23000 ? 'This record is linked to other data.' : 'Please try again.')
+                    ], 500);
+                }
 
         return redirect()->route('eggs.index')->with('success', 'Egg record deleted successfully');
-    }
+        }
+   }
 
     public function bulkDelete(Request $request)
     {

@@ -38,7 +38,7 @@ class DashboardController extends Controller
     public function __construct(WeatherService $weatherService)
     {
         $this->middleware('auth');
-        $this->middleware('doNotCacheResponse')->only('index');
+        $this->middleware('doNotCacheResponse')->only('dashboard.index');
 
         $this->weatherService = $weatherService;
     }

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\MedicineLog;
+use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class MedicineLogController extends Controller
 {
@@ -53,10 +55,40 @@ class MedicineLogController extends Controller
         return redirect()->route('medicine-logs.index')->with('success', 'Medicine log updated successfully');
     }
 
-    public function destroy( $id)
-    {
-        $medicineLog = MedicineLog::findorFail($id);
-        $medicineLog->delete();
-        return redirect()->route('medicine-logs.index')->with('success', 'Medicine log deleted successfully');
+    public function destroy(Request $request, $id)
+{
+    try {
+        $log = MedicineLog::findOrFail($id);
+
+        // Log the activity (if applicable)
+        UserActivityLog::create([
+            'user_id' => auth()->id() ?? 1,
+            'action' => 'deleted_medicine_log',
+            'details' => "Deleted medicine log for {$log->medicine_name} (Quantity: {$log->quantity} {$log->unit}) on {$log->date}",
+        ]);
+
+        // Delete the medicine log (soft delete if enabled)
+        $log->delete();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Medicine log deleted successfully.'
+            ], 200);
+        }
+
+        return redirect()->route('medicine-logs.index')->with('success', 'Medicine log deleted successfully.');
+    } catch (\Exception $e) {
+        Log::error('Failed to delete medicine log: ' . $e->getMessage());
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete medicine log. ' . ($e->getCode() == 23000 ? 'This log is linked to other data.' : 'Please try again.')
+            ], 500);
+        }
+
+        return redirect()->route('medicine-logs.index')->with('error', 'Failed to delete medicine log.');
     }
+}
 }

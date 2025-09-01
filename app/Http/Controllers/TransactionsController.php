@@ -64,117 +64,153 @@ class TransactionsController extends Controller
     }
 
     public function approve(Request $request, $id)
-    {
-        DB::beginTransaction();
-        try {
-            $transaction = Transaction::findOrFail($id);
-            $request->validate([
-                'amount' => 'nullable|numeric|min:0|max:' . $transaction->amount,
-                'transaction_id' => 'required|exists:transactions,id',
-            ]);
+{
+    DB::beginTransaction();
+    try {
+        $transaction = Transaction::findOrFail($id);
 
-            if ($transaction->status !== 'pending') {
-                return back()->with('error', 'Transaction is not in a pending state.');
-            }
+        $validator = Validator::make($request->all(), [
+            'amount' => 'nullable|numeric|min:0|max:' . $transaction->amount,
+            'transaction_id' => 'required|exists:transactions,id',
+        ]);
 
-            $remainingAmount = $transaction->reference->amount - $transaction->reference->transactions()->where('status', 'approved')->whereNull('deleted_at')->sum('amount');
-
-            if ($remainingAmount <= 0) {
-                return back()->with('error', 'Transaction cannot be approved; payment already fulfilled.');
-            }
-
-            if ($request->amount && $request->amount < $transaction->amount) {
-                Transaction::create([
-                    'type' => $transaction->type,
-                    'amount' => $request->amount,
-                    'status' => 'approved',
-                    'description' => "Partial payment for {$transaction->description}",
-                    'reference_id' => $transaction->reference_id,
-                    'reference_type' => $transaction->reference_type,
-                    'user_id' => Auth::id() ?? 1,
-                    'date' => now(),
-                ]);
-                $transaction->update(['amount' => $transaction->amount - $request->amount]);
-                $message = 'Partial transaction approved successfully.';
-            } else {
-                $transaction->update(['status' => 'approved']);
-                $message = 'Transaction approved successfully.';
-            }
-
-            // Sync with source model
-            if ($transaction->source_type === Sale::class) {
-                $sale = Sale::find($transaction->source_id);
-                if ($sale) {
-                    $sale->increment('paid_amount', $request->amount ?? $transaction->amount);
-                    $sale->updatePaymentStatus();
-                }
-            } elseif ($transaction->source_type === Income::class) {
-                Income::where('id', $transaction->source_id)->update(['synced_at' => now()]);
-            } elseif ($transaction->source_type === Order::class) {
-                Order::where('id', $transaction->source_id)->update(['status' => 'paid']);
-            }
-
-            UserActivityLog::create([
-                'user_id' => Auth::id() ?? 1,
-                'action' => 'approved_transaction',
-                'details' => "Approved transaction #{$transaction->id} (Type: {$transaction->type})" . ($request->amount ? " for partial amount \${$request->amount}" : ''),
-            ]);
-
-            Alert::create([
-                'message' => "Transaction #{$transaction->id} ({$transaction->type}) approved" . ($request->amount ? " for partial amount \${$request->amount}" : ''),
-                'type' => 'transaction',
-                'user_id' => Auth::id() ?? 1,
-            ]);
-
-            DB::commit();
-            return redirect()->route('transactions.index')->with('success', $message);
-        } catch (ValidationException $e) {
+        if ($validator->fails()) {
             DB::rollBack();
-            Log::warning('Validation failed for approve transaction', ['errors' => $e->errors()]);
-            return back()->withErrors($e->errors())->withInput();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to approve transaction', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to approve transaction.');
-        }
-    }
-
-    public function reject(Request $request, $id)
-    {
-        try {
-            $transaction = Transaction::findOrFail($id);
-            $request->validate([
-                'reason' => 'required|string|max:255',
-                'transaction_id' => 'required|exists:transactions,id',
-            ]);
-
-            if ($transaction->status !== 'pending') {
-                return back()->with('error', 'Transaction is not in a pending state.');
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['errors' => $validator->errors()], 422);
             }
-
-            $transaction->update(['status' => 'rejected']);
-
-            Alert::create([
-                'message' => "Transaction #{$transaction->id} ({$transaction->type}) rejected: {$request->reason}",
-                'type' => 'transaction',
-                'user_id' => Auth::id() ?? 1,
-            ]);
-
-            UserActivityLog::create([
-                'user_id' => Auth::id() ?? 1,
-                'action' => 'rejected_transaction',
-                'details' => "Rejected transaction #{$transaction->id} (Type: {$transaction->type}) with reason: {$request->reason}",
-            ]);
-
-            return redirect()->route('transactions.index')->with('success', 'Transaction rejected successfully.');
-        } catch (ValidationException $e) {
-            Log::warning('Validation failed for reject transaction', ['errors' => $e->errors()]);
-            return back()->withErrors($e->errors())->withInput();
-        } catch (\Exception $e) {
-            Log::error('Failed to reject transaction', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to reject transaction.');
+            return back()->withErrors($validator)->withInput();
         }
+
+        if ($transaction->status !== 'pending') {
+            DB::rollBack();
+            $msg = 'Transaction is not in a pending state.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['message' => $msg], 422);
+            }
+            return back()->with('error', $msg);
+        }
+
+        // Note: we deliberately DO NOT update related Sale/Order/etc here.
+        // We only update the transaction(s) themselves to reflect approval.
+        if ($request->filled('amount') && (float)$request->amount < (float)$transaction->amount) {
+            // Create an approved transaction for the partial amount
+            Transaction::create([
+                'type' => $transaction->type,
+                'amount' => $request->amount,
+                'status' => 'approved',
+                'description' => 'Partial approval for: ' . ($transaction->description ?? ''),
+                'reference_id' => $transaction->reference_id ?? null,
+                'reference_type' => $transaction->reference_type ?? null,
+                'user_id' => Auth::id() ?? 1,
+                'date' => now(),
+            ]);
+            // Reduce the original pending transaction amount
+            $transaction->amount = $transaction->amount - $request->amount;
+            $transaction->save();
+
+            $message = 'Partial transaction approved successfully.';
+        } else {
+            // Approve the whole thing
+            $transaction->update(['status' => 'approved']);
+            $message = 'Transaction approved successfully.';
+        }
+
+        // Logs / alerts (optional)
+        UserActivityLog::create([
+            'user_id' => Auth::id() ?? 1,
+            'action' => 'approved_transaction',
+            'details' => "Approved transaction #{$transaction->id} (Type: {$transaction->type})",
+        ]);
+        Alert::create([
+            'message' => "Transaction #{$transaction->id} ({$transaction->type}) approved",
+            'type' => 'transaction',
+            'user_id' => Auth::id() ?? 1,
+        ]);
+
+        DB::commit();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['message' => $message, 'status' => 'ok'], 200);
+        }
+
+        return redirect()->route('transactions.index')->with('success', $message);
+    } catch (ValidationException $e) {
+        DB::rollBack();
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['errors' => $e->errors()], 422);
+        }
+        return back()->withErrors($e->errors())->withInput();
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Failed to approve transaction', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        $msg = 'Failed to approve transaction.';
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['message' => $msg], 500);
+        }
+        return back()->with('error', $msg);
     }
+}
+
+   public function reject(Request $request, $id)
+{
+    try {
+        $transaction = Transaction::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'reason' => 'required|string|max:255',
+            'transaction_id' => 'required|exists:transactions,id',
+        ]);
+
+        if ($validator->fails()) {
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+            return back()->withErrors($validator)->withInput();
+        }
+
+        if ($transaction->status !== 'pending') {
+            $msg = 'Transaction is not in a pending state.';
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['message' => $msg], 422);
+            }
+            return back()->with('error', $msg);
+        }
+
+        $transaction->update(['status' => 'rejected']);
+
+        // Create an alert & log (safe — no sale changes)
+        Alert::create([
+            'message' => "Transaction #{$transaction->id} ({$transaction->type}) rejected: {$request->reason}",
+            'type' => 'transaction',
+            'user_id' => Auth::id() ?? 1,
+        ]);
+        UserActivityLog::create([
+            'user_id' => Auth::id() ?? 1,
+            'action' => 'rejected_transaction',
+            'details' => "Rejected transaction #{$transaction->id} (Type: {$transaction->type}) with reason: {$request->reason}",
+        ]);
+
+        $msg = 'Transaction rejected successfully.';
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['message' => $msg, 'status' => 'ok'], 200);
+        }
+        return redirect()->route('transactions.index')->with('success', $msg);
+    } catch (ValidationException $e) {
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['errors' => $e->errors()], 422);
+        }
+        return back()->withErrors($e->errors())->withInput();
+    } catch (\Exception $e) {
+        Log::error('Failed to reject transaction', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        $msg = 'Failed to reject transaction.';
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['message' => $msg], 500);
+        }
+        return back()->with('error', $msg);
+    }
+}
 
     public function export(Request $request)
     {
@@ -250,6 +286,22 @@ class TransactionsController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to export transactions', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return back()->with('error', 'Failed to export transactions.');
+        }
+    }
+
+    public function show($id)
+    {
+        try {
+            $transaction = Transaction::with(['source', 'user', 'customer'])->findOrFail($id);
+
+            return view('transactions.show', compact('transaction'));
+        } catch (\Exception $e) {
+            Log::error('Failed to load transaction details', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'transaction_id' => $id
+            ]);
+            return back()->with('error', 'Failed to load transaction details.');
         }
     }
 }

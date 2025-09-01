@@ -5,130 +5,160 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice #{{ $sale->id }}</title>
     <style>
-        @media (prefers-color-scheme: dark) {
-            body { background-color: #1a1a3a; color: #ffffff; }
-            .invoice-container { background-color: #2d2d5a; color: #e0e0e0; }
-            th { background-color: #3a3a6a; color: #ffffff; }
-            .header, .total { border-color: #ffffff; }
-            .company-info { color: #b0b0b0; }
-        }
-        .invoice-container {
-            max-width: 800px;
-            margin: 0 auto;
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            margin: 0;
             padding: 20px;
-            font-family: Arial, sans-serif;
-            background-color: #ffffff;
-            color: #333333;
         }
+
+        .invoice-container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        }
+
+        /* Back/Print Buttons */
+        .actions {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-back {
+            background: #6c757d;
+            color: #fff;
+        }
+
+        .btn-back:hover { background: #5a6268; }
+
+        .btn-print {
+            background: #007bff;
+            color: #fff;
+        }
+
+        .btn-print:hover { background: #0056b3; }
+
+        /* Header */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #000000;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
         }
-        .header .logo { width: 100px; height: auto; }
-        .header .invoice-info { text-align: right; }
-        .header h1 { font-size: 24px; margin: 0; }
-        .customer-info { margin-bottom: 20px; }
-        .customer-info h2 { font-size: 18px; margin-bottom: 5px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid #dddddd; padding: 10px; text-align: left; }
-        th { background-color: #f2f2f2; font-weight: bold; }
-        td { vertical-align: top; }
-        .footer { margin-top: 20px; }
-        .total { border-top: 2px solid #000000; padding-top: 10px; text-align: right; }
-        .company-info { margin-top: 20px; font-size: 12px; color: #666666; }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #007bff;
+        }
+
+        .invoice-info {
+            text-align: right;
+            font-size: 14px;
+            color: #555;
+        }
+
+        /* Customer Info */
+        .customer-info {
+            margin-bottom: 25px;
+        }
+
+        .customer-info h3 {
+            margin-bottom: 6px;
+            font-size: 16px;
+            color: #444;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px 14px;
+            border: 1px solid #e0e0e0;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        /* Totals Box */
+        .totals {
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        .totals div {
+            margin: 5px 0;
+            font-size: 15px;
+        }
+
+        .totals strong {
+            font-size: 16px;
+            color: #007bff;
+        }
+
+        .totals-box {
+            display: inline-block;
+            background: #f1f8ff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid #cce5ff;
+            margin-top: 10px;
+        }
+
+        /* Footer */
+        .company-info {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #777;
+            line-height: 1.5;
+            text-align: center;
+        }
+
         @media print {
-            .no-print { display: none; }
+            .actions { display: none; }
+            body { background: #fff; }
+            .invoice-container { box-shadow: none; border-radius: 0; }
         }
     </style>
 </head>
 <body>
     <div class="invoice-container">
-        <div class="header">
-            @if(file_exists(public_path('logo.png')))
-                <img src="{{ public_path('logo.png') }}" alt="Company Logo" class="logo">
-            @else
-                <h2>{{ $company['name'] }}</h2>
-            @endif
-            <div class="invoice-info">
-                <h1>INVOICE</h1>
-                <p>Invoice #{{ $sale->id }}</p>
-                <p>Issue Date: {{ $sale->sale_date->format('F j, Y') }}</p>
-                <p>Due Date: {{ $sale->due_date ? $sale->due_date->format('F j, Y') : 'N/A' }}</p>
-                <p>Status: <span class="{{ $sale->status == 'paid' ? 'text-green-600' : ($sale->status == 'partially_paid' ? 'text-yellow-600' : ($sale->status == 'overdue' ? 'text-red-600' : 'text-blue-600')) }}">{{ ucfirst(str_replace('_', ' ', $sale->status)) }}</span></p>
-            </div>
+
+        <!-- Actions -->
+        <div class="actions no-print">
+            <a href="javascript:history.back()" class="btn btn-back">← Close Invoice</a>
+            <a href="javascript:window.print()" class="btn btn-print">🖨 Print Invoice</a>
         </div>
 
-        <div class="customer-info">
-            <h2>Bill To:</h2>
-            <p>{{ $sale->customer->name ?? 'Unknown Customer' }}</p>
-            <p>Phone: {{ $sale->customer->phone ?? 'N/A' }}</p>
-            <p>Email: {{ $sale->customer->email ?? 'N/A' }}</p>
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Variant</th>
-                    <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>{{ $sale->saleable_type == 'App\Models\Bird' ? ($sale->saleable->breed . ' (' . $sale->saleable->type . ')') : ($sale->saleable ? 'Eggs' : 'Unknown Product') }}</td>
-                    <td>{{ ucfirst($sale->product_variant ?? 'N/A') }}</td>
-                    <td>{{ $sale->quantity }}</td>
-                    <td>GHS {{ number_format($sale->unit_price, 2) }}</td>
-                    <td>GHS {{ number_format($sale->total_amount, 2) }}</td>
-                </tr>
-            </tbody>
-        </table>
-
-        @if($sale->payments->count() > 0)
-            <h3>Payment History</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Payment Date</th>
-                        <th>Amount</th>
-                        <th>Payment Method</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($sale->payments as $payment)
-                        <tr>
-                            <td>{{ $payment->payment_date->format('F j, Y') }}</td>
-                            <td>GHS {{ number_format($payment->amount, 2) }}</td>
-                            <td>{{ $payment->payment_method ?? 'N/A' }}</td>
-                            <td>{{ $payment->notes ?? 'N/A' }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
-
-        <div class="footer">
-            <div class="total">
-                <p><strong>Total Amount:</strong> GHS {{ number_format($sale->total_amount, 2) }}</p>
-                <p><strong>Paid Amount:</strong> GHS {{ number_format($sale->paid_amount, 2) }}</p>
-                <p><strong>Balance Due:</strong> GHS {{ number_format($sale->total_amount - $sale->paid_amount, 2) }}</p>
-            </div>
-            <div class="company-info">
-                <p><strong>{{ $company['name'] }}</strong></p>
-                <p>{{ $company['address'] }}</p>
-                <p>{{ $company['phone'] }}</p>
-                <p>{{ $company['email'] }}</p>
-                <p>Payment Terms: Net 7 days</p>
-                <p>Thank you for your business!</p>
-            </div>
-        </div>
+        @include('sales.invoice_fragment')
     </div>
 </body>
 </html>

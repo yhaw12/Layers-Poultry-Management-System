@@ -42,7 +42,7 @@
                     @endError
                 </div>
                 <div>
-                    <label for="cost" class="block text-gray-700 dark:text-gray-300">Cost (GHS)</label>
+                    <label for="cost" class="block text-gray-700 dark:text-gray-300">Cost (₵)</label>
                     <input name="cost" type="number" step="0.01" id="cost" value="{{ old('cost') }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('cost') border-red-500 @enderror" min="0" required>
                     @error('cost')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>

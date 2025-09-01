@@ -86,7 +86,7 @@ Route::middleware('auth')->group(function () {
     ]);
 
     // Health Checks
-    Route::resource('health-checks', HealthCheckController::class)->only(['index', 'create', 'store']);
+    Route::resource('health-checks', HealthCheckController::class)->only(['index', 'create', 'store', 'edit', 'destroy']);
 
     // Other routes
     Route::delete('eggs/bulk', [EggController::class, 'bulkDelete'])->name('eggs.bulkDelete');
@@ -102,9 +102,12 @@ Route::middleware('auth')->group(function () {
     Route::get('payroll/export', [PayrollController::class, 'exportPDF'])->name('payroll.export')->middleware('role:admin');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+    Route::get('/reports/data', [ReportController::class, 'data'])->name('reports.data');
     Route::get('diseases', [DiseaseController::class, 'index'])->name('diseases.index');
+     Route::get('/reports/custom', [ReportController::class, 'custom'])->name('reports.custom');
     Route::get('diseases/{disease}/history', [DiseaseController::class, 'history'])->name('diseases.history');
     Route::post('diseases', [DiseaseController::class, 'store'])->name('diseases.store');
+    Route::post('diseases/create', [DiseaseController::class, 'store'])->name('diseases.create');
     Route::post('users/{user}/assign-role', [UserController::class, 'assignRole'])->name('users.assign-role')->middleware('role:admin');
     Route::post('/users/{user}/toggle-permission', [AdminUserController::class, 'togglePermission'])->name('users.toggle-permission');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -117,6 +120,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/transactions/{transaction}', [TransactionsController::class, 'show'])->name('transactions.show');
     Route::post('/transactions/{transaction}/approve', [TransactionsController::class, 'approve'])->name('transactions.approve');
     Route::post('/transactions/{transaction}/decline', [TransactionsController::class, 'reject'])->name('transactions.reject');
+    Route::post('/transactions/{transaction}/destroy', [TransactionsController::class, 'destroy'])->name('transactions.destroy');
+
     Route::get('birds/trashed', [BirdsController::class, 'trashed'])->name('birds.trashed');
     Route::post('birds/{id}/restore', [BirdsController::class, 'restore'])->name('birds.restore');
     Route::get('/weather/fetch', [WeatherController::class, 'fetch'])->name('weather.fetch');
@@ -128,11 +133,25 @@ Route::middleware('auth')->group(function () {
 
 
 Route::middleware(['web', 'auth'])->group(function () {
-    Route::resource('sales', SalesController::class);
+      Route::get('sales', [SalesController::class, 'index'])->name('sales.index');
+    Route::get('sales/create', [SalesController::class, 'create'])->name('sales.create');
+    Route::post('sales', [SalesController::class, 'store'])->name('sales.store');
+    Route::get('sales/{sale}/edit', [SalesController::class, 'edit'])->name('sales.edit');
+    Route::put('sales/{sale}', [SalesController::class, 'update'])->name('sales.update');
+    Route::delete('sales/{sale}', [SalesController::class, 'destroy'])->name('sales.destroy');
+
+    // invoice preview / download
     Route::get('sales/{sale}/invoice', [SalesController::class, 'invoice'])->name('sales.invoice');
+
+    // record payment (AJAX-friendly)
     Route::post('sales/{sale}/record-payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment');
-    Route::post('sales/{sale}/update-status', [SalesController::class, 'updateStatus'])->name('sales.updateStatus');
+
+    // new: pending payments JSON endpoint (used by the modal)
+    Route::get('sales/pending-json', [SalesController::class, 'pendingJson'])->name('sales.pendingJson');
+
     // Add any other sale related routes you need...
+    Route::get('sales/{sale}/invoice/preview', [SalesController::class, 'invoicePreview'])
+    ->name('sales.invoice.preview');
 });
 
 /*

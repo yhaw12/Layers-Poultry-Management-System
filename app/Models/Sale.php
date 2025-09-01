@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class Sale extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'saleable_type',
@@ -22,15 +24,34 @@ class Sale extends Model
         'paid_amount',
         'status',
         'product_variant',
-        // 'created_by',
+        'created_by',
     ];
 
-     protected $dates = [
+    protected $casts = [
+        'sale_date' => 'date',
+        'due_date' => 'date',
+        'total_amount' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
+    ];
+
+    // status constants
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_PARTIALLY_PAID = 'partially_paid';
+    public const STATUS_PAID = 'paid';
+    public const STATUS_OVERDUE = 'overdue';
+
+    // Dates
+    protected $dates = [
         'sale_date',
         'due_date',
         'created_at',
         'updated_at',
+        'deleted_at',
     ];
+
+    /* --------------------
+     | Relationships
+     |-------------------- */
 
     public function customer()
     {
@@ -47,46 +68,125 @@ class Sale extends Model
         return $this->hasMany(Payment::class);
     }
 
-    /**
-     * Return true if sale is fully paid (with safe float compare).
-     */
-    public function isPaid(): bool
-    {
-        return round((float) $this->paid_amount, 2) >= round((float) $this->total_amount, 2);
-    }
+    /* --------------------
+     | Helpers & business logic
+     |-------------------- */
 
     /**
-     * Update the status based on paid_amount and due_date.
+     * Recalculate paid amount from payments up to $asOf (defaults to now).
+     * This persists the paid_amount column only if the recalculated value changed.
+     *
+     * By default this excludes payments with a payment_date in the future.
+     *
+     * @param \DateTimeInterface|null $asOf
+     * @return float recalculated paid amount
      */
-    public function updatePaymentStatus(): void
+    public function recalculatePaidAmount(\DateTimeInterface $asOf = null): float
     {
-        $paid = (float) $this->paid_amount;
-        $total = (float) $this->total_amount;
+        try {
+            $asOf = $asOf ? Carbon::parse($asOf) : Carbon::now();
 
-        if (round($paid, 2) >= round($total, 2)) {
-            $this->status = 'paid';
-        } elseif ($paid > 0) {
-            $this->status = 'partially_paid';
-        } else {
-            // not paid yet; check overdue
-            if ($this->due_date && Carbon::now()->greaterThan(Carbon::parse($this->due_date))) {
-                $this->status = 'overdue';
-            } else {
-                $this->status = 'pending';
+            // Sum payments where payment_date <= asOf (exclude future-dated payments)
+            $paid = (float) $this->payments()
+                ->whereDate('payment_date', '<=', $asOf->toDateString())
+                ->sum('amount');
+
+            $paid = round(max(0, $paid), 2);
+
+            if (round((float)$this->paid_amount, 2) !== $paid) {
+                // update column and persist
+                $this->paid_amount = $paid;
+                $this->save();
             }
-        }
 
-        // Only save if dirty to avoid needless DB writes
-        if ($this->isDirty('status')) {
-            $this->save();
+            return $paid;
+        } catch (\Throwable $e) {
+            Log::error('Failed to recalculate paid amount for sale', [
+                'sale_id' => $this->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+            return (float) $this->paid_amount;
         }
     }
 
     /**
-     * Convenience: balance remaining
+     * Update the sale status based on paid_amount, due_date and asOf (defaults to now).
+     * Saves only when status changes.
+     *
+     * @param \DateTimeInterface|null $asOf
+     * @return void
+     */
+    public function updatePaymentStatus(\DateTimeInterface $asOf = null): void
+    {
+        try {
+            $asOf = $asOf ? Carbon::parse($asOf) : Carbon::now();
+
+            // Ensure paid_amount is in sync with payments up to $asOf
+            $this->recalculatePaidAmount($asOf);
+
+            $paid = round((float)$this->paid_amount, 2);
+            $total = round((float)$this->total_amount, 2);
+
+            // sanitize
+            if ($total < 0) {
+                $total = 0;
+            }
+            if ($paid < 0) {
+                $paid = 0;
+            }
+
+            $newStatus = $this->status ?? self::STATUS_PENDING;
+
+            if ($total === 0) {
+                // defensive: treat zero-total invoices as paid
+                $newStatus = self::STATUS_PAID;
+            } elseif ($paid >= $total) {
+                $newStatus = self::STATUS_PAID;
+            } elseif ($paid > 0 && $paid < $total) {
+                // partially paid, but if overdue date passed mark overdue
+                if ($this->due_date && Carbon::parse($this->due_date)->endOfDay()->lessThan($asOf)) {
+                    $newStatus = self::STATUS_OVERDUE;
+                } else {
+                    $newStatus = self::STATUS_PARTIALLY_PAID;
+                }
+            } else { // $paid == 0
+                if ($this->due_date && Carbon::parse($this->due_date)->endOfDay()->lessThan($asOf)) {
+                    $newStatus = self::STATUS_OVERDUE;
+                } else {
+                    $newStatus = self::STATUS_PENDING;
+                }
+            }
+
+            if ($this->status !== $newStatus) {
+                $this->status = $newStatus;
+                $this->save();
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to update payment status for sale', [
+                'sale_id' => $this->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Return remaining balance (clamped to zero).
+     *
+     * @return float
      */
     public function balance(): float
     {
         return max(0, round((float)$this->total_amount - (float)$this->paid_amount, 2));
+    }
+
+    /**
+     * Return true if sale is fully paid (based on status or numeric comparison).
+     *
+     * @return bool
+     */
+    public function isPaid(): bool
+    {
+        return $this->status === self::STATUS_PAID
+            || round((float)$this->paid_amount, 2) >= round((float)$this->total_amount, 2);
     }
 }

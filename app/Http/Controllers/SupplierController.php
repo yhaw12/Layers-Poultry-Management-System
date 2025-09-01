@@ -53,6 +53,10 @@ class SupplierController extends Controller
     {
         try {
             $supplier = Supplier::findOrFail($id);
+
+            // Optional: Authorization check
+            // $this->authorize('delete', $supplier);
+
             $supplier->delete();
 
             \App\Models\UserActivityLog::create([
@@ -61,10 +65,22 @@ class SupplierController extends Controller
                 'details' => "Deleted supplier ID {$id}",
             ]);
 
-            return redirect()->route('suppliers.index')->with('success', 'Supplier deleted successfully');
+            return response()->json([
+                'message' => 'Supplier deleted successfully.',
+            ], 200);
         } catch (\Exception $e) {
-            Log::error('Failed to delete supplier', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to delete supplier.');
+            Log::error('Failed to delete supplier', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'supplier_id' => $id,
+                'user_id' => Auth::id() ?? null,
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to delete supplier. Please try again.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 }
+

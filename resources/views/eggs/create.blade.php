@@ -1,4 +1,4 @@
-
+{{-- eggs.create --}}
 @extends('layouts.app')
 
 @section('content')
@@ -43,7 +43,16 @@
                         </select>
                         @error('pen_id')
                             <p id="pen_id-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 dark:text-gray-300">Date Laid</label>
+                        <input type="date" name="date_laid" value="{{ old('date_laid', now()->format('Y-m-d')) }}"
+                            class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
+                        @error('date_laid')
+                            <p class="text-red-600 dark:text-red-400 text-sm">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <!-- Number of Crates -->
@@ -54,7 +63,7 @@
                                required aria-describedby="crates-error">
                         @error('crates')
                             <p id="crates-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Additional Eggs -->
@@ -65,7 +74,7 @@
                                required aria-describedby="additional_eggs-error">
                         @error('additional_eggs')
                             <p id="additional_eggs-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Is Cracked -->
@@ -77,7 +86,7 @@
                         </label>
                         @error('is_cracked')
                             <p id="is_cracked-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Egg Size -->
@@ -91,7 +100,7 @@
                         </select>
                         @error('egg_size')
                             <p id="egg_size-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Buttons -->

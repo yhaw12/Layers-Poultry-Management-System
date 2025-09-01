@@ -33,6 +33,13 @@ class OrderController extends Controller
                     ->paginate(10);
             });
 
+            // $totalAmount = Order::whereBetween('created_at', [$start, $end])
+            //                ->whereNull('deleted_at')
+            //                ->sum('total_amount');
+        // $totalPaid = Order::whereBetween('created_at', [$start, $end])
+        //                  ->whereNull('deleted_at')
+        //                  ->sum('paid_amount');
+
             return view('orders.index', compact('orders', 'start', 'end'));
         } catch (\Exception $e) {
             Log::error('Failed to load orders', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
@@ -126,7 +133,7 @@ class OrderController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         try {
             $order = Order::whereNull('deleted_at')->findOrFail($id);
@@ -136,16 +143,33 @@ class OrderController extends Controller
                 ->delete();
 
             UserActivityLog::create([
-                'user_id' => Auth::id() ?? 1,
-                'action' => 'deleted_order',
-                'details' => "Deleted order #{$order->id} for customer ID {$order->customer_id}",
-            ]);
+            'user_id' => auth()->id() ?? 1,
+            'action' => 'deleted_order',
+            'details' => "Deleted order #{$order->id} with total amount ₵{$order->total_amount}" . ($order->customer ? " for customer {$order->customer->name}" : ""),
+        ]);
 
-            $order->delete();
-            return redirect()->route('orders.index')->with('success', 'Order deleted successfully');
-        } catch (\Exception $e) {
-            Log::error('Failed to delete order', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to delete order.');
+        // Delete the order (soft delete if enabled)
+        $order->delete();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Order deleted successfully.'
+            ], 200);
+        }
+
+        return redirect()->route('orders.index')->with('success', 'Order deleted successfully.');
+    } catch (\Exception $e) {
+        Log::error('Failed to delete order: ' . $e->getMessage());
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete order. ' . ($e->getCode() == 23000 ? 'This order is linked to other data.' : 'Please try again.')
+            ], 500);
+        }
+
+        return redirect()->route('orders.index')->with('error', 'Failed to delete order.');
         }
     }
 }

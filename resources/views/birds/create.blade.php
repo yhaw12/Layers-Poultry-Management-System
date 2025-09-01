@@ -1,3 +1,4 @@
+{{-- birds.create --}}
 @extends('layouts.app')
 
 @section('content')
@@ -39,7 +40,7 @@
                                required aria-describedby="breed-error">
                         @error('breed')
                             <p id="breed-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Type -->
@@ -52,7 +53,7 @@
                         </select>
                         @error('type')
                             <p id="type-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Stage -->
@@ -66,7 +67,7 @@
                         </select>
                         @error('stage')
                             <p id="stage-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Quantity -->
@@ -77,7 +78,7 @@
                                min="1" required aria-describedby="quantity-error">
                         @error('quantity')
                             <p id="quantity-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Chick Fields (Conditional) -->
@@ -89,7 +90,7 @@
                                    min="1" aria-describedby="quantity_bought-error">
                             @error('quantity_bought')
                                 <p id="quantity_bought-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                            @endError
+                            @enderror
                         </div>
                         <div>
                             <label for="feed_amount" class="block text-gray-700 dark:text-gray-300">Feed Amount (kg)</label>
@@ -98,7 +99,7 @@
                                    min="0" aria-describedby="feed_amount-error">
                             @error('feed_amount')
                                 <p id="feed_amount-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                            @endError
+                            @enderror
                         </div>
                         <div>
                             <label for="alive" class="block text-gray-700 dark:text-gray-300">Alive</label>
@@ -107,7 +108,7 @@
                                    min="0" aria-describedby="alive-error">
                             @error('alive')
                                 <p id="alive-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                            @endError
+                            @enderror
                         </div>
                         <div>
                             <label for="dead" class="block text-gray-700 dark:text-gray-300">Dead</label>
@@ -116,7 +117,7 @@
                                    min="0" aria-describedby="dead-error">
                             @error('dead')
                                 <p id="dead-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                            @endError
+                            @enderror
                         </div>
                         <div>
                             <label for="purchase_date" class="block text-gray-700 dark:text-gray-300">Purchase Date</label>
@@ -125,16 +126,16 @@
                                    aria-describedby="purchase_date-error">
                             @error('purchase_date')
                                 <p id="purchase_date-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                            @endError
+                            @enderror
                         </div>
                         <div>
-                            <label for="cost" class="block text-gray-700 dark:text-gray-300">Cost ($)</label>
+                            <label for="cost" class="block text-gray-700 dark:text-gray-300">Cost (₵)</label>
                             <input name="cost" type="number" step="0.01" id="cost" value="{{ old('cost') }}"
                                    class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('cost') border-red-500 @enderror"
                                    min="0" aria-describedby="cost-error">
                             @error('cost')
                                 <p id="cost-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                            @endError
+                            @enderror
                         </div>
                     </div>
 
@@ -147,7 +148,7 @@
                         </select>
                         @error('working')
                             <p id="working-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Entry Date -->
@@ -158,7 +159,7 @@
                                required aria-describedby="entry_date-error">
                         @error('entry_date')
                             <p id="entry_date-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Vaccination Status -->
@@ -171,7 +172,7 @@
                         </select>
                         @error('vaccination_status')
                             <p id="vaccination_status-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Housing Location -->
@@ -182,7 +183,7 @@
                                aria-describedby="housing_location-error">
                         @error('housing_location')
                             <p id="housing_location-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @endError
+                        @enderror
                     </div>
 
                     <!-- Buttons -->

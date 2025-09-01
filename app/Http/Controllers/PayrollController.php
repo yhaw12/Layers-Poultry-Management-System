@@ -183,24 +183,45 @@ class PayrollController extends Controller
         }
 
 
-    public function destroy($id)
-    {
-        try {
-            $payroll = Payroll::whereNull('deleted_at')->findOrFail($id);
-            $payroll->delete();
+    public function destroy(Request $request, $id)
+{
+    try {
+        $payroll = Payroll::whereNull('deleted_at')->findOrFail($id);
 
-            UserActivityLog::create([
-                'user_id' => Auth::id() ?? 1,
-                'action' => 'deleted_payroll',
-                'details' => "Deleted payroll ID {$id}",
-            ]);
+        $employeeName = $payroll->employee ? $payroll->employee->name : 'N/A';
+        $payDate = $payroll->pay_date ? \Carbon\Carbon::parse($payroll->pay_date)->format('Y-m-d') : 'N/A';
 
-            return redirect()->route('payroll.index')->with('success', 'Payroll record deleted successfully.');
-        } catch (\Exception $e) {
-            Log::error('Failed to delete payroll', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to delete payroll.');
+        // Log the activity
+        UserActivityLog::create([
+            'user_id' => Auth::id() ?? 1,
+            'action' => 'deleted_payroll',
+            'details' => "Deleted payroll ID {$id} for employee {$employeeName} on {$payDate} with net pay ₵{$payroll->net_pay}",
+        ]);
+
+        // Delete the payroll record (soft delete)
+        $payroll->delete();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Payroll record deleted successfully.'
+            ], 200);
         }
+
+        return redirect()->route('payroll.index')->with('success', 'Payroll record deleted successfully.');
+    } catch (\Exception $e) {
+        Log::error('Failed to delete payroll: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete payroll. ' . ($e->getCode() == 23000 ? 'This payroll is linked to other data.' : 'Please try again.')
+            ], 500);
+        }
+
+        return redirect()->route('payroll.index')->with('error', 'Failed to delete payroll.');
     }
+}
 
     public function exportPDF(Request $request)
     {

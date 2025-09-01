@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Feed;
 use App\Models\FeedConsumption;
+use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class FeedController extends Controller
 {
@@ -56,11 +58,41 @@ class FeedController extends Controller
         return redirect()->route('feed.index')->with('success', 'Feed updated successfully');
     }
 
-    public function destroy($id)
-    {   
-        $feed = Feed::findorFail($id);
-        $feed->delete();
-        return redirect()->route('feed.index')->with('success', 'Feed deleted successfully');
+    public function destroy(Request $request, $id)
+    {
+        try {
+            $feed = Feed::findOrFail($id);
+
+            // Log the activity
+            UserActivityLog::create([
+                'user_id' => auth()->id() ?? 1,
+                'action' => 'deleted_feed',
+                'details' => "Deleted feed record of {$feed->quantity} bags of {$feed->type} costing ₵{$feed->cost} on {$feed->purchase_date}",
+            ]);
+
+            // Delete the feed (soft delete if enabled)
+            $feed->delete();
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Feed record deleted successfully.'
+                ], 200);
+            }
+
+            return redirect()->route('feed.index')->with('success', 'Feed record deleted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to delete feed: ' . $e->getMessage());
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete feed record. ' . ($e->getCode() == 23000 ? 'This feed is linked to other data.' : 'Please try again.')
+                ], 500);
+            }
+
+            return redirect()->route('feed.index')->with('error', 'Failed to delete feed record.');
+        }
     }
 
     public function consumption()

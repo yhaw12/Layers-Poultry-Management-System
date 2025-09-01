@@ -17,6 +17,7 @@ class CreatePaymentsTable extends Migration
             $table->date('payment_date');
             $table->string('payment_method')->nullable();
             $table->text('notes')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
             $table->softDeletes();
         });

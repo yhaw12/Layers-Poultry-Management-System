@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\VaccinationLog;
 use App\Models\Bird;
+use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -97,25 +98,42 @@ class VaccinationLogController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy(Request $request ,$id)
     {
         try {
             $vaccine = VaccinationLog::findOrFail($id);
-            $vaccine->delete();
+           
 
-            \App\Models\UserActivityLog::create([
+            UserActivityLog::create([
                 'user_id' => Auth::id() ?? 1,
                 'action' => 'deleted_vaccination_log',
                 'details' => "Deleted vaccination log ID {$id}",
             ]);
 
+             $vaccine->delete();
+
+              if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Vaccine  deleted successfully.'
+                ], 200);
+            }
+
             return redirect()->route('vaccination-logs.index')->with('success', 'Vaccination log deleted successfully');
         } catch (\Exception $e) {
             Log::error('Failed to delete vaccination log', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to delete vaccination log.');
+
+             if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete vaccine log. ' . ($e->getCode() == 23000 ? 'This vaccine is linked to other data.' : 'Please try again.')
+                ], 500);
+            }
+            return redirect()->route('vaccinatione-logs.index')->with('error', 'Failed to delete vaccine log.');
         }
     }
 
+        
     public function reminders()
     {
         try {

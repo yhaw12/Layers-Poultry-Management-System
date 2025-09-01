@@ -6,31 +6,28 @@ use App\Models\Alert;
 use App\Models\Feed;
 use App\Models\Inventory;
 use App\Models\MedicineLog;
+use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class InventoryController extends Controller
 {
-    public function index()
+   public function index()
     {
         // Fetch paginated inventory items
-        $items = Inventory::paginate(15);
-
-        // Fetch low stock items for Inventory, Feed, and Medicine
-        $lowStockItems = collect();
+        $items = Inventory::paginate(10);
 
         // Inventory low stock
         $lowInventory = Inventory::where('qty', '<', DB::raw('threshold'))
             ->get(['id', 'name', 'qty', 'threshold', DB::raw('"Inventory" as type')]);
-        $lowStockItems = $lowStockItems->concat($lowInventory);
 
         // Feed low stock
         $lowFeed = Feed::where('quantity', '<', DB::raw('threshold'))
-            ->get(['id', 'name', 'quantity as qty', 'threshold', DB::raw('"feed" as type')]);
-        $lowStockItems = $lowStockItems->concat($lowFeed);
+            ->get(['id', 'supplier', DB::raw('quantity as qty'), 'threshold', DB::raw('"Feed" as type')]);
 
-        // Medicine low stock
+        // Medicine low stock (aggregated)
         $lowMedicine = MedicineLog::select('medicine_name as name')
             ->selectRaw('SUM(CASE WHEN type = "purchase" THEN quantity ELSE -quantity END) as qty')
             ->selectRaw('10 as threshold')
@@ -46,9 +43,37 @@ class InventoryController extends Controller
                     'type' => 'Medicine',
                 ];
             });
-        $lowStockItems = $lowStockItems->concat($lowMedicine);
 
-        return view('inventory.index', compact('items', 'lowStockItems'));
+        // Combined low-stock items (Inventory + Feed + Medicine)
+        $combinedLow = $lowInventory->concat($lowFeed)->concat($lowMedicine);
+
+        // Deduplicate by name (case-insensitive) to avoid duplicate alerts for the same-name items across sources.
+        // We normalize name via trim and strtolower before unique().
+        $lowStockItems = $combinedLow
+            ->filter(function ($it) {
+                return isset($it->name) && trim($it->name) !== '';
+            })
+            ->unique(function ($it) {
+                return strtolower(trim($it->name));
+            })
+            ->values();
+
+        // counts/totals for the dashboard
+        $inventoryTotal   = $items->total();
+        $lowInventoryCount = $lowInventory->count();
+        $lowFeedCount      = $lowFeed->count();
+        $lowMedicineCount  = $lowMedicine->count();
+        $lowStockCount     = $lowStockItems->count(); // deduped combined count
+
+        return view('inventory.index', compact(
+            'items',
+            'lowStockItems',
+            'inventoryTotal',
+            'lowInventoryCount',
+            'lowFeedCount',
+            'lowMedicineCount',
+            'lowStockCount'
+        ));
     }
 
     public function create()
@@ -101,11 +126,41 @@ class InventoryController extends Controller
             ->with('success', 'Inventory item updated.');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $inventory = Inventory::findOrFail($id);
-        $inventory->delete();
-        return back()->with('success', 'Item removed.');
+        try {
+            $item = Inventory::findOrFail($id);
+
+            // Log the activity (if applicable)
+            UserActivityLog::create([
+                'user_id' => auth()->id() ?? 1,
+                'action' => 'deleted_inventory_item',
+                'details' => "Deleted inventory item {$item->name} (SKU: {$item->sku}) with quantity {$item->qty}",
+            ]);
+
+            // Delete the inventory item (soft delete if enabled)
+            $item->delete();
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Inventory item deleted successfully.'
+                ], 200);
+            }
+
+            return redirect()->route('inventory.index')->with('success', 'Inventory item deleted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to delete inventory item: ' . $e->getMessage());
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete inventory item. ' . ($e->getCode() == 23000 ? 'This item is linked to other data.' : 'Please try again.')
+                ], 500);
+            }
+
+            return redirect()->route('inventory.index')->with('error', 'Failed to delete inventory item.');
+        }
     }
 
     public function lowStock()

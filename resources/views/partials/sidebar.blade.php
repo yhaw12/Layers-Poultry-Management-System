@@ -217,75 +217,21 @@
                 </svg>
                 Employees
             </a>
-        @endrole
+       
 
         <!-- Reports -->
-        <div>
-            <button data-target="reports-submenu" class="toggle-btn flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200" aria-expanded="false" aria-controls="reports-submenu">
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Reports
-                </div>
-                <svg class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
-            <div id="reports-submenu" class="submenu hidden mt-1 ml-8 space-y-1 opacity-0 transition-opacity duration-300">
-                <a href="{{ route('reports.index', ['type' => 'custom']) }}"
-                   class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ request()->query('type') === 'custom' || in_array(request()->query('type'), ['weekly', 'monthly']) ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                   aria-current="{{ request()->query('type') === 'custom' || in_array(request()->query('type'), ['weekly', 'monthly']) ? 'page' : 'false' }}">
-                    Analytics
-                </a>
-                @can('manage_finances')
-                    <a href="{{ route('reports.index', ['type' => 'profitability']) }}"
-                       class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ in_array(request()->query('type'), ['profitability', 'profit-loss', 'forecast']) ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                       aria-current="{{ in_array(request()->query('type'), ['profitability', 'profit-loss', 'forecast']) ? 'page' : 'false' }}">
-                        Financial Reports
-                    </a>
-                @endcan
-                @role('admin')
-                    <a href="{{ route('activity-logs.index') }}"
-                       class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('activity-logs.*') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                       aria-current="{{ Route::is('activity-logs.*') ? 'page' : 'false' }}">
-                        Activity Logs
-                    </a>
-                @endrole
-            </div>
-        </div>
+        <a href="{{ route('reports.index') }}"
+           class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 {{ Route::is('alerts.index') ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : '' }}"
+           aria-current="{{ Route::is('reports.index') ? 'page' : 'false' }}">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V5a2 2 0 10-4 0v.083A6 6 0 004 11v3.159c0 .538-.214 1.055-.595 1.436L2 17h5m5 0v1a3 3 0 11-6 0v-1m5 0H7" />
+            </svg>
+            Reports
+        </a>
 
-        <!-- Account -->
-        <div>
-            <button data-target="account-submenu" class="toggle-btn flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200" aria-expanded="false" aria-controls="account-submenu">
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Account
-                </div>
-                <svg class="w-4 h-4 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
-            <div id="account-submenu" class="submenu hidden mt-1 ml-8 space-y-1 opacity-0 transition-opacity duration-300">
-                <a href="{{ route('profile.edit') }}"
-                   class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('profile.*') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                   aria-current="{{ Route::is('profile.*') ? 'page' : 'false' }}">
-                    Profile
-                </a>
-                <a href="{{ route('settings.index') }}"
-                   class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('settings.*') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                   aria-current="{{ Route::is('settings.*') ? 'page' : 'false' }}">
-                    Settings
-                </a>
-                <a href="{{ route('search') }}"
-                   class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('search') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
-                   aria-current="{{ Route::is('search') ? 'page' : 'false' }}">
-                    Search
-                </a>
-            </div>
-        </div>
+         @endrole
+
+        
 
         <!-- Alerts -->
         <a href="{{ route('notifications.index') }}"

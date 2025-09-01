@@ -19,6 +19,7 @@ return new class extends Migration
             $table->text('treatments')->nullable();
             $table->date('start_date');
             $table->date('end_date')->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }
