@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Feed;
 use App\Models\FeedConsumption;
+use App\Models\Supplier;
 use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class FeedController extends Controller
 {
@@ -15,39 +17,55 @@ class FeedController extends Controller
         $feeds = Feed::orderBy('purchase_date', 'desc')->paginate(10);
         $totalQuantity = Feed::sum('quantity') ?? 0;
         $totalCost = Feed::sum('cost') ?? 0;
-        $totalConsumed = FeedConsumption::sum('quantity') ?? 0;
+        $totalConsumed = Schema::hasTable('feed_consumption') ? FeedConsumption::sum('quantity') ?? 0 : 0;
 
         return view('feed.index', compact('feeds', 'totalQuantity', 'totalCost', 'totalConsumed'));
     }
 
     public function create()
     {
-        return view('feed.create');
+        $suppliers = Supplier::orderBy('name')->get();
+        return view('feed.create', compact('suppliers'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
             'type' => 'required|string|max:255',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'quantity' => 'required|integer|min:1',
             'weight' => 'required|numeric|min:0',
             'purchase_date' => 'required|date',
             'cost' => 'required|numeric|min:0',
         ]);
 
-        Feed::create($data);
+        $feed = Feed::create($data);
+
+        UserActivityLog::create([
+            'user_id' => auth()->id() ?? 1,
+            'action' => 'created_feed',
+            'details' => "Added feed '{$feed->type}' (Quantity: {$feed->quantity}, Cost: ₵{$feed->cost})",
+        ]);
+
         return redirect()->route('feed.index')->with('success', 'Feed added successfully');
     }
 
+    public function show(Feed $feed)
+{
+    return view('feed.show', compact('feed'));
+}
+
     public function edit(Feed $feed)
     {
-        return view('feed.edit', compact('feed'));
+        $suppliers = Supplier::orderBy('name')->get();
+        return view('feed.edit', compact('feed', 'suppliers'));
     }
 
     public function update(Request $request, Feed $feed)
     {
         $data = $request->validate([
             'type' => 'required|string|max:255',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'quantity' => 'required|integer|min:1',
             'weight' => 'required|numeric|min:0',
             'purchase_date' => 'required|date',
@@ -55,6 +73,13 @@ class FeedController extends Controller
         ]);
 
         $feed->update($data);
+
+        UserActivityLog::create([
+            'user_id' => auth()->id() ?? 1,
+            'action' => 'updated_feed',
+            'details' => "Updated feed '{$feed->type}' (Quantity: {$feed->quantity}, Cost: ₵{$feed->cost})",
+        ]);
+
         return redirect()->route('feed.index')->with('success', 'Feed updated successfully');
     }
 
@@ -63,14 +88,12 @@ class FeedController extends Controller
         try {
             $feed = Feed::findOrFail($id);
 
-            // Log the activity
             UserActivityLog::create([
                 'user_id' => auth()->id() ?? 1,
                 'action' => 'deleted_feed',
                 'details' => "Deleted feed record of {$feed->quantity} bags of {$feed->type} costing ₵{$feed->cost} on {$feed->purchase_date}",
             ]);
 
-            // Delete the feed (soft delete if enabled)
             $feed->delete();
 
             if ($request->ajax()) {
@@ -98,16 +121,27 @@ class FeedController extends Controller
     public function consumption()
     {
         $feeds = Feed::orderBy('type')->get();
-        $consumptions = FeedConsumption::orderBy('date', 'desc')->paginate(10);
-        $totalConsumed = FeedConsumption::sum('quantity') ?? 0;
+        $consumptions = Schema::hasTable('feed_consumption') ? FeedConsumption::orderBy('date', 'desc')->paginate(10) : collect();
+        $totalConsumed = Schema::hasTable('feed_consumption') ? FeedConsumption::sum('quantity') ?? 0 : 0;
 
-        return view('feed.consumption', compact('feeds', 'consumptions', 'totalConsumed'));
+       return view('feed.consumption.index', compact('feeds', 'consumptions', 'totalConsumed'));
     }
+
+    public function consumptionCreate()
+    {
+        $feeds = Feed::orderBy('type')->get();
+        return view('feed.consumption.create', compact('feeds'));
+    }
+
 
     public function storeConsumption(Request $request)
     {
+        if (!Schema::hasTable('feed_consumption')) {
+            return redirect()->route('feed.consumption')->with('error', 'Feed consumption table not found. Please run migrations.');
+        }
+
         $data = $request->validate([
-            'feed_id' => 'required|exists:feeds,id',
+            'feed_id' => 'required|exists:feed,id',
             'date' => 'required|date',
             'quantity' => 'required|numeric|min:0.01',
         ]);
@@ -115,6 +149,4 @@ class FeedController extends Controller
         FeedConsumption::create($data);
         return redirect()->route('feed.consumption')->with('success', 'Feed consumption recorded successfully');
     }
-
-    
 }

@@ -9,15 +9,15 @@ class AddCreatedByToPaymentsTable extends Migration
     public function up()
     {
         Schema::table('payments', function (Blueprint $table) {
-            $table->foreignId('created_by')->nullable()->after('notes')->constrained('users')->onDelete('set null');
+            // $table->foreignId('created_by')->nullable()->after('notes')->constrained('users')->onDelete('set null');
         });
     }
 
     public function down()
     {
         Schema::table('payments', function (Blueprint $table) {
-            $table->dropForeign(['created_by']);
-            $table->dropColumn('created_by');
+            // $table->dropForeign(['created_by']);
+            // $table->dropColumn('created_by');
         });
     }
 }

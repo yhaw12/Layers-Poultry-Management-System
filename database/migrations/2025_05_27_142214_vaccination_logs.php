@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('vaccination_logs', function (Blueprint $table) {
     $table->id();
-    // $table->foreignId('bird_id')->constrained()->onDelete('cascade');
+     $table->foreignId('bird_id')->constrained()->onDelete('cascade');
     $table->string('vaccine_name');
     $table->date('date_administered');
     $table->date('next_vaccination_date')->nullable();

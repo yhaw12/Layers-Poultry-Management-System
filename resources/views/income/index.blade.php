@@ -19,7 +19,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-gradient-to-r from-white to-gray-100 dark:from-[#1a1a3a] dark:to-gray-800 p-6 rounded-2xl shadow flex flex-col items-center hover:shadow-lg transition-shadow">
                 <span class="text-sm text-gray-500 dark:text-gray-400">Total Income Records</span>
-                <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ number_format($income->total(), 0) }}</p>
+                <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ number_format($income->count(), 0) }}</p>
                 <span class="text-gray-600 dark:text-gray-300">Records</span>
             </div>
             <div class="bg-gradient-to-r from-white to-gray-100 dark:from-[#1a1a3a] dark:to-gray-800 p-6 rounded-2xl shadow flex flex-col items-center hover:shadow-lg transition-shadow">
@@ -85,61 +85,35 @@
     <section>
         <div class="bg-gradient-to-r from-white to-gray-100 dark:from-[#1a1a3a] dark:to-gray-800 p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
             <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Income Records</h3>
-            <div id="toast-container" aria-live="polite" class="mb-4"></div>
             <div id="income-table-wrapper" aria-live="polite">
-                @section('table-content')a-live="polite">
-                    @section('table-content')
-                    @if ($income->isEmpty())
-                        <div class="text-center py-12">
-                            <p class="text-gray-600 dark:text-gray-400 mb-4">No income records found yet.</p>
-                            <a href="{{ route('income.create') }}" 
-                               class="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 transition"
-                               aria-label="Add your first income record">
-                                <span class="mr-2" aria-hidden="true">➕</span> Add Your First Income
-                            </a>
-                        </div>
-                    @else
-                        <!-- Desktop Table -->
-                        <div class="hidden sm:block overflow-x-auto rounded-lg">
-                            <table class="w-full border-collapse rounded-lg overflow-hidden text-sm">
-                                <thead>
-                                    <tr class="bg-gray-200 dark:bg-gray-700">
-                                        <th scope="col" class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Source</th>
-                                        <th scope="col" class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Amount (₵)</th>
-                                        <th scope="col" class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Date</th>
-                                        <th scope="col" class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200 dark:divide-gray-600">
-                                    @foreach ($income as $item)
-                                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-600 transition">
-                                            <td class="p-4 text-gray-700 dark:text-gray-300">{{ $item->source }}</td>
-                                            <td class="p-4 text-gray-700 dark:text-gray-300 font-medium">{{ number_format($item->amount, 2) }}</td>
-                                            <td class="p-4 text-gray-700 dark:text-gray-300">{{ $item->date ? $item->date->format('Y-m-d') : 'N/A' }}</td>
-                                            <td class="p-4 flex space-x-2">
-                                                <button type="button" data-id="{{ $item->id }}" data-url="{{ route('income.edit', $item) }}" 
-                                                        class="edit-btn inline-flex items-center px-3 py-1 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 text-xs focus:ring-2 focus:ring-yellow-500 transition" 
-                                                        aria-label="Edit income from {{ $item->source }} on {{ $item->date ? $item->date->format('Y-m-d') : 'N/A' }}">
-                                                    <span class="mr-2" aria-hidden="true">✏️</span> Edit
-                                                </button>
-                                                <button type="button" data-id="{{ $item->id }}" data-url="{{ route('income.destroy', $item) }}" 
-                                                        class="delete-btn inline-flex items-center px-3 py-1 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 text-xs focus:ring-2 focus:ring-red-500 transition" 
-                                                        aria-label="Delete income from {{ $item->source }} on {{ $item->date ? $item->date->format('Y-m-d') : 'N/A' }}">
-                                                    <span class="mr-2" aria-hidden="true">🗑</span> Delete
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- Mobile Card Layout -->
-                        <div class="sm:hidden space-y-4">
-                            @foreach ($income as $item)
-                                <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-                                    <div class="flex justify-between items-center mb-2">
-                                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Income #{{ $item->id }}</h4>
-                                        <div class="flex space-x-2">
+                @if ($income->isEmpty())
+                    <div class="text-center py-12">
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">No income records found yet.</p>
+                        <a href="{{ route('income.create') }}" 
+                           class="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 transition"
+                           aria-label="Add your first income record">
+                            <span class="mr-2" aria-hidden="true">➕</span> Add Your First Income
+                        </a>
+                    </div>
+                @else
+                    <!-- Desktop Table -->
+                    <div class="hidden sm:block overflow-x-auto rounded-lg">
+                        <table class="w-full border-collapse rounded-lg overflow-hidden text-sm">
+                            <thead>
+                                <tr class="bg-gray-200 dark:bg-gray-700">
+                                    <th scope="col" class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Source</th>
+                                    <th scope="col" class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Amount (₵)</th>
+                                    <th scope="col" class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Date</th>
+                                    <th scope="col" class="p-4 text-left font-medium text-gray-700 dark:text-gray-200 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-600">
+                                @foreach ($income as $item)
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                                        <td class="p-4 text-gray-700 dark:text-gray-300">{{ $item->source }}</td>
+                                        <td class="p-4 text-gray-700 dark:text-gray-300 font-medium">{{ number_format($item->amount, 2) }}</td>
+                                        <td class="p-4 text-gray-700 dark:text-gray-300">{{ $item->date ? $item->date->format('Y-m-d') : 'N/A' }}</td>
+                                        <td class="p-4 flex space-x-2">
                                             <button type="button" data-id="{{ $item->id }}" data-url="{{ route('income.edit', $item) }}" 
                                                     class="edit-btn inline-flex items-center px-3 py-1 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 text-xs focus:ring-2 focus:ring-yellow-500 transition" 
                                                     aria-label="Edit income from {{ $item->source }} on {{ $item->date ? $item->date->format('Y-m-d') : 'N/A' }}">
@@ -150,44 +124,66 @@
                                                     aria-label="Delete income from {{ $item->source }} on {{ $item->date ? $item->date->format('Y-m-d') : 'N/A' }}">
                                                 <span class="mr-2" aria-hidden="true">🗑</span> Delete
                                             </button>
-                                        </div>
-                                    </div>
-                                    <div class="grid grid-cols-1 gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                        <div><strong>Source:</strong> {{ $item->source }}</div>
-                                        <div><strong>Amount:</strong> ₵ {{ number_format($item->amount, 2) }}</div>
-                                        <div><strong>Date:</strong> {{ $item->date ? $item->date->format('Y-m-d') : 'N/A' }}</div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Mobile Card Layout -->
+                    <div class="sm:hidden space-y-4">
+                        @foreach ($income as $item)
+                            <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Income #{{ $item->id }}</h4>
+                                    <div class="flex space-x-2">
+                                        <button type="button" data-id="{{ $item->id }}" data-url="{{ route('income.edit', $item) }}" 
+                                                class="edit-btn inline-flex items-center px-3 py-1 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 text-xs focus:ring-2 focus:ring-yellow-500 transition" 
+                                                aria-label="Edit income from {{ $item->source }} on {{ $item->date ? $item->date->format('Y-m-d') : 'N/A' }}">
+                                            <span class="mr-2" aria-hidden="true">✏️</span> Edit
+                                        </button>
+                                        <button type="button" data-id="{{ $item->id }}" data-url="{{ route('income.destroy', $item) }}" 
+                                                class="delete-btn inline-flex items-center px-3 py-1 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 text-xs focus:ring-2 focus:ring-red-500 transition" 
+                                                aria-label="Delete income from {{ $item->source }} on {{ $item->date ? $item->date->format('Y-m-d') : 'N/A' }}">
+                                            <span class="mr-2" aria-hidden="true">🗑</span> Delete
+                                        </button>
                                     </div>
                                 </div>
-                            @endforeach
-                        </div>
-                        <!-- Pagination -->
-                        @if ($income instanceof \Illuminate\Pagination\LengthAwarePaginator && $income->hasPages())
-                            <div class="mt-6 flex justify-between items-center">
-                                <div class="flex space-x-2">
-                                    <a href="{{ $income->previousPageUrl() }}" 
-                                       class="pagination-link inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition {{ $income->onFirstPage() ? 'opacity-50 cursor-not-allowed' : '' }}"
-                                       aria-label="Previous page" {{ $income->onFirstPage() ? 'disabled' : '' }} data-ajax="true">
-                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                                        </svg>
-                                        Previous
-                                    </a>
-                                    <a href="{{ $income->nextPageUrl() }}" 
-                                       class="pagination-link inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition {{ !$income->hasMorePages() ? 'opacity-50 cursor-not-allowed' : '' }}"
-                                       aria-label="Next page" {{ !$income->hasMorePages() ? 'disabled' : '' }} data-ajax="true">
-                                        Next
-                                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                        </svg>
-                                    </a>
+                                <div class="grid grid-cols-1 gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                    <div><strong>Source:</strong> {{ $item->source }}</div>
+                                    <div><strong>Amount:</strong> ₵ {{ number_format($item->amount, 2) }}</div>
+                                    <div><strong>Date:</strong> {{ $item->date ? $item->date->format('Y-m-d') : 'N/A' }}</div>
                                 </div>
-                                <span class="text-sm text-gray-600 dark:text-gray-400">
-                                    Page {{ $income->currentPage() }} of {{ $income->lastPage() }}
-                                </span>
                             </div>
-                        @endif
+                        @endforeach
+                    </div>
+                    <!-- Pagination -->
+                    @if ($income instanceof \Illuminate\Pagination\LengthAwarePaginator && $income->hasPages())
+                        <div class="mt-6 flex justify-between items-center">
+                            <div class="flex space-x-2">
+                                <a href="{{ $income->previousPageUrl() }}" 
+                                   class="pagination-link inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition {{ $income->onFirstPage() ? 'opacity-50 cursor-not-allowed' : '' }}"
+                                   aria-label="Previous page" {{ $income->onFirstPage() ? 'disabled' : '' }} data-ajax="true">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                    Previous
+                                </a>
+                                <a href="{{ $income->nextPageUrl() }}" 
+                                   class="pagination-link inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 dark:bg-gray-500 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition {{ !$income->hasMorePages() ? 'opacity-50 cursor-not-allowed' : '' }}"
+                                   aria-label="Next page" {{ !$income->hasMorePages() ? 'disabled' : '' }} data-ajax="true">
+                                    Next
+                                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </a>
+                            </div>
+                            <span class="text-sm text-gray-600 dark:text-gray-400">
+                                Page {{ $income->currentPage() }} of {{ $income->lastPage() }}
+                            </span>
+                        </div>
                     @endif
-                @show
+                @endif
             </div>
         </div>
     </section>
@@ -244,27 +240,27 @@
 
     // Toast helper
     function toast(message, type = 'info', timeout = 3000) {
-    const id = 't-' + Date.now();
-    const colors = {
-        info: 'bg-indigo-600 text-white',
-        success: 'bg-green-600 text-white',
-        error: 'bg-red-600 text-white'
-    };
-    const el = document.createElement('div');
-    el.id = id;
-    el.className = `mb-3 px-4 py-2 rounded shadow ${colors[type] || colors.info} max-w-sm flex justify-between items-center`;
-    el.innerHTML = `
-        <span>✅ ${message}</span>
-        <button class="ml-4 text-white hover:text-gray-200" aria-label="Dismiss toast">✕</button>
-    `;
-    toastContainer.appendChild(el);
-    const closeBtn = el.querySelector('button');
-    closeBtn.addEventListener('click', () => el.remove());
-    setTimeout(() => {
-        el.classList.add('opacity-0', 'transition', 'duration-300');
-        setTimeout(() => el.remove(), 350);
-    }, timeout);
-}
+        const id = 't-' + Date.now();
+        const colors = {
+            info: 'bg-indigo-600 text-white',
+            success: 'bg-green-600 text-white',
+            error: 'bg-red-600 text-white'
+        };
+        const el = document.createElement('div');
+        el.id = id;
+        el.className = `mb-3 px-4 py-2 rounded shadow ${colors[type] || colors.info} max-w-sm flex justify-between items-center`;
+        el.innerHTML = `
+            <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'} ${message}</span>
+            <button class="ml-4 text-white hover:text-gray-200" aria-label="Dismiss toast">✕</button>
+        `;
+        toastContainer.appendChild(el);
+        const closeBtn = el.querySelector('button');
+        closeBtn.addEventListener('click', () => el.remove());
+        setTimeout(() => {
+            el.classList.add('opacity-0', 'transition', 'duration-300');
+            setTimeout(() => el.remove(), 350);
+        }, timeout);
+    }
 
     // Show server-set messages
     @if (session('success'))
@@ -316,19 +312,16 @@
 
     // Initialize event listeners for table controls
     function initTableControls() {
-        // Delete buttons
         document.querySelectorAll('#income-table-wrapper .delete-btn').forEach(btn => {
             btn.removeEventListener('click', deleteBtnClickHandler);
             btn.addEventListener('click', deleteBtnClickHandler);
         });
 
-        // Edit buttons
         document.querySelectorAll('#income-table-wrapper .edit-btn').forEach(btn => {
             btn.removeEventListener('click', editBtnClickHandler);
             btn.addEventListener('click', editBtnClickHandler);
         });
 
-        // Pagination links
         document.querySelectorAll('#income-table-wrapper .pagination-link').forEach(link => {
             link.removeEventListener('click', ajaxPageClickHandler);
             link.addEventListener('click', ajaxPageClickHandler);
@@ -430,7 +423,7 @@
     function ajaxPageClickHandler(e) {
         e.preventDefault();
         const link = e.currentTarget;
-        if (link.classList.contains('opacity-50')) return; // Ignore disabled links
+        if (link.classList.contains('opacity-50')) return;
         const href = link.getAttribute('href');
         if (!href) return;
         toast('Loading page...', 'info', 800);

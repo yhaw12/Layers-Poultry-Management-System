@@ -1,4 +1,3 @@
-{{-- eggs.create --}}
 @extends('layouts.app')
 
 @section('content')
@@ -11,9 +10,9 @@
         <!-- Form -->
         <section>
             <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
-                <form method="POST" action="{{ route('eggs.store') }}" class="space-y-6">
+                <form method="POST" action="{{ route('eggs.store') }}" class="space-y-6" novalidate>
                     @csrf
-                    <!-- Success/Error Messages -->
+
                     @if (session('error'))
                         <div class="p-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-400 rounded-lg flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,6 +21,7 @@
                             {{ session('error') }}
                         </div>
                     @endif
+
                     @if ($errors->any())
                         <div class="p-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-400 rounded-lg">
                             <ul class="list-disc list-inside">
@@ -34,9 +34,9 @@
 
                     <!-- Pen / Flock -->
                     <div>
-                        <label for="pen_id" class="block text-gray-700 dark:text-gray-300">Pen / Flock</label>
-                        <select name="pen_id" id="pen_id" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('pen_id') border-red-500 @enderror">
-                            <option value="" {{ old('pen_id') ? '' : 'selected' }}>Select Pen (Optional)</option>
+                        <label for="pen_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Pen / Flock</label>
+                        <select name="pen_id" id="pen_id" class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('pen_id') border-red-500 @enderror">
+                            <option value="" {{ old('pen_id') ? '' : 'selected' }} disabled>Select Pen</option>
                             @foreach ($pens as $pen)
                                 <option value="{{ $pen->id }}" {{ old('pen_id') == $pen->id ? 'selected' : '' }}>{{ $pen->name }}</option>
                             @endforeach
@@ -46,20 +46,22 @@
                         @enderror
                     </div>
 
+                    <!-- Date Laid -->
                     <div>
-                        <label class="block text-gray-700 dark:text-gray-300">Date Laid</label>
-                        <input type="date" name="date_laid" value="{{ old('date_laid', now()->format('Y-m-d')) }}"
-                            class="w-full border rounded p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white" required>
+                        <label for="date_laid" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date Laid <span class="text-red-600">*</span></label>
+                        <input type="date" name="date_laid" id="date_laid" value="{{ old('date_laid', now()->format('Y-m-d')) }}"
+                               class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('date_laid') border-red-500 @enderror"
+                               required max="{{ now()->format('Y-m-d') }}" aria-describedby="date_laid-error">
                         @error('date_laid')
-                            <p class="text-red-600 dark:text-red-400 text-sm">{{ $message }}</p>
+                            <p id="date_laid-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <!-- Number of Crates -->
                     <div>
-                        <label for="crates" class="block text-gray-700 dark:text-gray-300">Number of Crates <span class="text-red-600">*</span></label>
-                        <input name="crates" type="number" id="crates" value="{{ old('crates') }}" step="0.01" min="0"
-                               class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('crates') border-red-500 @enderror"
+                        <label for="crates" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number of Crates <span class="text-red-600">*</span></label>
+                        <input name="crates" type="number" id="crates" value="{{ old('crates', 0) }}" step="1" min="0"
+                               class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('crates') border-red-500 @enderror"
                                required aria-describedby="crates-error">
                         @error('crates')
                             <p id="crates-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
@@ -68,9 +70,9 @@
 
                     <!-- Additional Eggs -->
                     <div>
-                        <label for="additional_eggs" class="block text-gray-700 dark:text-gray-300">Additional Eggs (0-29) <span class="text-red-600">*</span></label>
-                        <input name="additional_eggs" type="number" id="additional_eggs" value="{{ old('additional_eggs') }}" min="0" max="29"
-                               class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('additional_eggs') border-red-500 @enderror"
+                        <label for="additional_eggs" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Additional Eggs (0-29) <span class="text-red-600">*</span></label>
+                        <input name="additional_eggs" type="number" id="additional_eggs" value="{{ old('additional_eggs', 0) }}" min="0" max="29" step="1"
+                               class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('additional_eggs') border-red-500 @enderror"
                                required aria-describedby="additional_eggs-error">
                         @error('additional_eggs')
                             <p id="additional_eggs-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
@@ -79,7 +81,7 @@
 
                     <!-- Is Cracked -->
                     <div>
-                        <label class="block text-gray-700 dark:text-gray-300">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             <input type="checkbox" name="is_cracked" id="is_cracked" value="1" {{ old('is_cracked') ? 'checked' : '' }}
                                    class="mr-2 dark:bg-gray-800 dark:border-gray-600">
                             Cracked Eggs
@@ -91,9 +93,9 @@
 
                     <!-- Egg Size -->
                     <div id="egg_size_div" class="{{ old('is_cracked') ? 'hidden' : '' }}">
-                        <label for="egg_size" class="block text-gray-700 dark:text-gray-300">Egg Size</label>
-                        <select name="egg_size" id="egg_size" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('egg_size') border-red-500 @enderror">
-                            <option value="" {{ old('egg_size') ? '' : 'selected' }}>Select Size</option>
+                        <label for="egg_size" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Egg Size</label>
+                        <select name="egg_size" id="egg_size" class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('egg_size') border-red-500 @enderror">
+                            <option value="">{{ __('Select Size (optional)') }}</option>
                             <option value="small" {{ old('egg_size') == 'small' ? 'selected' : '' }}>Small</option>
                             <option value="medium" {{ old('egg_size') == 'medium' ? 'selected' : '' }}>Medium</option>
                             <option value="large" {{ old('egg_size') == 'large' ? 'selected' : '' }}>Large</option>
@@ -104,15 +106,15 @@
                     </div>
 
                     <!-- Buttons -->
-                    <div class="flex space-x-4">
-                        <button type="submit"
-                                class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                            Save
-                        </button>
+                    <div class="flex justify-end space-x-4">
                         <a href="{{ route('eggs.index') }}"
-                           class="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                           class="inline-flex items-center bg-gray-300 text-gray-800 py-2 px-6 rounded-lg hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 transition-colors duration-200 font-medium">
                             Cancel
                         </a>
+                        <button type="submit"
+                                class="inline-flex items-center bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200 font-medium">
+                            Save
+                        </button>
                     </div>
                 </form>
             </div>

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Sale;
+use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -26,31 +28,39 @@ class Payment extends Model
         'payment_date' => 'date',
     ];
 
-    /* --------------------
-     | Relationships
-     |-------------------- */
-
     public function sale()
     {
         return $this->belongsTo(Sale::class);
     }
 
-    /* --------------------
-     | Model events: keep sale consistent
-     |-------------------- */
-
     protected static function booted()
     {
-        // when a payment is created/updated/deleted ensure sale paid_amount & status are in sync.
+        // created: sync sale & create transaction (idempotent via reference_type/reference_id)
         static::created(function (Payment $payment) {
             try {
                 $sale = Sale::withTrashed()->find($payment->sale_id);
                 if ($sale) {
-                    // use payment_date of created payment as "asOf" so future-dated payments behave as desired
                     $asOf = Carbon::parse($payment->payment_date ?? now());
                     $sale->recalculatePaidAmount($asOf);
                     $sale->updatePaymentStatus($asOf);
                 }
+
+                Transaction::firstOrCreate(
+                    [
+                        'type' => 'payment',
+                        'reference_type' => Payment::class,
+                        'reference_id' => $payment->id,
+                    ],
+                    [
+                        'amount' => $payment->amount,
+                        'status' => 'approved',
+                        'date' => $payment->payment_date ? $payment->payment_date->toDateString() : now()->toDateString(),
+                        'source_type' => Sale::class,
+                        'source_id' => $payment->sale_id,
+                        'user_id' => $payment->created_by ?? null,
+                        'description' => trim("Payment ID: {$payment->id} — " . ($payment->notes ?? '')),
+                    ]
+                );
             } catch (\Throwable $e) {
                 Log::error('Error in Payment::created hook', [
                     'payment_id' => $payment->id ?? null,
@@ -60,14 +70,39 @@ class Payment extends Model
             }
         });
 
+        // updated: update matching transaction if present (or create)
         static::updated(function (Payment $payment) {
             try {
                 $sale = Sale::withTrashed()->find($payment->sale_id);
                 if ($sale) {
-                    // choose the earliest relevant asOf between now and payment_date
                     $asOf = Carbon::parse($payment->payment_date ?? now());
                     $sale->recalculatePaidAmount($asOf);
                     $sale->updatePaymentStatus($asOf);
+                }
+
+                $tx = Transaction::where('type', 'payment')
+                    ->where('reference_type', Payment::class)
+                    ->where('reference_id', $payment->id)
+                    ->first();
+
+                $date = $payment->payment_date ? $payment->payment_date->toDateString() : now()->toDateString();
+                $payload = [
+                    'amount' => $payment->amount,
+                    'date' => $date,
+                    'source_type' => Sale::class,
+                    'source_id' => $payment->sale_id,
+                    'user_id' => $payment->created_by ?? null,
+                    'description' => trim("Payment ID: {$payment->id} — " . ($payment->notes ?? '')),
+                ];
+
+                if ($tx) {
+                    $tx->update($payload);
+                } else {
+                    $payload['type'] = 'payment';
+                    $payload['status'] = 'approved';
+                    $payload['reference_type'] = Payment::class;
+                    $payload['reference_id'] = $payment->id;
+                    Transaction::create($payload);
                 }
             } catch (\Throwable $e) {
                 Log::error('Error in Payment::updated hook', [
@@ -78,15 +113,19 @@ class Payment extends Model
             }
         });
 
+        // deleted: recalc sale & remove transaction reference
         static::deleted(function (Payment $payment) {
             try {
-                // payment may be deleted; use sale_id to find related sale
                 $sale = Sale::withTrashed()->find($payment->sale_id);
                 if ($sale) {
-                    // recalc as of now
                     $sale->recalculatePaidAmount();
                     $sale->updatePaymentStatus();
                 }
+
+                Transaction::where('type', 'payment')
+                    ->where('reference_type', Payment::class)
+                    ->where('reference_id', $payment->id)
+                    ->delete();
             } catch (\Throwable $e) {
                 Log::error('Error in Payment::deleted hook', [
                     'payment_id' => $payment->id ?? null,

@@ -9,7 +9,7 @@
 
         <!-- Form -->
         <section>
-            <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
                 <form method="POST" action="{{ route('orders.update', $order->id) }}" class="space-y-6">
                     @csrf
                     @method('PUT')

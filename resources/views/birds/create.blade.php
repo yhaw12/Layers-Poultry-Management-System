@@ -1,17 +1,17 @@
-{{-- birds.create --}}
 @extends('layouts.app')
 
 @section('content')
-    <div class="container mx-auto px-4 py-8 space-y-12 bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
+    <div class="container mx-auto px-6 py-12 space-y-16 bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
         <!-- Header -->
         <section>
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Add New Bird Batch</h2>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Add New Bird Batch</h2>
+            <p class="text-base text-gray-600 dark:text-gray-400 mt-2">Enter the details for your new bird batch below.</p>
         </section>
 
         <!-- Form -->
         <section>
-            <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
-                <form method="POST" action="{{ route('birds.store') }}" class="space-y-6">
+            <div class="bg-white dark:bg-[#1a1a3a] p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 max-w-lg mx-auto">
+                <form method="POST" action="{{ route('birds.store') }}" class="space-y-8">
                     @csrf
                     <!-- Success/Error Messages -->
                     @if (session('error'))
@@ -34,9 +34,9 @@
 
                     <!-- Breed -->
                     <div>
-                        <label for="breed" class="block text-gray-700 dark:text-gray-300">Breed <span class="text-red-600">*</span></label>
+                        <label for="breed" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Breed <span class="text-red-600">*</span></label>
                         <input name="breed" type="text" id="breed" value="{{ old('breed') }}"
-                               class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('breed') border-red-500 @enderror"
+                               class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('breed') border-red-500 @enderror"
                                required aria-describedby="breed-error">
                         @error('breed')
                             <p id="breed-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
@@ -45,8 +45,8 @@
 
                     <!-- Type -->
                     <div>
-                        <label for="type" class="block text-gray-700 dark:text-gray-300">Type <span class="text-red-600">*</span></label>
-                        <select name="type" id="type" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('type') border-red-500 @enderror" required>
+                        <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Type <span class="text-red-600">*</span></label>
+                        <select name="type" id="type" class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('type') border-red-500 @enderror" required>
                             <option value="" {{ old('type') ? '' : 'selected' }} disabled>Select Type</option>
                             <option value="layer" {{ old('type') == 'layer' ? 'selected' : '' }}>Layer</option>
                             <option value="broiler" {{ old('type') == 'broiler' ? 'selected' : '' }}>Broiler</option>
@@ -58,8 +58,8 @@
 
                     <!-- Stage -->
                     <div>
-                        <label for="stage" class="block text-gray-700 dark:text-gray-300">Stage <span class="text-red-600">*</span></label>
-                        <select name="stage" id="stage" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('stage') border-red-500 @enderror" required>
+                        <label for="stage" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Stage <span class="text-red-600">*</span></label>
+                        <select name="stage" id="stage" class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('stage') border-red-500 @enderror" required>
                             <option value="" {{ old('stage') ? '' : 'selected' }} disabled>Select Stage</option>
                             <option value="chick" {{ old('stage') == 'chick' ? 'selected' : '' }}>Chick</option>
                             <option value="juvenile" {{ old('stage') == 'juvenile' ? 'selected' : '' }}>Juvenile (Growing Bird)</option>
@@ -72,9 +72,9 @@
 
                     <!-- Quantity -->
                     <div>
-                        <label for="quantity" class="block text-gray-700 dark:text-gray-300">Quantity <span class="text-red-600">*</span></label>
+                        <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Quantity <span class="text-red-600">*</span></label>
                         <input name="quantity" type="number" id="quantity" value="{{ old('quantity') }}"
-                               class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('quantity') border-red-500 @enderror"
+                               class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('quantity') border-red-500 @enderror"
                                min="1" required aria-describedby="quantity-error">
                         @error('quantity')
                             <p id="quantity-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
@@ -82,56 +82,56 @@
                     </div>
 
                     <!-- Chick Fields (Conditional) -->
-                    <div class="chick-fields hidden space-y-6">
+                    <div class="chick-fields hidden space-y-8">
                         <div>
-                            <label for="quantity_bought" class="block text-gray-700 dark:text-gray-300">Quantity Bought</label>
+                            <label for="quantity_bought" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Quantity Bought <span class="text-red-600">*</span></label>
                             <input name="quantity_bought" type="number" id="quantity_bought" value="{{ old('quantity_bought') }}"
-                                   class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('quantity_bought') border-red-500 @enderror"
+                                   class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('quantity_bought') border-red-500 @enderror"
                                    min="1" aria-describedby="quantity_bought-error">
                             @error('quantity_bought')
                                 <p id="quantity_bought-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
                         <div>
-                            <label for="feed_amount" class="block text-gray-700 dark:text-gray-300">Feed Amount (kg)</label>
+                            <label for="feed_amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Feed Amount (kg) <span class="text-red-600">*</span></label>
                             <input name="feed_amount" type="number" step="0.01" id="feed_amount" value="{{ old('feed_amount') }}"
-                                   class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('feed_amount') border-red-500 @enderror"
+                                   class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('feed_amount') border-red-500 @enderror"
                                    min="0" aria-describedby="feed_amount-error">
                             @error('feed_amount')
                                 <p id="feed_amount-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
                         <div>
-                            <label for="alive" class="block text-gray-700 dark:text-gray-300">Alive</label>
+                            <label for="alive" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Alive <span class="text-red-600">*</span></label>
                             <input name="alive" type="number" id="alive" value="{{ old('alive') }}"
-                                   class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('alive') border-red-500 @enderror"
+                                   class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('alive') border-red-500 @enderror"
                                    min="0" aria-describedby="alive-error">
                             @error('alive')
                                 <p id="alive-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
                         <div>
-                            <label for="dead" class="block text-gray-700 dark:text-gray-300">Dead</label>
+                            <label for="dead" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Dead <span class="text-red-600">*</span></label>
                             <input name="dead" type="number" id="dead" value="{{ old('dead') }}"
-                                   class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('dead') border-red-500 @enderror"
+                                   class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('dead') border-red-500 @enderror"
                                    min="0" aria-describedby="dead-error">
                             @error('dead')
                                 <p id="dead-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
                         <div>
-                            <label for="purchase_date" class="block text-gray-700 dark:text-gray-300">Purchase Date</label>
+                            <label for="purchase_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Purchase Date <span class="text-red-600">*</span></label>
                             <input name="purchase_date" type="date" id="purchase_date" value="{{ old('purchase_date') }}"
-                                   class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('purchase_date') border-red-500 @enderror"
-                                   aria-describedby="purchase_date-error">
+                                   class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('purchase_date') border-red-500 @enderror"
+                                   aria-describedby="purchase_date-error" max="{{ now()->format('Y-m-d') }}">
                             @error('purchase_date')
                                 <p id="purchase_date-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
                         <div>
-                            <label for="cost" class="block text-gray-700 dark:text-gray-300">Cost (₵)</label>
+                            <label for="cost" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cost (₵) <span class="text-red-600">*</span></label>
                             <input name="cost" type="number" step="0.01" id="cost" value="{{ old('cost') }}"
-                                   class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('cost') border-red-500 @enderror"
+                                   class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('cost') border-red-500 @enderror"
                                    min="0" aria-describedby="cost-error">
                             @error('cost')
                                 <p id="cost-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
@@ -141,8 +141,8 @@
 
                     <!-- Working -->
                     <div>
-                        <label for="working" class="block text-gray-700 dark:text-gray-300">Working <span class="text-red-600">*</span></label>
-                        <select name="working" id="working" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('working') border-red-500 @enderror" required>
+                        <label for="working" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Working <span class="text-red-600">*</span></label>
+                        <select name="working" id="working" class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('working') border-red-500 @enderror" required>
                             <option value="1" {{ old('working') == 1 ? 'selected' : '' }}>Yes</option>
                             <option value="0" {{ old('working') == 0 ? 'selected' : '' }}>No</option>
                         </select>
@@ -153,10 +153,10 @@
 
                     <!-- Entry Date -->
                     <div>
-                        <label for="entry_date" class="block text-gray-700 dark:text-gray-300">Entry Date <span class="text-red-600">*</span></label>
-                        <input name="entry_date" type="date" id="entry_date" value="{{ old('entry_date') }}"
-                               class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('entry_date') border-red-500 @enderror"
-                               required aria-describedby="entry_date-error">
+                        <label for="entry_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Entry Date <span class="text-red-600">*</span></label>
+                        <input name="entry_date" type="date" id="entry_date" value="{{ old('entry_date', now()->format('Y-m-d')) }}"
+                               class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('entry_date') border-red-500 @enderror"
+                               required aria-describedby="entry_date-error" max="{{ now()->format('Y-m-d') }}">
                         @error('entry_date')
                             <p id="entry_date-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                         @enderror
@@ -164,8 +164,8 @@
 
                     <!-- Vaccination Status -->
                     <div>
-                        <label for="vaccination_status" class="block text-gray-700 dark:text-gray-300">Vaccination Status</label>
-                        <select name="vaccination_status" id="vaccination_status" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('vaccination_status') border-red-500 @enderror">
+                        <label for="vaccination_status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Vaccination Status</label>
+                        <select name="vaccination_status" id="vaccination_status" class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('vaccination_status') border-red-500 @enderror">
                             <option value="" {{ old('vaccination_status') ? '' : 'selected' }} disabled>Select Status</option>
                             <option value="1" {{ old('vaccination_status') == 1 ? 'selected' : '' }}>Yes</option>
                             <option value="0" {{ old('vaccination_status') == 0 ? 'selected' : '' }}>No</option>
@@ -175,27 +175,30 @@
                         @enderror
                     </div>
 
-                    <!-- Housing Location -->
+                    <!-- Pen -->
                     <div>
-                        <label for="housing_location" class="block text-gray-700 dark:text-gray-300">Housing Location</label>
-                        <input name="housing_location" type="text" id="housing_location" value="{{ old('housing_location') }}"
-                               class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('housing_location') border-red-500 @enderror"
-                               aria-describedby="housing_location-error">
-                        @error('housing_location')
-                            <p id="housing_location-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                        <label for="pen_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Pen</label>
+                        <select name="pen_id" id="pen_id" class="mt-1 w-full p-3 border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200 @error('pen_id') border-red-500 @enderror">
+                            <option value="" {{ old('pen_id') ? '' : 'selected' }} disabled>Select Pen</option>
+                            @foreach($pens as $pen)
+                                <option value="{{ $pen->id }}" {{ old('pen_id') == $pen->id ? 'selected' : '' }}>{{ $pen->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('pen_id')
+                            <p id="pen_id-error" class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
                     <!-- Buttons -->
-                    <div class="flex space-x-4">
-                        <button type="submit"
-                                class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                            Save
-                        </button>
+                    <div class="flex justify-end space-x-4">
                         <a href="{{ route('birds.index') }}"
-                           class="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                           class="inline-flex items-center bg-gray-300 text-gray-800 py-2 px-6 rounded-lg hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 transition-colors duration-200 font-medium">
                             Cancel
                         </a>
+                        <button type="submit"
+                                class="inline-flex items-center bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200 font-medium">
+                            Save
+                        </button>
                     </div>
                 </form>
             </div>

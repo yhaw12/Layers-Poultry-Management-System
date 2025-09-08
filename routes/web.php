@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Auth\AdminUserController;
 use App\Http\Controllers\ActivityLogController;
@@ -29,7 +30,6 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\VaccinationLogController;
 use App\Http\Controllers\WeatherController;
-use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -55,25 +55,25 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('dashboard/export', [DashboardController::class, 'exportPDF'])
-         ->name('dashboard.export')
-         ->middleware('role:admin');
+        ->name('dashboard.export')
+        ->middleware('role:admin');
 
-    // Alerts/Notifications
+    // Alerts & Notifications
     Route::get('alerts', [AlertController::class, 'index'])->name('alerts.index');
     Route::get('notifications', [AlertController::class, 'view'])->name('notifications.index');
     Route::post('alerts/{alert}/read', [AlertController::class, 'read'])->name('alerts.read');
     Route::post('alerts/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismiss-all');
-    Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])->name('alerts.custom.create')
+    Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])
+        ->name('alerts.custom.create')
         ->middleware('role:admin');
 
-    // Core resources
+    // Core resource routes
     Route::resources([
         'birds'            => BirdsController::class,
         'customers'        => CustomerController::class,
         'eggs'             => EggController::class,
         'employees'        => EmployeeController::class,
         'expenses'         => ExpenseController::class,
-        'feed'             => FeedController::class,
         'income'           => IncomeController::class,
         'inventory'        => InventoryController::class,
         'medicine-logs'    => MedicineLogController::class,
@@ -85,73 +85,88 @@ Route::middleware('auth')->group(function () {
         'vaccination-logs' => VaccinationLogController::class,
     ]);
 
-    // Health Checks
-    Route::resource('health-checks', HealthCheckController::class)->only(['index', 'create', 'store', 'edit', 'destroy']);
+    // Health checks (limited)
+    Route::resource('health-checks', HealthCheckController::class)
+        ->only(['index', 'create', 'store', 'edit', 'destroy']);
+    Route::put('health-checks/{id}', [HealthCheckController::class, 'update'])->name('health-checks.update');
 
-    // Other routes
+    // Eggs bulk delete
     Route::delete('eggs/bulk', [EggController::class, 'bulkDelete'])->name('eggs.bulkDelete');
-    Route::get('feed/consumption', [FeedController::class, 'consumption'])->name('feed.consumption');
-    Route::get('sales/eggs', [SalesController::class, 'sales'])->name('eggs.sales');
-    Route::get('sales/birds', [SalesController::class, 'birdSales'])->name('sales.birds');
-    // Route::post('sales/{sale}/status', [SalesController::class, 'updateStatus'])->name('sales.updateStatus');
-    // Route::get('sales/{sale}/invoice', [SalesController::class, 'invoice'])->name('sales.invoice');
-    // Route::get('sales/{sale}/email', [SalesController::class, 'emailInvoice'])->name('sales.emailInvoice');
-    // Route::post('sales/{sale}/payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment');
-    // Route::get('sales/pending-payments', [SalesController::class, 'pendingPayments'])->name('sales.pendingPayments');
+
+    // Payroll extra actions
     Route::post('payroll/generate', [PayrollController::class, 'generateMonthly'])->name('payroll.generate');
-    Route::get('payroll/export', [PayrollController::class, 'exportPDF'])->name('payroll.export')->middleware('role:admin');
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
-    Route::get('/reports/data', [ReportController::class, 'data'])->name('reports.data');
-    Route::get('diseases', [DiseaseController::class, 'index'])->name('diseases.index');
-     Route::get('/reports/custom', [ReportController::class, 'custom'])->name('reports.custom');
-    Route::get('diseases/{disease}/history', [DiseaseController::class, 'history'])->name('diseases.history');
-    Route::post('diseases', [DiseaseController::class, 'store'])->name('diseases.store');
-    Route::post('diseases/create', [DiseaseController::class, 'store'])->name('diseases.create');
-    Route::post('users/{user}/assign-role', [UserController::class, 'assignRole'])->name('users.assign-role')->middleware('role:admin');
-    Route::post('/users/{user}/toggle-permission', [AdminUserController::class, 'togglePermission'])->name('users.toggle-permission');
+    Route::get('payroll/export', [PayrollController::class, 'exportPDF'])
+        ->name('payroll.export')
+        ->middleware('role:admin');
+
+    // Reports (✅ fixed, no duplicates)
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/', [ReportController::class, 'index'])->name('index');
+        Route::get('/export/csv', [ReportController::class, 'exportCsv'])->name('export.csv');
+        Route::get('/export/pdf', [ReportController::class, 'exportPdf'])->name('export.pdf');
+        Route::get('/export/excel', [ReportController::class, 'exportExcel'])->name('export.excel');
+        Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+        Route::get('/data', [ReportController::class, 'data'])->name('data');
+    });
+
+    // Diseases
+    Route::prefix('diseases')->name('diseases.')->group(function () {
+        Route::get('/', [DiseaseController::class, 'index'])->name('index');
+        Route::get('/create', [DiseaseController::class, 'create'])->name('create');
+        Route::post('/', [DiseaseController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [DiseaseController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [DiseaseController::class, 'update'])->name('update');
+        Route::delete('/{id}', [DiseaseController::class, 'destroy'])->name('destroy');
+        Route::get('/history', [DiseaseController::class, 'history'])->name('history');
+    });
+
+    // User role assignment (admin only)
+    Route::post('users/{user}/assign-role', [UserController::class, 'assignRole'])
+        ->name('users.assign-role')
+        ->middleware('role:admin');
+
+    Route::get('users/{user}/permissions', [AdminUserController::class, 'permissions'])->name('users.permissions');
+    Route::post('users/{user}/permissions', [AdminUserController::class, 'updatePermissions'])->name('users.permissions.update');
+
+    // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar'])->name('profile.avatar');
+
+    // Settings & Search
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::get('/search', [SearchController::class, 'index'])->name('search');
-    Route::get('/inventory/low-stock', [InventoryController::class, 'lowStock'])->name('inventory.low-stock');
-    Route::get('/transactions', [TransactionsController::class, 'index'])->name('transactions.index');
-    Route::get('/transactions/{transaction}', [TransactionsController::class, 'show'])->name('transactions.show');
-    Route::post('/transactions/{transaction}/approve', [TransactionsController::class, 'approve'])->name('transactions.approve');
-    Route::post('/transactions/{transaction}/decline', [TransactionsController::class, 'reject'])->name('transactions.reject');
-    Route::post('/transactions/{transaction}/destroy', [TransactionsController::class, 'destroy'])->name('transactions.destroy');
 
+    // Inventory & Transactions
+    Route::get('/inventory/low-stock', [InventoryController::class, 'lowStock'])->name('inventory.low-stock');
+    Route::prefix('transactions')->name('transactions.')->group(function () {
+        Route::get('/', [TransactionsController::class, 'index'])->name('index');
+        Route::get('/{transaction}', [TransactionsController::class, 'show'])->name('show');
+        Route::post('/{transaction}/approve', [TransactionsController::class, 'approve'])->name('approve');
+        Route::post('/{transaction}/reject', [TransactionsController::class, 'reject'])->name('reject');
+        Route::delete('/{transaction}', [TransactionsController::class, 'destroy'])->name('destroy');
+    });
+
+    // Activity Logs (admin only)
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity.logs');
+    });
+
+    // Birds trash/restore
     Route::get('birds/trashed', [BirdsController::class, 'trashed'])->name('birds.trashed');
     Route::post('birds/{id}/restore', [BirdsController::class, 'restore'])->name('birds.restore');
+
+    // Weather
     Route::get('/weather/fetch', [WeatherController::class, 'fetch'])->name('weather.fetch');
-    
-// Route::get('sales/pending-payments', [SalesController::class, 'pendingPayments'])->name('sales.pendingPayments');
 
-    
-});
-
-
-Route::middleware(['web', 'auth'])->group(function () {
-      Route::get('sales', [SalesController::class, 'index'])->name('sales.index');
-    Route::get('sales/create', [SalesController::class, 'create'])->name('sales.create');
-    Route::post('sales', [SalesController::class, 'store'])->name('sales.store');
-    Route::get('sales/{sale}/edit', [SalesController::class, 'edit'])->name('sales.edit');
-    Route::put('sales/{sale}', [SalesController::class, 'update'])->name('sales.update');
-    Route::delete('sales/{sale}', [SalesController::class, 'destroy'])->name('sales.destroy');
-
-    // invoice preview / download
-    Route::get('sales/{sale}/invoice', [SalesController::class, 'invoice'])->name('sales.invoice');
-
-    // record payment (AJAX-friendly)
-    Route::post('sales/{sale}/record-payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment');
-
-    // new: pending payments JSON endpoint (used by the modal)
-    Route::get('sales/pending-json', [SalesController::class, 'pendingJson'])->name('sales.pendingJson');
-
-    // Add any other sale related routes you need...
-    Route::get('sales/{sale}/invoice/preview', [SalesController::class, 'invoicePreview'])
-    ->name('sales.invoice.preview');
+    // Feed consumption
+    Route::prefix('feed')->name('feed.')->group(function () {
+        Route::get('/consumption', [FeedController::class, 'consumption'])->name('consumption');
+        Route::get('/consumption/create', [FeedController::class, 'consumptionCreate'])->name('consumption.create');
+        Route::post('/consumption', [FeedController::class, 'storeConsumption'])->name('storeConsumption');
+    });
+    Route::resource('feed', FeedController::class)->except(['show']);
 });
 
 /*
@@ -161,21 +176,44 @@ Route::middleware(['web', 'auth'])->group(function () {
 */
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('users', AdminUserController::class)->except('show');
+    Route::post('users/{user}/toggle-permission', [AdminUserController::class, 'togglePermission'])
+        ->name('users.toggle-permission');
+
     Route::resource('roles', RoleController::class)->only(['index', 'store']);
     Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
 });
 
-// Route::middleware(['web', 'auth'])->group(function () {
-//     Route::get('/sales/pending-payments', [SalesController::class, 'pendingPayments'])->name('sales.pendingPayments');
-//     Route::post('/sales/{sale}/payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment');
-// });
+/*
+|--------------------------------------------------------------------------
+| Sales Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->prefix('sales')->name('sales.')->group(function () {
+    Route::get('/', [SalesController::class, 'index'])->name('index');
+    Route::get('/create', [SalesController::class, 'create'])->name('create');
+    Route::post('/', [SalesController::class, 'store'])->name('store');
+    Route::get('/{sale}/edit', [SalesController::class, 'edit'])->name('edit');
+    Route::put('/{sale}', [SalesController::class, 'update'])->name('update');
+    Route::delete('/{sale}', [SalesController::class, 'destroy'])->name('destroy');
 
+    Route::get('/{sale}/invoice', [SalesController::class, 'invoice'])->name('invoice');
+    Route::get('/{sale}/invoice/preview', [SalesController::class, 'invoicePreview'])->name('invoice.preview');
+    Route::post('/{sale}/record-payment', [SalesController::class, 'recordPayment'])->name('recordPayment');
 
-// Route::middleware(['auth'])->group(function () {
-// // Returns all unpaid (non-paid) sales as JSON. Optional ?status=pending|partially_paid|overdue
-// Route::get('sales/pending-json', [SalesController::class, 'pendingJson'])->name('sales.pendingJson');
+    Route::get('/pending-json', [SalesController::class, 'pendingJson'])->name('pendingJson');
+});
 
-
-// // Returns a single sale as JSON (sale record + related customer + saleable summary)
-// Route::get('sales/{sale}/json', [SalesController::class, 'json'])->name('sales.json');
-// });
+/*
+|--------------------------------------------------------------------------
+| Vaccination Logs Routes
+|--------------------------------------------------------------------------
+*/
+Route::prefix('vaccination-logs')->middleware(['auth'])->name('vaccination-logs.')->group(function () {
+    Route::get('/', [VaccinationLogController::class, 'index'])->name('index');
+    Route::get('/create', [VaccinationLogController::class, 'create'])->name('create');
+    Route::post('/', [VaccinationLogController::class, 'store'])->name('store');
+    Route::get('/{id}/edit', [VaccinationLogController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [VaccinationLogController::class, 'update'])->name('update');
+    Route::delete('/{id}', [VaccinationLogController::class, 'destroy'])->name('destroy');
+    Route::get('/reminders', [VaccinationLogController::class, 'reminders'])->name('reminders');
+});

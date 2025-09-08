@@ -22,12 +22,14 @@ return new class extends Migration
             $table->boolean('working')->default(true);
             $table->integer('age');
             $table->boolean('vaccination_status')->nullable();
-            $table->string('housing_location')->nullable();
+            $table->unsignedBigInteger('pen_id')->nullable();
             $table->enum('stage', ['chick', 'juvenile', 'adult']);
             $table->date('entry_date');
             $table->dateTime('synced_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->foreign('pen_id')->references('id')->on('pens')->onDelete('set null');
         });
     }
 

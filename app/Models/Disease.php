@@ -25,5 +25,10 @@ class Disease extends Model
     {
         return $this->hasMany(Bird::class);
     }
+
+    public function healthChecks()
+    {
+        return $this->hasMany(HealthCheck::class, 'disease_id');
+    }
     
 }

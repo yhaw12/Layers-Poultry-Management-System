@@ -9,11 +9,24 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100 text-gray-900 dark:bg-[#0a0a23] dark:text-white font-sans">
-    <!-- Centralized Loader Overlay -->
-    <div id="global-loader" class="loader-overlay hidden" onclick="globalLoader && globalLoader.hide()">
-        <div class="flex flex-col items-center">
-            <div class="loader-spinner"></div>
-            <!-- Removed loader-message element -->
+    <!-- Centralized Loader Overlay (improved) -->
+    <div
+        id="global-loader"
+        class="hidden fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 pointer-events-auto"
+        role="status"
+        aria-live="polite"
+        aria-hidden="true"
+        onclick="/* clicking backdrop won't close by default; keep for dev if needed */"
+    >
+        <div class="flex flex-col items-center gap-3 p-4 max-w-xs mx-4">
+            <!-- Spinner (SVG crisp) -->
+            <svg class="w-14 h-14 text-white animate-spin" viewBox="0 0 50 50" aria-hidden="true" focusable="false">
+                <circle class="opacity-25" cx="25" cy="25" r="20" stroke="currentColor" stroke-width="5" fill="none"></circle>
+                <path class="opacity-75" fill="currentColor" d="M25 5a20 20 0 0114.142 34.142l-4.243-4.243A14 14 0 0025 11a14 14 0 00-9.899 24.899l-4.243 4.243A20 20 0 0125 5z"></path>
+            </svg>
+
+            <!-- Message (optional, updated by Loader.show(message)) -->
+            <div id="global-loader-message" class="text-sm text-white text-center sr-only">Loading...</div>
         </div>
     </div>
 
@@ -81,13 +94,11 @@
                                     </button>
                                     
                                     <!-- Notification Dropdown -->
-                                    <!-- Notification Dropdown (improved look) -->
                                     <div id="notification-dropdown"
                                         class="hidden absolute right-0 mt-2 w-96 bg-white dark:bg-gray-900 shadow-2xl rounded-xl border dark:border-gray-700 z-50"
                                         role="menu" aria-labelledby="notification-bell" aria-hidden="true">
                                         <div class="px-4 py-3 border-b dark:border-gray-700 flex items-center justify-between">
                                             <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Notifications</h3>
-                                            <span id="notification-count" class="text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded-full px-2 py-0.5 hidden">0</span>
                                         </div>
 
                                         <div id="notification-list" class="max-h-80 overflow-y-auto divide-y dark:divide-gray-800"></div>
@@ -152,37 +163,51 @@
     @endguest
     
     <script>
-        // Centralized Loader Class
+        // Centralized Loader Class (improved)
         class Loader {
             constructor() {
                 this.loader = document.getElementById('global-loader');
+                this.messageEl = document.getElementById('global-loader-message');
                 this.timeoutId = null;
                 this.defaultTimeout = 10000;
                 this.isShowing = false;
             }
 
-            show(timeout = this.defaultTimeout) {
-                if (this.loader && !this.isShowing) {
-                    this.isShowing = true;
-                    this.loader.classList.remove('hidden');
-                    if (this.timeoutId) clearTimeout(this.timeoutId);
-                    if (timeout) {
-                        this.timeoutId = setTimeout(() => {
-                            this.hide();
-                            console.warn('Loader timeout: Page took too long to load.');
-                        }, timeout);
-                    }
+            /**
+             * Show the global loader. Optional message and timeout (ms).
+             * - message: string (will be announced)
+             * - timeout: number (ms) or null to disable auto-hide
+             */
+            show(message = 'Loading...', timeout = this.defaultTimeout) {
+                if (!this.loader) return;
+                this.isShowing = true;
+                this.loader.classList.remove('hidden');
+                this.loader.setAttribute('aria-hidden', 'false');
+                if (this.messageEl) {
+                    this.messageEl.textContent = message;
+                    this.messageEl.classList.remove('sr-only'); // make visible when message provided
+                }
+                if (this.timeoutId) clearTimeout(this.timeoutId);
+                if (timeout) {
+                    this.timeoutId = setTimeout(() => {
+                        this.hide();
+                        console.warn('Loader timeout: page took too long.');
+                    }, timeout);
                 }
             }
 
             hide() {
-                if (this.loader && this.isShowing) {
-                    this.isShowing = false;
-                    this.loader.classList.add('hidden');
-                    if (this.timeoutId) {
-                        clearTimeout(this.timeoutId);
-                        this.timeoutId = null;
-                    }
+                if (!this.loader) return;
+                this.isShowing = false;
+                this.loader.classList.add('hidden');
+                this.loader.setAttribute('aria-hidden', 'true');
+                if (this.messageEl) {
+                    this.messageEl.textContent = '';
+                    this.messageEl.classList.add('sr-only');
+                }
+                if (this.timeoutId) {
+                    clearTimeout(this.timeoutId);
+                    this.timeoutId = null;
                 }
             }
         }
@@ -197,7 +222,8 @@
                 this.bellButton = document.getElementById('notification-bell');
                 this.notifications = [];
                 this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-                this.baseUrl = window.location.origin;
+                // use base URL meta (safer than location.origin for environments behind proxies)
+                this.baseUrl = document.querySelector('meta[name="base-url"]')?.content || window.location.origin;
                 this.pollInterval = null;
                 this.dropdownOpen = false;
                 
@@ -457,6 +483,8 @@
                 this.results = document.getElementById('search-results');
                 this.toggleButton = document.getElementById('search-toggle');
                 this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                // read base-url meta (fall back to origin)
+                this.baseUrl = document.querySelector('meta[name="base-url"]')?.content || window.location.origin;
                 this.debounceTimeout = null;
                 this.debounceDelay = 300;
                 if (!this.csrfToken) console.error('CSRF token missing');
@@ -514,7 +542,8 @@
             async performSearch(query) {
                 if (!this.csrfToken || !this.results) return;
                 try {
-                    globalLoader.show();
+                    // show loader briefly
+                    globalLoader.show('Searching...', 5000);
                     const response = await fetch(`${this.baseUrl}/search?q=${encodeURIComponent(query)}`, {
                         headers: {
                             'X-CSRF-TOKEN': this.csrfToken,
@@ -547,7 +576,13 @@
 
         // Global Instances
         const globalLoader = new Loader();
+        // expose to window so inline calls still work
+        window.globalLoader = globalLoader;
+
         const notificationManager = new NotificationManager();
+        // expose to global for inline call sites (like the 'Mark as Read' button)
+        window.notificationManager = notificationManager;
+
         const searchManager = new SearchManager();
 
         // Consolidated DOMContentLoaded Handler
@@ -555,22 +590,13 @@
             globalLoader.show();
 
             // Initialize notifications and start polling
-            if (notificationManager.container && notificationManager.notificationList) {
+            if (notificationManager && notificationManager.fetchNotifications) {
                 notificationManager.fetchNotifications();
                 notificationManager.startPolling();
             }
 
             // Initialize search
             searchManager.init();
-
-            // Notification Bell Toggle
-           // Guard: ensure NotificationManager will handle bell (no extra handlers)
-                const notificationBell = document.getElementById('notification-bell');
-                const notificationDropdown = document.getElementById('notification-dropdown');
-                if (!window.notificationManager && notificationBell && notificationDropdown) {
-                    // fallback: no-op — NotificationManager should be present
-                }
-
 
             // Dismiss All Notifications
             const dismissAllButton = document.getElementById('dismiss-all-notifications');
@@ -594,7 +620,7 @@
                 });
             }
 
-            // Handle form submissions
+            // Handle form submissions (show loader)
             document.addEventListener('submit', (event) => {
                 const form = event.target;
                 if (form.tagName === 'FORM') {
@@ -640,7 +666,7 @@
             if (mobileMenuButton) {
                 mobileMenuButton.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    window.openSidebar(); // Call the openSidebar function from partials.sidebar
+                    window.openSidebar && window.openSidebar(); // Call the openSidebar function from partials.sidebar if available
                 });
             }
 

@@ -15,6 +15,12 @@ return new class extends Migration
             $table->string('status')->default('pending'); // pending, approved, rejected
             $table->date('date');
             $table->morphs('source'); // source_type, source_id (e.g., Sale, Expense)
+
+            // just define them in order, no ->after() needed
+            $table->string('reference_type')->nullable();
+            $table->unsignedBigInteger('reference_id')->nullable();
+            $table->index(['reference_type', 'reference_id'], 'transactions_reference_idx');
+
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->text('description')->nullable();
             $table->timestamps();

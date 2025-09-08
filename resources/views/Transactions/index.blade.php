@@ -106,39 +106,89 @@
                                             @endif
                                         </td>
                                         <td class="p-4 flex space-x-2">
-                                            <a href="{{ route('transactions.show', $transaction) }}" 
-                                               class="inline-flex items-center px-3 py-1 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 text-xs focus:ring-2 focus:ring-blue-500 transition"
-                                               aria-label="View transaction {{ $transaction->id }}">
-                                                <span class="mr-2" aria-hidden="true">👀</span> View
-                                            </a>
-                                            {{-- <button type="button" data-id="{{ $transaction->id }}" data-url="{{ route('transactions.edit', $transaction->id) }}" 
-                                                    class="edit-btn inline-flex items-center px-3 py-1 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 text-xs focus:ring-2 focus:ring-yellow-500 transition" 
-                                                    aria-label="Edit transaction {{ $transaction->id }}">
-                                                <span class="mr-2" aria-hidden="true">✏️</span> Edit
-                                            </button> --}}
-                                            <button type="button" data-id="{{ $transaction->id }}" data-url="{{ route('transactions.destroy', $transaction->id) }}" 
-                                                    class="delete-btn inline-flex items-center px-3 py-1 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 text-xs focus:ring-2 focus:ring-red-500 transition" 
-                                                    aria-label="Delete transaction {{ $transaction->id }}">
-                                                <span class="mr-2" aria-hidden="true">🗑</span> Delete
-                                            </button>
-                                            <button type="button" 
-                                                    class="inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 text-xs focus:ring-2 focus:ring-green-500 transition"
-                                                    onclick="openApproveModal({{ $transaction->id }}, {{ (float) ($transaction->amount ?? 0) }})"
-                                                    aria-label="Open approve modal for transaction {{ $transaction->id }}">
-                                                <span class="mr-2" aria-hidden="true">✅</span> Approve
-                                            </button>
-                                            <button type="button" 
-                                                    class="inline-flex items-center px-3 py-1 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 text-xs focus:ring-2 focus:ring-red-500 transition"
-                                                    onclick="openRejectModal({{ $transaction->id }})"
-                                                    aria-label="Open reject modal for transaction {{ $transaction->id }}">
-                                                <span class="mr-2" aria-hidden="true">❌</span> Reject
-                                            </button>
+                                                <!-- Approve (JS will attach) -->
+                                                <button type="button"
+                                                        class="approve-btn inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 text-xs focus:ring-2 focus:ring-green-500 transition"
+                                                        data-id="{{ $transaction->id }}"
+                                                        data-amount="{{ (float) ($transaction->amount ?? 0) }}"
+                                                        aria-label="Approve transaction {{ $transaction->id }}">
+                                                    <span class="mr-2" aria-hidden="true">✅</span> Approve
+                                                </button>
+
+                                                <!-- Reject (JS will attach) -->
+                                                <button type="button"
+                                                        class="reject-btn inline-flex items-center px-3 py-1 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 text-xs focus:ring-2 focus:ring-red-500 transition"
+                                                        data-id="{{ $transaction->id }}"
+                                                        aria-label="Reject transaction {{ $transaction->id }}">
+                                                    <span class="mr-2" aria-hidden="true">❌</span> Reject
+                                                </button>
+
+                                                <!-- NEW: Payments toggle (only show when source is Sale) -->
+                                                @if($transaction->source_type === \App\Models\Sale::class && $transaction->source_id)
+                                                    <button type="button"
+                                                            class="payments-toggle inline-flex items-center px-3 py-1 bg-indigo-500 text-white rounded-lg shadow hover:bg-indigo-600 text-xs focus:ring-2 focus:ring-indigo-500 transition"
+                                                            data-sale-id="{{ $transaction->source_id }}"
+                                                            aria-expanded="false"
+                                                            aria-controls="payments-for-sale-{{ $transaction->source_id }}">
+                                                        <span class="mr-2" aria-hidden="true">💳</span> Payments
+                                                    </button>
+                                                @endif
                                         </td>
                                     </tr>
+
+                                    {{-- NEW: payment detail row (hidden by default). colspan must match table columns (7 in your table) --}}
+                                    @if($transaction->source_type === \App\Models\Sale::class && $transaction->source_id)
+                                        @php
+                                            $paymentsForSale = $paymentsMap[$transaction->source_id] ?? collect();
+                                            $totalPaid = $paymentsForSale->sum(fn($p) => $p->amount);
+                                            $lastPayment = $paymentsForSale->first();
+                                        @endphp
+
+                                        <tr class="payment-row hidden bg-gray-50 dark:bg-gray-800" data-sale-id="{{ $transaction->source_id }}" id="payments-for-sale-{{ $transaction->source_id }}" aria-hidden="true">
+                                            <td colspan="7" class="p-4">
+                                                <div class="flex flex-col md:flex-row gap-4 bg-white dark:bg-[#1a1a3a] rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
+                                                    <div class="flex-1">
+                                                        <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Sale #{{ $transaction->source_id }} — Payments summary</strong></p>
+                                                        <p class="text-sm text-gray-700 dark:text-gray-200">Total Paid: <span class="font-semibold">₵ {{ number_format($totalPaid, 2) }}</span></p>
+                                                        <p class="text-sm text-gray-600 dark:text-gray-400">Last Payment: <span class="font-medium">{{ $lastPayment ? $lastPayment->date . ' (₵ ' . number_format($lastPayment->amount,2) . ')' : '—' }}</span></p>
+                                                    </div>
+                                                    <div class="flex-1 overflow-x-auto">
+                                                        @if($paymentsForSale->isEmpty())
+                                                            <p class="text-sm text-gray-500 dark:text-gray-400">No payments recorded for this sale yet.</p>
+                                                        @else
+                                                            <table class="w-full text-sm">
+                                                                <thead>
+                                                                    <tr class="bg-gray-100 dark:bg-gray-700">
+                                                                        <th class="p-2 text-left">Date</th>
+                                                                        <th class="p-2 text-left">Amount (₵)</th>
+                                                                        <th class="p-2 text-left">Method</th>
+                                                                        <th class="p-2 text-left">Notes</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    @foreach($paymentsForSale as $p)
+                                                                        <tr class="border-t border-gray-200 dark:border-gray-700">
+                                                                            <td class="p-2">{{ $p->date ?? 'N/A' }}</td>
+                                                                            <td class="p-2">₵ {{ number_format($p->amount, 2) }}</td>
+                                                                            <td class="p-2">{{ $p->payment_method ?? '-' }}</td>
+                                                                            <td class="p-2">{{ \Illuminate\Support\Str::limit($p->notes ?? '-', 120) }}</td>
+                                                                        </tr>
+                                                                    @endforeach
+                                                                </tbody>
+                                                            </table>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                    @endif
+
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
+
                     @if ($transactions instanceof \Illuminate\Pagination\LengthAwarePaginator && $transactions->hasPages())
                         <div class="mt-6 flex justify-between items-center">
                             <div class="flex space-x-2">
@@ -361,7 +411,6 @@
                 }
             });
 
-            // if server redirected (e.g. to login) follow the redirect normally
             if (res.redirected) {
                 window.location.href = res.url;
                 return;
@@ -386,7 +435,7 @@
                 wrapper.innerHTML = newInner;
             }
 
-            // Update any summary cards if present (optional, best-effort)
+            // Update any summary cards if present (optional)
             try {
                 const doc = new DOMParser().parseFromString(text, 'text/html');
                 const newTotal = doc.querySelector('.grid .text-3xl');
@@ -446,11 +495,9 @@
         activeModal = modal;
         modal.classList.remove('hidden');
         modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden'; // prevent page vertical overflow
-        // focus first focusable element
+        document.body.style.overflow = 'hidden';
         const focusable = modal.querySelectorAll('a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])');
         if (focusable.length) focusable[0].focus();
-        // attach key listener for escape and tab trapping
         modal.addEventListener('keydown', handleModalKeydown);
     }
 
@@ -469,7 +516,6 @@
     function handleModalKeydown(e) {
         if (!activeModal) return;
         if (e.key === 'Escape') {
-            // close whichever modal is open
             if (!approveModal.classList.contains('hidden')) closeApproveModal();
             if (!rejectModal.classList.contains('hidden')) closeRejectModal();
             if (!editModal.classList.contains('hidden')) closeEditModal();
@@ -477,7 +523,6 @@
             return;
         }
         if (e.key !== 'Tab') return;
-        // trap focus
         const focusable = activeModal.querySelectorAll('a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])');
         if (!focusable.length) return;
         const first = focusable[0];
@@ -551,9 +596,32 @@
         closeModal(deleteModal);
     }
 
+    // --- Payments toggle (NEW) ---
+    function initPaymentsToggles() {
+        document.querySelectorAll(`${wrapperSelector} .payments-toggle`).forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const saleId = btn.dataset.saleId;
+                if (!saleId) return;
+                const panel = document.getElementById('payments-for-sale-' + saleId);
+                if (!panel) return;
+                const isHidden = panel.classList.contains('hidden') || panel.getAttribute('aria-hidden') === 'true';
+                if (isHidden) {
+                    panel.classList.remove('hidden');
+                    panel.setAttribute('aria-hidden', 'false');
+                    btn.setAttribute('aria-expanded', 'true');
+                    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    panel.classList.add('hidden');
+                    panel.setAttribute('aria-hidden', 'true');
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        });
+    }
+
     // --- Event handlers for UI controls (bound per fragment load) ---
     function initTableControls() {
-        // Approve buttons (may be many)
+        // Approve buttons
         document.querySelectorAll(`${wrapperSelector} .approve-btn`).forEach(btn => {
             btn.removeEventListener('click', approveBtnHandler);
             btn.addEventListener('click', approveBtnHandler);
@@ -571,18 +639,21 @@
             btn.addEventListener('click', deleteBtnHandler);
         });
 
-        // Edit buttons (open confirm modal before navigation)
+        // Edit buttons
         document.querySelectorAll(`${wrapperSelector} .edit-btn`).forEach(btn => {
             btn.removeEventListener('click', editBtnHandler);
             btn.addEventListener('click', editBtnHandler);
         });
 
-        // Pagination links (use attribute data-ajax="true" or class pagination-link)
+        // Pagination links
         const pagerLinks = document.querySelectorAll(`${wrapperSelector} [data-ajax="true"], ${wrapperSelector} .pagination-link`);
         pagerLinks.forEach(a => {
             a.removeEventListener('click', paginationClickHandler);
             a.addEventListener('click', paginationClickHandler);
         });
+
+        // Init payments toggles
+        initPaymentsToggles();
     }
 
     // Button handlers
@@ -635,7 +706,6 @@
                 createToast('Please enter a valid amount', 'error');
                 return;
             }
-            // UI lock
             const submitBtn = approveForm.querySelector('[type="submit"]');
             submitBtn?.setAttribute('disabled', 'disabled');
             approveSpinner?.classList.remove('hidden');
@@ -754,6 +824,7 @@
     window.closeRejectModal = closeRejectModal;
     window.openEditConfirm = openEditModal; // legacy name
     window.openDeleteConfirm = openDeleteModal; // legacy name
+    window.initPaymentsToggles = initPaymentsToggles;
 
     // Bind events after DOM ready and after AJAX fragment updates
     document.addEventListener('DOMContentLoaded', () => {

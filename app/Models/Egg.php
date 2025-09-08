@@ -12,7 +12,7 @@ class Egg extends Model
     use HasFactory;
 
     protected $fillable = [
-        'pen_id',
+        'pen_id',       
         'crates',
         'additional_eggs',
         'total_eggs',

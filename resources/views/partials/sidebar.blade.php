@@ -1,5 +1,4 @@
-{{-- partials/sidebar.blade.php --}}
-{{-- NOTE: If you also have a #sidebar-overlay in layouts.app, remove that duplicate overlay to avoid conflicts. Keep only one #sidebar-overlay in your app. --}}
+
 
 <aside id="sidebar" class="sidebar bg-white dark:bg-gray-900 shadow-lg h-screen fixed top-0 left-0 w-3/4 max-w-[280px] md:w-64 transform -translate-x-full md:translate-x-0 md:static z-50 transition-transform duration-300 ease-in-out hidden md:block" aria-hidden="true">
     <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
@@ -217,6 +216,27 @@
                 </svg>
                 Employees
             </a>
+
+              <!-- Users -->
+            <a href="{{ route('users.index') }}"
+               class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 {{ Route::is('users.*') ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : '' }}"
+               aria-current="{{ Route::is('users.*') ? 'page' : 'false' }}">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M12 12a4 4 0 100-8 4 4 0 000 8z" />
+                </svg>
+                Users
+            </a>
+
+            <!-- Activity Logs -->
+            <a href="{{ route('activity-logs.index') }}"
+               class="flex items-center px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 {{ Route::is('activity-logs.*') ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-300' : '' }}"
+               aria-current="{{ Route::is('activity-logs.*') ? 'page' : 'false' }}">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6h13M9 5h13M5 5v14h4" />
+                </svg>
+                Activity Logs
+            </a>
+        
        
 
         <!-- Reports -->
@@ -229,9 +249,6 @@
             Reports
         </a>
 
-         @endrole
-
-        
 
         <!-- Alerts -->
         <a href="{{ route('notifications.index') }}"
@@ -242,6 +259,12 @@
             </svg>
             Alerts
         </a>
+
+         @endrole
+
+        
+
+        
 
         <!-- Logout -->
         <form method="POST" action="{{ route('logout') }}" class="absolute bottom-4 w-full">

@@ -25,7 +25,7 @@ class OrderController extends Controller
             $end = $request->input('end_date', now()->endOfMonth()->toDateString());
             $cacheKey = "orders_{$start}_{$end}";
 
-            $orders = Cache::remember($cacheKey, 300, function () use ($start, $end) {
+            $orders = Cache::remember($cacheKey, 3, function () use ($start, $end) {
                 return Order::with('customer')
                     ->whereBetween('created_at', [$start, $end])
                     ->whereNull('deleted_at')

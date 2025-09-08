@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bird;
+use App\Models\Pen;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -28,169 +29,171 @@ class BirdsController extends Controller
 
     public function create()
     {
-        return view('birds.create');
+        $pens = Pen::orderBy('name')->get(['id', 'name']);
+        return view('birds.create', compact('pens'));
     }
 
     public function store(Request $request)
-{
-    $rules = [
-        'breed' => 'required|string|max:255',
-        'type' => 'required|in:layer,broiler',
-        'quantity' => 'nullable|integer|min:0', // we'll set for chicks
-        'working' => 'required|boolean',
-        'entry_date' => 'required|date',
-        'vaccination_status' => 'nullable|boolean',
-        'housing_location' => 'nullable|string|max:255',
-        'stage' => 'required|in:chick,juvenile,adult',
-    ];
-
-    if ($request->stage === 'chick') {
-        $rules = array_merge($rules, [
-            'quantity_bought' => 'required|integer|min:1',
-            'feed_amount' => 'required|numeric|min:0',
-            'alive' => 'required|integer|min:0',
-            'dead' => 'required|integer|min:0',
-            'purchase_date' => 'required|date',
-            'cost' => 'required|numeric|min:0',
-        ]);
-    }
-
-    $validator = Validator::make($request->all(), $rules);
-
-    if ($request->stage === 'chick') {
-        $validator->after(function ($validator) use ($request) {
-            $alive = (int) $request->input('alive');
-            $dead = (int) $request->input('dead');
-            $quantityBought = (int) $request->input('quantity_bought');
-            if ($alive + $dead > $quantityBought) {
-                $validator->errors()->add('alive', 'The sum of alive and dead birds cannot exceed quantity bought.');
-            }
-        });
-    }
-
-    $validated = $validator->validate();
-
-    // Calculate age based on entry_date or purchase_date
-    $referenceDate = $request->stage === 'chick' ? $validated['purchase_date'] : $validated['entry_date'];
-    $validated['age'] = Carbon::parse($referenceDate)->diffInWeeks(Carbon::now());
-
-    // Normalize quantity semantics:
-    // - quantity_bought: original batch size (never decreases)
-    // - quantity: current available stock (decreases on sales/mortalities)
-    if ($request->stage === 'chick') {
-        // initialize current stock as quantity_bought minus dead (if any)
-        $quantityBought = (int)$validated['quantity_bought'];
-        $dead = (int)$validated['dead'];
-        $validated['quantity'] = max(0, $quantityBought - $dead);
-        // ensure alive reconciles if provided; otherwise set alive to quantity
-        $validated['alive'] = isset($validated['alive']) ? (int)$validated['alive'] : $validated['quantity'];
-    } else {
-        // for non-chicks require explicit quantity
-        if (!isset($validated['quantity'])) {
-            $validated['quantity'] = (int)$request->input('quantity', 0);
-        }
-    }
-
-    $bird = Bird::create($validated);
-
-    // If dead > 0 for chicks, create a Mortalities record
-    if ($request->stage === 'chick' && (int)$validated['dead'] > 0) {
-        \App\Models\Mortalities::create([
-            'bird_id' => $bird->id,
-            'date' => $validated['purchase_date'],
-            'quantity' => $validated['dead'],
-            'cause' => 'Initial mortality on purchase',
-        ]);
-    }
-
-    return redirect()->route('birds.index')->with('success', 'Bird batch added successfully.');
-}
-
-    public function edit(Bird $bird)
     {
-        return view('birds.edit', compact('bird'));
-    }
+        $rules = [
+            'breed' => 'required|string|max:255',
+            'type' => 'required|in:layer,broiler',
+            'quantity' => 'nullable|integer|min:0', // we'll set for chicks
+            'working' => 'required|boolean',
+            'entry_date' => 'required|date',
+            'vaccination_status' => 'nullable|boolean',
+            'pen_id' => 'nullable|exists:pens,id',
+            'stage' => 'required|in:chick,juvenile,adult',
+        ];
 
-    public function update(Request $request, Bird $bird)
-{
-    $rules = [
-        'breed' => 'required|string|max:255',
-        'type' => 'required|in:layer,broiler',
-        'quantity' => 'nullable|integer|min:0',
-        'working' => 'required|boolean',
-        'entry_date' => 'required|date',
-        'vaccination_status' => 'nullable|boolean',
-        'housing_location' => 'nullable|string|max:255',
-        'stage' => 'required|in:chick,juvenile,adult',
-    ];
-
-    if ($request->stage === 'chick') {
-        $rules = array_merge($rules, [
-            'quantity_bought' => 'required|integer|min:1',
-            'feed_amount' => 'required|numeric|min:0',
-            'alive' => 'required|integer|min:0',
-            'dead' => 'required|integer|min:0',
-            'purchase_date' => 'required|date',
-            'cost' => 'required|numeric|min:0',
-        ]);
-    }
-
-    $validator = Validator::make($request->all(), $rules);
-
-    if ($request->stage === 'chick') {
-        $validator->after(function ($validator) use ($request) {
-            $alive = (int) $request->input('alive');
-            $dead = (int) $request->input('dead');
-            $quantityBought = (int) $request->input('quantity_bought');
-            if ($alive + $dead > $quantityBought) {
-                $validator->errors()->add('alive', 'The sum of alive and dead birds cannot exceed quantity bought.');
-            }
-        });
-    }
-
-    $validated = $validator->validate();
-
-    // Calculate age based on entry_date or purchase_date
-    $referenceDate = $request->stage === 'chick' ? $validated['purchase_date'] : $validated['entry_date'];
-    $validated['age'] = Carbon::parse($referenceDate)->diffInWeeks(Carbon::now());
-
-    // Recompute current quantity so fields remain consistent
-    if ($request->stage === 'chick') {
-        $quantityBought = (int)$validated['quantity_bought'];
-        $dead = (int)$validated['dead'];
-        $validated['quantity'] = max(0, $quantityBought - $dead);
-        $validated['alive'] = isset($validated['alive']) ? (int)$validated['alive'] : $validated['quantity'];
-    } else {
-        if (!isset($validated['quantity'])) {
-            $validated['quantity'] = (int)$request->input('quantity', $bird->quantity);
-        }
-    }
-
-    // If dead changed, update or create Mortalities entry accordingly
-    if ($request->stage === 'chick') {
-        $mortality = \App\Models\Mortalities::where('bird_id', $bird->id)
-            ->where('date', $validated['purchase_date'])
-            ->first();
-
-        if ($mortality) {
-            $mortality->update([
-                'quantity' => $validated['dead'],
-                'cause' => $mortality->cause ?? 'Updated mortality',
+        if ($request->stage === 'chick') {
+            $rules = array_merge($rules, [
+                'quantity_bought' => 'required|integer|min:1',
+                'feed_amount' => 'required|numeric|min:0',
+                'alive' => 'required|integer|min:0',
+                'dead' => 'required|integer|min:0',
+                'purchase_date' => 'required|date',
+                'cost' => 'required|numeric|min:0',
             ]);
-        } elseif ((int)$validated['dead'] > 0) {
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($request->stage === 'chick') {
+            $validator->after(function ($validator) use ($request) {
+                $alive = (int) $request->input('alive');
+                $dead = (int) $request->input('dead');
+                $quantityBought = (int) $request->input('quantity_bought');
+                if ($alive + $dead > $quantityBought) {
+                    $validator->errors()->add('alive', 'The sum of alive and dead birds cannot exceed quantity bought.');
+                }
+            });
+        }
+
+        $validated = $validator->validate();
+
+        // Calculate age based on entry_date or purchase_date
+        $referenceDate = $request->stage === 'chick' ? $validated['purchase_date'] : $validated['entry_date'];
+        $validated['age'] = Carbon::parse($referenceDate)->diffInWeeks(Carbon::now());
+
+        // Normalize quantity semantics:
+        // - quantity_bought: original batch size (never decreases)
+        // - quantity: current available stock (decreases on sales/mortalities)
+        if ($request->stage === 'chick') {
+            // initialize current stock as quantity_bought minus dead (if any)
+            $quantityBought = (int)$validated['quantity_bought'];
+            $dead = (int)$validated['dead'];
+            $validated['quantity'] = max(0, $quantityBought - $dead);
+            // ensure alive reconciles if provided; otherwise set alive to quantity
+            $validated['alive'] = isset($validated['alive']) ? (int)$validated['alive'] : $validated['quantity'];
+        } else {
+            // for non-chicks require explicit quantity
+            if (!isset($validated['quantity'])) {
+                $validated['quantity'] = (int)$request->input('quantity', 0);
+            }
+        }
+
+        $bird = Bird::create($validated);
+
+        // If dead > 0 for chicks, create a Mortalities record
+        if ($request->stage === 'chick' && (int)$validated['dead'] > 0) {
             \App\Models\Mortalities::create([
                 'bird_id' => $bird->id,
                 'date' => $validated['purchase_date'],
                 'quantity' => $validated['dead'],
-                'cause' => 'Updated mortality',
+                'cause' => 'Initial mortality on purchase',
             ]);
         }
+
+        return redirect()->route('birds.index')->with('success', 'Bird batch added successfully.');
     }
 
-    $bird->update($validated);
+    public function edit(Bird $bird)
+    {
+        $pens = Pen::orderBy('name')->get(['id', 'name']);
+        return view('birds.edit', compact('bird', 'pens'));
+    }
 
-    return redirect()->route('birds.index')->with('success', 'Bird batch updated successfully.');
-   }
+    public function update(Request $request, Bird $bird)
+    {
+        $rules = [
+            'breed' => 'required|string|max:255',
+            'type' => 'required|in:layer,broiler',
+            'quantity' => 'nullable|integer|min:0',
+            'working' => 'required|boolean',
+            'entry_date' => 'required|date',
+            'vaccination_status' => 'nullable|boolean',
+            'pen_id' => 'nullable|exists:pens,id',
+            'stage' => 'required|in:chick,juvenile,adult',
+        ];
+
+        if ($request->stage === 'chick') {
+            $rules = array_merge($rules, [
+                'quantity_bought' => 'required|integer|min:1',
+                'feed_amount' => 'required|numeric|min:0',
+                'alive' => 'required|integer|min:0',
+                'dead' => 'required|integer|min:0',
+                'purchase_date' => 'required|date',
+                'cost' => 'required|numeric|min:0',
+            ]);
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($request->stage === 'chick') {
+            $validator->after(function ($validator) use ($request) {
+                $alive = (int) $request->input('alive');
+                $dead = (int) $request->input('dead');
+                $quantityBought = (int) $request->input('quantity_bought');
+                if ($alive + $dead > $quantityBought) {
+                    $validator->errors()->add('alive', 'The sum of alive and dead birds cannot exceed quantity bought.');
+                }
+            });
+        }
+
+        $validated = $validator->validate();
+
+        // Calculate age based on entry_date or purchase_date
+        $referenceDate = $request->stage === 'chick' ? $validated['purchase_date'] : $validated['entry_date'];
+        $validated['age'] = Carbon::parse($referenceDate)->diffInWeeks(Carbon::now());
+
+        // Recompute current quantity so fields remain consistent
+        if ($request->stage === 'chick') {
+            $quantityBought = (int)$validated['quantity_bought'];
+            $dead = (int)$validated['dead'];
+            $validated['quantity'] = max(0, $quantityBought - $dead);
+            $validated['alive'] = isset($validated['alive']) ? (int)$validated['alive'] : $validated['quantity'];
+        } else {
+            if (!isset($validated['quantity'])) {
+                $validated['quantity'] = (int)$request->input('quantity', $bird->quantity);
+            }
+        }
+
+        // If dead changed, update or create Mortalities entry accordingly
+        if ($request->stage === 'chick') {
+            $mortality = \App\Models\Mortalities::where('bird_id', $bird->id)
+                ->where('date', $validated['purchase_date'])
+                ->first();
+
+            if ($mortality) {
+                $mortality->update([
+                    'quantity' => $validated['dead'],
+                    'cause' => $mortality->cause ?? 'Updated mortality',
+                ]);
+            } elseif ((int)$validated['dead'] > 0) {
+                \App\Models\Mortalities::create([
+                    'bird_id' => $bird->id,
+                    'date' => $validated['purchase_date'],
+                    'quantity' => $validated['dead'],
+                    'cause' => 'Updated mortality',
+                ]);
+            }
+        }
+
+        $bird->update($validated);
+
+        return redirect()->route('birds.index')->with('success', 'Bird batch updated successfully.');
+    }
 
     public function destroy(Request $request, $id)
     {
@@ -232,5 +235,4 @@ class BirdsController extends Controller
         $bird->restore();
         return redirect()->route('birds.index')->with('success', 'Bird restored successfully.');
     }
-
 }

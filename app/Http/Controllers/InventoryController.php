@@ -23,9 +23,23 @@ class InventoryController extends Controller
         $lowInventory = Inventory::where('qty', '<', DB::raw('threshold'))
             ->get(['id', 'name', 'qty', 'threshold', DB::raw('"Inventory" as type')]);
 
-        // Feed low stock
-        $lowFeed = Feed::where('quantity', '<', DB::raw('threshold'))
-            ->get(['id', 'supplier', DB::raw('quantity as qty'), 'threshold', DB::raw('"Feed" as type')]);
+        /**
+         * Feed low stock
+         * - feed table uses supplier_id now; fetch supplier name via left join
+         * - feed table has no 'threshold' column so we use a default threshold (10)
+         *   — change FEED_THRESHOLD to whatever makes sense for your operations.
+         */
+        $FEED_THRESHOLD = 10;
+
+        $lowFeed = Feed::leftJoin('suppliers', 'feed.supplier_id', '=', 'suppliers.id')
+            ->where('feed.quantity', '<', $FEED_THRESHOLD)
+            ->get([
+                'feed.id',
+                DB::raw('COALESCE(suppliers.name, "Unknown Supplier") as name'),
+                DB::raw('feed.quantity as qty'),
+                DB::raw((int) $FEED_THRESHOLD . ' as threshold'),
+                DB::raw('"Feed" as type'),
+            ]);
 
         // Medicine low stock (aggregated)
         $lowMedicine = MedicineLog::select('medicine_name as name')
@@ -48,7 +62,6 @@ class InventoryController extends Controller
         $combinedLow = $lowInventory->concat($lowFeed)->concat($lowMedicine);
 
         // Deduplicate by name (case-insensitive) to avoid duplicate alerts for the same-name items across sources.
-        // We normalize name via trim and strtolower before unique().
         $lowStockItems = $combinedLow
             ->filter(function ($it) {
                 return isset($it->name) && trim($it->name) !== '';
@@ -163,9 +176,8 @@ class InventoryController extends Controller
         }
     }
 
-    public function lowStock()
+     public function lowStock()
     {
-        // Fetch low stock items for Inventory, Feed, and Medicine
         $lowStockItems = collect();
 
         // Inventory low stock
@@ -173,9 +185,18 @@ class InventoryController extends Controller
             ->get(['id', 'name', 'qty', 'threshold', DB::raw('"Inventory" as type')]);
         $lowStockItems = $lowStockItems->concat($lowInventory);
 
-        // Feed low stock
-        $lowFeed = Feed::where('quantity', '<', DB::raw('threshold'))
-            ->get(['id', 'name', 'quantity as qty', 'threshold', DB::raw('"Feed" as type')]);
+        // Feed low stock (same approach as index)
+        $FEED_THRESHOLD = 10;
+
+        $lowFeed = Feed::leftJoin('suppliers', 'feed.supplier_id', '=', 'suppliers.id')
+            ->where('feed.quantity', '<', $FEED_THRESHOLD)
+            ->get([
+                'feed.id',
+                DB::raw('COALESCE(suppliers.name, "Unknown Supplier") as name'),
+                DB::raw('feed.quantity as qty'),
+                DB::raw((int) $FEED_THRESHOLD . ' as threshold'),
+                DB::raw('"Feed" as type'),
+            ]);
         $lowStockItems = $lowStockItems->concat($lowFeed);
 
         // Medicine low stock
@@ -203,7 +224,6 @@ class InventoryController extends Controller
 
         return view('inventory.low-stock', compact('lowStockItems'));
     }
-
     /**
      * Create a low stock alert if one doesn't already exist.
      *

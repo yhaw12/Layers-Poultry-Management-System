@@ -1,12 +1,30 @@
-{{-- resources/views/sales/invoice_fragment.blade.php --}}
+{{-- invoice_fragment.blade.php --}}
+@php
+    // Determine cashier: prefer relation, fallback to created_by user
+    $cashierUser = $sale->relationLoaded('cashier') ? $sale->cashier : ($sale->cashier ?? null);
+
+    if (empty($cashierUser) && !empty($sale->created_by)) {
+        // avoid eager-loading issues; this is a simple fallback lookup
+        $cashierUser = \App\Models\User::find($sale->created_by);
+    }
+
+    // Company placeholder - ensure controller passes $company or adjust accordingly
+    $company = $company ?? [
+        'name' => config('app.name', 'Company'),
+        'address' => config('app.address', ''),
+        'phone' => config('app.phone', ''),
+        'email' => config('app.email', ''),
+    ];
+@endphp
+
 <div class="invoice-container">
     <!-- Header -->
     <div class="header">
         <div class="company-logo">
             @if(file_exists(public_path('logo.png')))
-                <img src="{{ asset('logo.png') }}" alt="Company Logo">
+                <img src="{{ asset('logo.png') }}" alt="Company Logo" style="max-height:60px;">
             @else
-                <h2>{{ $company['name'] }}</h2>
+                <h2 style="margin:0;color:#007bff;">{{ $company['name'] }}</h2>
             @endif
         </div>
         <div class="invoice-info">
@@ -14,24 +32,44 @@
             <p><strong>Invoice #:</strong> {{ $sale->id }}</p>
             <p><strong>Issue Date:</strong> {{ optional($sale->sale_date)->format('F j, Y') ?? 'N/A' }}</p>
             <p><strong>Due Date:</strong> {{ optional($sale->due_date)->format('F j, Y') ?? 'N/A' }}</p>
-            <p><strong>Status:</strong> 
-                <span class="status {{ $sale->status }}">
-                    {{ ucfirst(str_replace('_',' ',$sale->status)) }}
+            <p><strong>Status:</strong>
+                <span class="status {{ $sale->status ?? '' }}" style="padding:3px 8px;border-radius:4px;color:#fff;font-size:12px;
+                    background:
+                        {{ $sale->status === 'paid' ? '#28a745' : ($sale->status === 'overdue' ? '#dc3545' : '#ffc107') }};
+                    ">
+                    {{ ucfirst(str_replace('_',' ',$sale->status ?? '')) }}
                 </span>
             </p>
         </div>
     </div>
 
-    <!-- Customer Info -->
+    <!-- Customer & Cashier Info -->
     <div class="customer-info">
-        <h3>Bill To:</h3>
-        <p>{{ $sale->customer->name ?? 'Unknown Customer' }}</p>
-        {{-- <p>📞 {{ $sale->customer->phone ?? 'N/A' }}</p> --}}
-        <p>✉ {{ $sale->customer->email ?? 'N/A' }}</p>
+        <div>
+            <h3>Bill To:</h3>
+            <p style="margin:0;font-weight:600;">{{ $sale->customer->name ?? 'Unknown Customer' }}</p>
+            <p style="margin:0;color:#555;">✉ {{ $sale->customer->email ?? 'N/A' }}</p>
+            @if(!empty($sale->customer->phone))
+                <p style="margin:0;color:#555;">📞 {{ $sale->customer->phone }}</p>
+            @endif
+        </div>
+
+        <div style="text-align:right;">
+            <h3>Cashier</h3>
+            <p style="margin:0;font-weight:600;">
+                {{ $cashierUser->name ?? (optional($sale->creator)->name ?? '—') }}
+            </p>
+            @if(!empty($cashierUser->email))
+                <p style="margin:0;color:#555;">✉ {{ $cashierUser->email }}</p>
+            @endif
+            @if(!empty($cashierUser->phone))
+                <p style="margin:0;color:#555;">📞 {{ $cashierUser->phone }}</p>
+            @endif
+        </div>
     </div>
 
     <!-- Products Table -->
-    <table class="items-table">
+    <table class="items-table" aria-describedby="invoice-items">
         <thead>
             <tr>
                 <th>Product</th>
@@ -44,9 +82,15 @@
         <tbody>
             <tr>
                 <td>
-                    {{ $sale->saleable_type == 'App\Models\Bird' && $sale->saleable ? 
-                        ($sale->saleable->breed . ' (' . ($sale->saleable->type ?? '') . ')') : 
-                        ($sale->saleable ? 'Eggs' : 'Unknown Product') }}
+                    @if($sale->saleable_type && $sale->saleable)
+                        @if($sale->saleable_type === \App\Models\Bird::class || str_contains($sale->saleable_type, 'Bird'))
+                            {{ $sale->saleable->breed ?? 'Bird' }} {{ $sale->saleable->type ? '('.$sale->saleable->type.')' : '' }}
+                        @else
+                            {{ $sale->saleable->name ?? 'Product' }}
+                        @endif
+                    @else
+                        {{ $sale->product_name ?? 'Item' }}
+                    @endif
                 </td>
                 <td>{{ ucfirst($sale->product_variant ?? 'N/A') }}</td>
                 <td>{{ $sale->quantity }}</td>
@@ -56,42 +100,22 @@
         </tbody>
     </table>
 
-    <!-- Payment History -->
-    @if($sale->payments->count() > 0)
-        <h4>Payment History</h4>
-        <table class="items-table">
-            <thead>
-                <tr>
-                    <th>Payment Date</th>
-                    <th>Amount</th>
-                    <th>Payment Method</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($sale->payments as $payment)
-                    <tr>
-                        <td>{{ optional($payment->payment_date)->format('F j, Y') ?? 'N/A' }}</td>
-                        <td>₵ {{ number_format($payment->amount, 2) }}</td>
-                        <td>{{ $payment->payment_method ?? 'N/A' }}</td>
-                        <td>{{ $payment->notes ?? '-' }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
+    {{-- Payment history removed from this invoice view.
+         Payment and transaction auditing should live in the payments/transactions index pages. --}}
 
     <!-- Totals -->
-    <div class="totals">
-        <p><strong>Total Amount:</strong> ₵ {{ number_format($sale->total_amount,2) }}</p>
-        <p><strong>Paid Amount:</strong> ₵ {{ number_format($sale->paid_amount,2) }}</p>
-        <p><strong>Balance Due:</strong> 
-            <span class="balance">₵ {{ number_format(max(0,$sale->total_amount - $sale->paid_amount), 2) }}</span>
-        </p>
+    <div class="totals" role="status" aria-live="polite">
+        <div><strong>Total Amount:</strong> ₵ {{ number_format($sale->total_amount,2) }}</div>
+        <div><strong>Paid Amount:</strong> ₵ {{ number_format($sale->paid_amount ?? 0,2) }}</div>
+        <div><strong>Balance Due:</strong>
+            <span class="balance" style="color:{{ ($sale->total_amount - ($sale->paid_amount ?? 0)) > 0 ? '#dc3545' : '#28a745' }}; font-weight:700;">
+                ₵ {{ number_format(max(0, ($sale->total_amount ?? 0) - ($sale->paid_amount ?? 0)), 2) }}
+            </span>
+        </div>
     </div>
 
     <!-- Footer -->
-    <div class="footer">
+    <div class="company-info">
         <strong>{{ $company['name'] }}</strong><br>
         {{ $company['address'] }}<br>
         {{ $company['phone'] }} — {{ $company['email'] }}<br>
@@ -134,9 +158,6 @@
         font-size: 12px;
         color: #fff;
     }
-    .status.paid { background: #28a745; }
-    .status.pending { background: #ffc107; color:#333; }
-    .status.overdue { background: #dc3545; }
 
     /* Customer */
     .customer-info { margin-bottom: 20px; }
@@ -167,11 +188,9 @@
         margin-top: 15px;
         font-size: 15px;
     }
-    .totals strong { color: #000; }
-    .balance { font-weight: bold; color: #dc3545; }
 
     /* Footer */
-    .footer {
+    .company-info {
         margin-top: 25px;
         font-size: 12px;
         color: #777;

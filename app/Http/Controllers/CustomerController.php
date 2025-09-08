@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Sale;
+use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
@@ -58,6 +59,13 @@ class CustomerController extends Controller
             try {
                 $customer = Customer::findOrFail($id);
                 $customer->delete();
+
+                UserActivityLog::create([
+                'user_id' => auth()->id() ?? 1,
+                'action' => 'deleted_customer',
+                'details' => "Deleted custmer ₵{$customer->name}",
+            ]);
+
 
                 if ($request->ajax()) {
                     return response()->json([

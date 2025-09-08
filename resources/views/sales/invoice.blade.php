@@ -78,6 +78,9 @@
         /* Customer Info */
         .customer-info {
             margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
         }
 
         .customer-info h3 {
@@ -159,6 +162,7 @@
         </div>
 
         @include('sales.invoice_fragment')
+
     </div>
 </body>
 </html>

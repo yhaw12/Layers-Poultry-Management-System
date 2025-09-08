@@ -1,4 +1,3 @@
-{{-- feed.create --}}
 @extends('layouts.app')
 
 @section('content')
@@ -21,6 +20,22 @@
                     @endError
                 </div>
                 <div>
+                    <label for="supplier_id" class="block text-gray-700 dark:text-gray-300">Supplier</label>
+                    <select name="supplier_id" id="supplier_id"
+                            class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('supplier_id') border-red-500 @enderror">
+                        <option value="">Select a supplier (optional)</option>
+                        @foreach ($suppliers as $supplier)
+                            <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
+                                {{ $supplier->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('supplier_id')
+                        <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
                     <label for="quantity" class="block text-gray-700 dark:text-gray-300">Quantity (Bags)</label>
                     <input name="quantity" type="number" id="quantity" value="{{ old('quantity') }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('quantity') border-red-500 @enderror" min="1" required>
                     @error('quantity')
@@ -36,7 +51,7 @@
                 </div>
                 <div>
                     <label for="purchase_date" class="block text-gray-700 dark:text-gray-300">Purchase Date</label>
-                    <input name="purchase_date" type="date" id="purchase_date" value="{{ old('purchase_date') }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('purchase_date') border-red-500 @enderror" required>
+                    <input name="purchase_date" type="date" id="purchase_date" value="{{ old('purchase_date', now()->format('Y-m-d')) }}" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('purchase_date') border-red-500 @enderror" required>
                     @error('purchase_date')
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ $message }}</p>
                     @endError

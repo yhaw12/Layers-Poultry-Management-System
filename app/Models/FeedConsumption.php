@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class FeedConsumption extends Model
 {
     use SoftDeletes;
+    protected $table = 'feed_consumption';
     protected $fillable = ['feed_id', 'date', 'quantity'];
+    protected $casts = ['date' => 'date'];
 
     public function feed()
     {

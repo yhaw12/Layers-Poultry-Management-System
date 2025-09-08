@@ -8,19 +8,18 @@ class CreateFeedConsumptionTable extends Migration
 {
     public function up()
     {
-        Schema::create('feed_consumptions', function (Blueprint $table) {
+        Schema::create('feed_consumption', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('feed_id')->nullable();
+            $table->foreignId('feed_id')->constrained('feed')->onDelete('cascade');
             $table->date('date');
-            $table->decimal('quantity', 8, 2);
+            $table->decimal('quantity', 10, 2);
             $table->timestamps();
-            $table->foreign('feed_id')->references('id')->on('feed')->onDelete('cascade');
             $table->softDeletes();
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('feed_consumptions');
+        Schema::dropIfExists('feed_consumption');
     }
 }

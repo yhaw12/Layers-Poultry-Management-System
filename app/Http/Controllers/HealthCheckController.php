@@ -37,6 +37,47 @@ class HealthCheckController extends Controller
         return redirect()->route('health-checks.index')->with('success', 'Health check logged successfully.');
     }
 
+    public function edit($id)
+    {
+        try {
+            $healthCheck = HealthCheck::findOrFail($id);
+            $birds = Bird::all();
+            return view('health-checks.edit', compact('healthCheck', 'birds'));
+        } catch (\Exception $e) {
+            Log::error('Failed to retrieve health check for editing: ' . $e->getMessage());
+            return redirect()->route('health-checks.index')->with('error', 'Failed to retrieve health check record.');
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        try {
+            $healthCheck = HealthCheck::findOrFail($id);
+
+            $validated = $request->validate([
+                'bird_id' => 'required|exists:birds,id',
+                'date' => 'required|date',
+                'status' => 'required|string|max:255',
+                'symptoms' => 'nullable|string',
+                'treatment' => 'nullable|string',
+                'notes' => 'nullable|string',
+            ]);
+
+            $healthCheck->update($validated);
+
+            // Log the activity
+            UserActivityLog::create([
+                'user_id' => auth()->id() ?? 1,
+                'action' => 'updated_health_check',
+                'details' => "Updated health check for bird breed " . ($healthCheck->bird->breed ?? 'N/A') . " on {$healthCheck->date} with status {$healthCheck->status}",
+            ]);
+
+            return redirect()->route('health-checks.index')->with('success', 'Health check updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to update health check: ' . $e->getMessage());
+            return redirect()->route('health-checks.index')->with('error', 'Failed to update health check record.');
+        }
+    }
 
     public function destroy(Request $request, $id)
     {
@@ -74,15 +115,4 @@ class HealthCheckController extends Controller
             return redirect()->route('health-checks.index')->with('error', 'Failed to delete health check record.');
         }
     }
-
-    // public function getHealthChecksTable(Request $request)
-    // {
-    //     $healthChecks = HealthCheck::with('bird')->paginate(10); // Adjust per_page as needed
-    //     $tableHtml = view('health-checks-index', compact('healthChecks'))->renderSections()['table-content'];
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'table' => $tableHtml
-    //     ]);
-    // }
 }

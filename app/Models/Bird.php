@@ -25,7 +25,7 @@ class Bird extends Model
         'age',
         'entry_date',
         'vaccination_status',
-        'housing_location',
+        'pen_id',          // <- changed from 'pen' to 'pen_id'
         'stage',
         'synced_at',
     ];
@@ -43,6 +43,18 @@ class Bird extends Model
     public function sales()
     {
         return $this->morphMany(Sale::class, 'saleable');
+    }
+
+    // Birds belong to a Pen (pen_id FK)
+    public function pen()
+    {
+        return $this->belongsTo(Pen::class, 'pen_id');
+    }
+
+    // convenience: get eggs associated with the same pen
+    public function eggs()
+    {
+        return $this->hasMany(Egg::class, 'pen_id');
     }
 
     // Scope: only birds with quantity > 0 and not soft-deleted

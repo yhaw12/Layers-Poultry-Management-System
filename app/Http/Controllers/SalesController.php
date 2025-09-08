@@ -186,6 +186,8 @@ class SalesController extends Controller
                 'additional_eggs' => (int) ($e->additional_eggs ?? 0),
                 'date_laid' => optional($e->date_laid)->format('Y-m-d'),
                 'pen_name' => optional($e->pen)->name,
+                'is_cracked' => (bool) ($e->is_cracked ?? false),
+                'egg_size' => $e->egg_size ?? null,
                 'display' => $e->displayName(),
             ];
         })->values()->toArray();
@@ -215,11 +217,22 @@ class SalesController extends Controller
                     DB::rollBack();
                     return back()->withErrors(['quantity' => 'Insufficient bird stock available.']);
                 }
+                // Validate product_variant matches bird's stage or type
+                $product_variant = $validated['product_variant'] ?? '';
+                if ($product_variant && $product_variant !== $bird->stage && $product_variant !== $bird->type) {
+                    throw ValidationException::withMessages(['product_variant' => 'Selected variant does not match the bird\'s stage or type.']);
+                }
             } else {
                 $egg = Egg::lockForUpdate()->find($validated['saleable_id']);
                 if (!$egg || $egg->crates < $validated['quantity']) {
                     DB::rollBack();
                     return back()->withErrors(['quantity' => 'Insufficient egg crates available.']);
+                }
+                // Validate product_variant matches egg's is_cracked
+                $product_variant = $validated['product_variant'] ?? '';
+                $expected_variant = $egg->is_cracked ? 'cracked' : 'regular';
+                if ($product_variant && $product_variant !== $expected_variant) {
+                    throw ValidationException::withMessages(['product_variant' => 'Selected variant does not match if the eggs are cracked or not.']);
                 }
             }
 
@@ -235,8 +248,10 @@ class SalesController extends Controller
             $validated['paid_amount'] = 0;
             $validated['status'] = 'pending';
             $validated['created_by'] = Auth::id();
+            $validated['cashier_id'] = Auth::id(); // <-- set cashier on sale
 
             $sale = Sale::create($validated);
+
 
             // decrement stock
             if (isset($bird) && ($saleableType === Bird::class || $saleableType === 'App\\Models\\Bird')) {
@@ -283,6 +298,19 @@ class SalesController extends Controller
                 'user_id' => Auth::id(),
             ]);
 
+            // Record initial payment if provided
+            if ($request->filled('payment_amount') && $request->payment_amount > 0) {
+                $paymentValidated = $request->validate([
+                    'payment_amount' => 'required|numeric|min:0.01|max:' . $validated['total_amount'],
+                    'payment_date' => 'required|date',
+                    'payment_method' => 'nullable|string|in:cash,bank_transfer,mobile_money|max:255',
+                ]);
+
+                $paymentRequest = new Request($paymentValidated);
+                $paymentRequest->merge(['amount' => $paymentValidated['payment_amount']]);
+                $this->recordPayment($paymentRequest, $sale);
+            }
+
             DB::commit();
             return redirect()->route('sales.index')->with('success', 'Sale recorded successfully.');
         } catch (\Exception $e) {
@@ -327,8 +355,8 @@ class SalesController extends Controller
             'additional_eggs' => (int) ($e->additional_eggs ?? 0),
             'date_laid' => optional($e->date_laid)->format('Y-m-d'),
             'pen_name' => optional($e->pen)->name,
-            'egg_size' => $e->egg_size ?? null,
             'is_cracked' => (bool) ($e->is_cracked ?? false),
+            'egg_size' => $e->egg_size ?? null,
             'display' => $e->displayName(),
         ];
     })->values()->toArray();
@@ -359,11 +387,22 @@ class SalesController extends Controller
                         DB::rollBack();
                         return back()->withErrors(['quantity' => 'Insufficient bird stock available.']);
                     }
+                    // Validate product_variant matches newBird's stage or type
+                    $product_variant = $validated['product_variant'] ?? '';
+                    if ($product_variant && $product_variant !== $newBird->stage && $product_variant !== $newBird->type) {
+                        throw ValidationException::withMessages(['product_variant' => 'Selected variant does not match the bird\'s stage or type.']);
+                    }
                 } else {
                     $newEgg = Egg::lockForUpdate()->find($validated['saleable_id']);
                     if (!$newEgg || $newEgg->crates < $quantityDiff) {
                         DB::rollBack();
                         return back()->withErrors(['quantity' => 'Insufficient egg crates available.']);
+                    }
+                    // Validate product_variant matches newEgg's is_cracked
+                    $product_variant = $validated['product_variant'] ?? '';
+                    $expected_variant = $newEgg->is_cracked ? 'cracked' : 'regular';
+                    if ($product_variant && $product_variant !== $expected_variant) {
+                        throw ValidationException::withMessages(['product_variant' => 'Selected variant does not match if the eggs are cracked or not.']);
                     }
                 }
             }
@@ -561,13 +600,16 @@ class SalesController extends Controller
             $saleDate = $sale->sale_date->format('Y-m-d');
             $filename = "invoice-{$customerName}-{$saleDate}.pdf";
 
+
+            $pdf = Pdf::loadView('sales.invoice', compact('sale', 'company'));
+            
             if ($request->query('preview')) {
                 return view('sales.invoice_fragment', compact('sale', 'company'));
             }
 
             return view('sales.invoice', compact('sale', 'company'));
 
-            $pdf = Pdf::loadView('sales.invoice', compact('sale', 'company'));
+            
 
             UserActivityLog::create([
                 'user_id' => Auth::id(),
@@ -625,137 +667,158 @@ class SalesController extends Controller
     /**
  * Record payment (supports AJAX JSON responses)
  */
-public function recordPayment(Request $request, Sale $sale)
-{
-    try {
-        if (!Auth::check()) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Authentication required'], 401);
-            }
-            return back()->withErrors(['auth' => 'User must be authenticated to record a payment.']);
-        }
-
-        // Refresh sale so we work with the latest values
-        $sale->refresh();
-
-        if ($sale->isPaid()) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Invoice is already fully paid.'], 422);
-            }
-            return redirect()->route('sales.index')->with('error', 'Invoice is already fully paid.');
-        }
-
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-            'payment_date' => 'required|date',
-            'payment_method' => 'nullable|string|in:cash,bank_transfer,mobile_money|max:255',
-        ]);
-
-        $amount = round((float) $validated['amount'], 2);
-
-        // compute current balance from DB to avoid race conditions
-        $balance = round((float) $sale->total_amount - (float) $sale->paid_amount, 2);
-
-        if ($amount > $balance) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Payment amount exceeds outstanding balance.', 'balance' => $balance], 422);
-            }
-            return back()->withErrors(['amount' => 'Payment amount exceeds outstanding balance.']);
-        }
-
-        DB::beginTransaction();
-
-        // Create payment (persist)
-        $payment = Payment::create([
-            'sale_id'        => $sale->id,
-            'customer_id'    => $sale->customer_id ?? ($sale->customer ? $sale->customer->id : null),
-            'amount'         => $amount,
-            'payment_date'   => $validated['payment_date'],
-            'payment_method' => $validated['payment_method'] ?? null,
-            'notes'          => $request->input('notes', null),
-            'created_by'     => Auth::id(),
-        ]);
-
-        // Recalculate paid_amount from payments (ensures correctness even with concurrent edits)
-        // Use payment_date as asOf so future-dated payments behave correctly
-        $asOf = Carbon::parse($payment->payment_date ?? now());
-        $sale->recalculatePaidAmount($asOf);
-        $sale->updatePaymentStatus($asOf);
-
-        // If sale just became fully paid, sync income record if needed
-        if ($sale->isPaid()) {
-            Income::where('source', "Sale #{$sale->id}")
-                ->update(['synced_at' => now()]);
-        }
-
-        $customerName = $sale->customer ? $sale->customer->name : 'Unknown';
-
-        // Activity log
-        $detailText = "Recorded payment of ₵ {$amount} (Payment ID: {$payment->id}) for Sale #{$sale->id} to {$customerName}. New paid_amount: ₵ {$sale->paid_amount} (Balance: ₵ {$sale->balance()}).";
-        UserActivityLog::create([
-            'user_id' => Auth::id(),
-            'action' => 'recorded_payment',
-            'details' => $detailText,
-        ]);
-
-        Alert::create([
-            'message' => "Payment of ₵ {$amount} recorded for invoice #{$sale->id} ({$customerName})",
-            'type' => 'payment',
-            'user_id' => Auth::id(),
-        ]);
-
-        DB::commit();
-
-        // Targeted cache invalidation:
-        // We prefer cache tags so only sales-related caches are cleared.
+    public function recordPayment(Request $request, Sale $sale)
+    {
         try {
-            // If the cache driver supports tags this will flush only the sales tag.
-            if (method_exists(Cache::store(), 'tags')) {
-                Cache::tags(['sales'])->flush();
-            } else {
-                // Fallback: try forgetting a couple of known keys if applicable.
-                // If you use different keys, add them here. Avoid Cache::flush() in production.
-                // Example: Cache::forget('sales_total_amount_default'); // adjust to your keys
-                Log::warning('Cache store does not support tags; no targeted sales cache flush was performed.');
+            if (!Auth::check()) {
+                if ($request->expectsJson()) {
+                    return response()->json(['error' => 'Authentication required'], 401);
+                }
+                return back()->withErrors(['auth' => 'User must be authenticated to record a payment.']);
             }
-        } catch (\Throwable $e) {
-            Log::warning('Failed to flush sales cache tags: ' . $e->getMessage());
-        }
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment recorded successfully.',
-                'sale_id' => $sale->id,
-                'payment_id' => $payment->id,
-                'paid_amount' => (float) $sale->paid_amount,
-                'total_amount' => (float) $sale->total_amount,
-                'balance' => (float) $sale->balance(),
-                'status' => $sale->status,
+            // Refresh sale so we work with the latest values
+            $sale->refresh();
+
+            if ($sale->isPaid()) {
+                if ($request->expectsJson()) {
+                    return response()->json(['error' => 'Invoice is already fully paid.'], 422);
+                }
+                return redirect()->route('sales.index')->with('error', 'Invoice is already fully paid.');
+            }
+
+            $validated = $request->validate([
+                'amount' => 'required|numeric|min:0.01',
+                'payment_date' => 'required|date',
+                'payment_method' => 'nullable|string|in:cash,bank_transfer,mobile_money|max:255',
+                'notes' => 'nullable|string|max:1000',
             ]);
-        }
 
-        return redirect()->route('sales.index')->with('success', 'Payment recorded successfully.');
-    } catch (\Illuminate\Validation\ValidationException $ve) {
-        if ($request->expectsJson()) {
-            return response()->json(['errors' => $ve->errors()], 422);
-        }
-        throw $ve;
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Failed to record payment', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'sale_id' => $sale->id ?? null,
-            'request' => $request->all(),
-        ]);
+            $amount = round((float) $validated['amount'], 2);
 
-        if ($request->expectsJson()) {
-            return response()->json(['error' => 'Failed to record payment: ' . $e->getMessage()], 500);
-        }
+            // compute current balance from DB to avoid race conditions
+            $balance = round((float) $sale->total_amount - (float) $sale->paid_amount, 2);
 
-        return back()->with('error', 'Failed to record payment: ' . $e->getMessage());
+            if ($amount > $balance) {
+                if ($request->expectsJson()) {
+                    return response()->json(['error' => 'Payment amount exceeds outstanding balance.', 'balance' => $balance], 422);
+                }
+                return back()->withErrors(['amount' => 'Payment amount exceeds outstanding balance.']);
+            }
+
+            DB::beginTransaction();
+
+            // Create payment (persist)
+            $payment = Payment::create([
+                'sale_id'        => $sale->id,
+                'customer_id'    => $sale->customer_id ?? ($sale->customer ? $sale->customer->id : null),
+                'amount'         => $amount,
+                'payment_date'   => $validated['payment_date'],
+                'payment_method' => $validated['payment_method'] ?? null,
+                'notes'          => $validated['notes'] ?? null,
+                'created_by'     => Auth::id(),
+            ]);
+
+            // Create a transaction record to represent this payment.
+            // This is the canonical "payment" record used for payment history lookups.
+            $paymentTransaction = Transaction::create([
+                'type' => 'payment',
+                'amount' => $amount,
+                'status' => 'approved', // payments are recorded as approved
+                'date' => $validated['payment_date'],
+                'source_type' => Sale::class,
+                'source_id' => $sale->id,
+                'user_id' => Auth::id(),
+                'description' => "Payment of ₵ {$amount} for Sale #{$sale->id}",
+            ]);
+
+            // Recalculate paid_amount from payments (ensures correctness even with concurrent edits)
+            // Use payment_date as asOf so future-dated payments behave correctly
+            $asOf = Carbon::parse($payment->payment_date ?? now());
+            $sale->recalculatePaidAmount($asOf);
+            $sale->updatePaymentStatus($asOf);
+
+            // Ensure cashier is recorded on the Sale if missing
+            if (empty($sale->cashier_id)) {
+                $sale->update(['cashier_id' => Auth::id()]);
+            }
+
+            // If sale just became fully paid, sync income record if needed
+            if ($sale->isPaid()) {
+                Income::where('source', "Sale #{$sale->id}")
+                    ->update(['synced_at' => now()]);
+            }
+
+            $customerName = $sale->customer ? $sale->customer->name : 'Unknown';
+
+            // Activity log
+            $detailText = "Recorded payment of ₵ {$amount} (Payment ID: {$payment->id}) for Sale #{$sale->id} to {$customerName}. New paid_amount: ₵ {$sale->paid_amount} (Balance: ₵ {$sale->balance()}).";
+            UserActivityLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'recorded_payment',
+                'details' => $detailText,
+            ]);
+
+            Alert::create([
+                'message' => "Payment of ₵ {$amount} recorded for invoice #{$sale->id} ({$customerName})",
+                'type' => 'payment',
+                'user_id' => Auth::id(),
+            ]);
+
+            // Targeted cache invalidation:
+            try {
+                if (method_exists(Cache::store(), 'tags')) {
+                    Cache::tags(['sales'])->flush();
+                } else {
+                    Log::warning('Cache store does not support tags; no targeted sales cache flush was performed.');
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Failed to flush sales cache tags: ' . $e->getMessage());
+            }
+
+            DB::commit();
+
+            // fresh sale so front-end gets the latest cashier relation
+            $sale->refresh();
+            $cashierName = optional($sale->cashier)->name ?? null;
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment recorded successfully.',
+                    'sale_id' => $sale->id,
+                    'payment_id' => $payment->id,
+                    'payment_transaction_id' => $paymentTransaction->id,
+                    'paid_amount' => (float) $sale->paid_amount,
+                    'total_amount' => (float) $sale->total_amount,
+                    'balance' => (float) $sale->balance(),
+                    'status' => $sale->status,
+                    'cashier_id' => $sale->cashier_id,
+                    'cashier_name' => $cashierName,
+                ]);
+            }
+
+            return redirect()->route('sales.index')->with('success', 'Payment recorded successfully.');
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            if ($request->expectsJson()) {
+                return response()->json(['errors' => $ve->errors()], 422);
+            }
+            throw $ve;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to record payment', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'sale_id' => $sale->id ?? null,
+                'request' => $request->all(),
+            ]);
+
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Failed to record payment: ' . $e->getMessage()], 500);
+            }
+
+            return back()->with('error', 'Failed to record payment: ' . $e->getMessage());
+        }
     }
-}
 
 }

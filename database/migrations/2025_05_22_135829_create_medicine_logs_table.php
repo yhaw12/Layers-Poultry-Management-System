@@ -33,3 +33,25 @@ return new class extends Migration
         Schema::dropIfExists('medicine_logs');
     }
 };
+
+
+//   return new class extends Migration
+//    {
+//        public function up(): void
+//        {
+//            Schema::table('medicine_logs', function (Blueprint $table) {
+//                $table->enum('type', ['purchase', 'consumption'])->change();
+//                $table->decimal('quantity', 10, 2)->change();
+//                $table->string('unit', 50)->change();
+//            });
+//        }
+
+//        public function down(): void
+//        {
+//            Schema::table('medicine_logs', function (Blueprint $table) {
+//                $table->string('type')->nullable()->change();
+//                $table->float('quantity')->change();
+//                $table->string('unit')->default('ml')->change();
+//            });
+//        }
+//    };

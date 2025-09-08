@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('mortalities', function (Blueprint $table) {
     
                $table->id();
+               $table->foreignId('bird_id')->constrained()->onDelete('cascade');
                $table->date('date');
                $table->integer('quantity');
                $table->string('cause')->nullable();

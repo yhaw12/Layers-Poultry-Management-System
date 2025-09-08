@@ -17,13 +17,28 @@ class Transaction extends Model
         'date',
         'source_type',
         'source_id',
+        'reference_type',
+        'reference_id',
         'user_id',
         'description',
+    ];
+
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'date' => 'date',
     ];
 
     public function source()
     {
         return $this->morphTo();
+    }
+
+    /**
+     * Polymorphic relation to referenced record (e.g. Payment).
+     */
+    public function reference()
+    {
+        return $this->morphTo('reference', 'reference_type', 'reference_id');
     }
 
     public function user()

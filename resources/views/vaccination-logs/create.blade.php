@@ -1,77 +1,84 @@
 @extends('layouts.app')
 
+@section('title', 'Add Vaccination Log')
+
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-6">Add Vaccination Log</h1>
+<div class="container mx-auto px-4 py-8 space-y-12 bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
 
-    <!-- Error/Success Messages -->
-    @if (session('error'))
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-            {{ session('error') }}
-        </div>
-    @endif
-    @if ($errors->any())
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+    <!-- Header -->
+    <section>
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Add Vaccination Log</h2>
+    </section>
 
-    <!-- Create Form -->
-    <form method="POST" action="{{ route('vaccination-logs.store') }}" class="max-w-lg">
-        @csrf
-        <div class="mb-4">
-            <label for="bird_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bird</label>
-            <select name="bird_id" id="bird_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50" required>
-                <option value="">Select a bird</option>
-                @foreach ($birds as $bird)
-                    <option value="{{ $bird->id }}">{{ $bird->name }}</option>
-                @endforeach
-            </select>
-            @error('bird_id')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
-        </div>
+    <!-- Form -->
+    <section>
+        <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 max-w-md mx-auto">
+            @if (session('success') || session('error'))
+                <div class="p-4 {{ session('success') ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-400' }} rounded-lg flex items-center mb-6">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ session('success') ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12' }}" />
+                    </svg>
+                    {{ session('success') ?? session('error') }}
+                </div>
+            @endif
+            @if ($errors->any())
+                <div class="p-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-400 rounded-lg mb-6">
+                    <ul class="list-disc list-inside">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
-        <div class="mb-4">
-            <label for="vaccine_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Vaccine Name</label>
-            <input type="text" name="vaccine_name" id="vaccine_name" value="{{ old('vaccine_name') }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50" required>
-            @error('vaccine_name')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
+            @include('vaccination-logs._form', [
+                'action' => route('vaccination-logs.store'),
+                'birds' => $birds,
+                'log' => new \App\Models\VaccinationLog(),
+                'submitText' => 'Save',
+                'formId' => 'create-form'
+            ])
         </div>
-
-        <div class="mb-4">
-            <label for="date_administered" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date Administered</label>
-            <input type="date" name="date_administered" id="date_administered" value="{{ old('date_administered') }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50" required>
-            @error('date_administered')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
-        </div>
-
-        <div class="mb-4">
-            <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Notes</label>
-            <textarea name="notes" id="notes" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">{{ old('notes') }}</textarea>
-            @error('notes')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
-        </div>
-
-        <div class="mb-4">
-            <label for="next_vaccination_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Next Vaccination Date</label>
-            <input type="date" name="next_vaccination_date" id="next_vaccination_date" value="{{ old('next_vaccination_date') }}" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
-            @error('next_vaccination_date')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
-        </div>
-
-        <div class="flex items-center gap-4">
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring focus:ring-blue-500 focus:ring-opacity-50">Save</button>
-            <a href="{{ route('vaccination-logs.index') }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">Cancel</a>
-        </div>
-    </form>
+    </section>
 </div>
+
+@push('scripts')
+<script>
+(() => {
+    const toastContainer = document.getElementById('toast-container');
+
+    function toast(message, type = 'info') {
+        const id = 't-' + Date.now();
+        const colors = { info: 'bg-blue-600', success: 'bg-green-600', error: 'bg-red-600' };
+        const el = document.createElement('div');
+        el.id = id;
+        el.className = `px-4 py-2 rounded shadow text-white ${colors[type]} max-w-sm flex justify-between items-center`;
+        el.innerHTML = `<span>${message}</span><button class="ml-4 hover:text-gray-200" aria-label="Dismiss toast">✕</button>`;
+        toastContainer.appendChild(el);
+        el.querySelector('button').addEventListener('click', () => el.remove());
+        setTimeout(() => el.remove(), 3000);
+    }
+
+    @if (session('success'))
+        toast('{{ session('success') }}', 'success');
+    @endif
+    @if (session('error'))
+        toast('{{ session('error') }}', 'error');
+    @endif
+
+    document.getElementById('create-form').addEventListener('submit', (e) => {
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const spinner = submitBtn.querySelector('#form-spinner');
+        submitBtn.disabled = true;
+        spinner.classList.remove('hidden');
+        setTimeout(() => {
+            submitBtn.disabled = false;
+            spinner.classList.add('hidden');
+        }, 2000);
+    });
+})();
+</script>
+@endpush
 @endsection

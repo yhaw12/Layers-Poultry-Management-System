@@ -21,7 +21,7 @@ class ExpenseController extends Controller
 
         $expenses = $query->orderBy('date', 'desc')->paginate(10);
 
-        $expenseChart = Cache::remember('expense_trends', 3600, function () {
+        $expenseChart = Cache::remember('expense_trends', 3, function () {
             $data = [];
             $labels = [];
             for ($i = 0; $i < 6; $i++) {

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -189,4 +190,17 @@ class Sale extends Model
         return $this->status === self::STATUS_PAID
             || round((float)$this->paid_amount, 2) >= round((float)$this->total_amount, 2);
     }
+
+    // use App\Models\User; at top if not already
+
+    public function cashier()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'cashier_id');
+    }
+    public function getCashierNameAttribute()
+    {
+        return $this->cashier ? $this->cashier->name : null;
+    }
+
+
 }

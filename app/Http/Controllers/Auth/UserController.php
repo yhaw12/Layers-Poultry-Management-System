@@ -31,7 +31,16 @@ class UserController extends Controller
             'password' => Hash::make($data['password']),
         ]);
 
-        $role = str_contains(strtolower($data['name']), 'admin') || str_contains(strtolower($data['email']), 'admin') ? 'admin' : 'user';
+        // Decide role (simple heuristic)
+        $roleName = str_contains(strtolower($data['name']), 'admin') ||
+                    str_contains(strtolower($data['email']), 'admin')
+                    ? 'admin' : 'user';
+
+        // Ensure role exists (guard_name explicit)
+        $guardName = config('auth.defaults.guard', 'web') ?? 'web';
+        $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => $guardName]);
+
+        // Assign the role (safe: role exists now)
         $user->assignRole($role);
 
         Auth::login($user);
@@ -101,7 +110,14 @@ class UserController extends Controller
 
     public function assignRole(Request $request, User $user)
     {
-        $user->assignRole($request->role);
+        $request->validate(['role' => 'required|string']);
+
+        // ensure requested role exists
+        $guardName = config('auth.defaults.guard', 'web') ?? 'web';
+        $role = Role::firstOrCreate(['name' => $request->role, 'guard_name' => $guardName]);
+
+        $user->assignRole($role);
+
         return redirect()->back()->with('success', 'Role assigned.');
     }
 }

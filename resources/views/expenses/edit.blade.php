@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 py-8 bg-gray-100 dark:bg-[#0a0a23]">
+<div class="container px-4 py-8 bg-gray-100 dark:bg-[#0a0a23] max-w-md mx-auto">
     <h1 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Edit Expense</h1>
     <form action="{{ route('expenses.show', $expense) }}" method="POST" class="bg-white dark:bg-[#1a1a3a] p-6 rounded-lg shadow-md">
         @csrf

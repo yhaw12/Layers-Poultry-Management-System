@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Mortalities extends Model
 {
     use SoftDeletes;
-    protected $fillable = ['date', 'quantity', 'cause'];
+
+    protected $fillable = ['bird_id', 'date', 'quantity', 'cause'];
 
     public function bird()
     {
         return $this->belongsTo(Bird::class);
     }
+
     protected $dates = ['deleted_at'];
 }

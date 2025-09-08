@@ -114,7 +114,7 @@ class AlertController extends Controller
                 ->where('is_read', false)
                 ->update(['is_read' => true, 'read_at' => now()]);
 
-            return response()->json(['success' => true]);
+            return view('notifications.index', ['alerts' => collect(), 'error' => 'Alerts didmssed succesfuly']);
         } catch (\Exception $e) {
             Log::error('Failed to dismiss all alerts', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json(['error' => 'Failed to dismiss all alerts'], 500);

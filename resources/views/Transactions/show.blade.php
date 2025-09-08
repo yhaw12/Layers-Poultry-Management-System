@@ -42,7 +42,7 @@
             </button>
         </form>
 
-        <form method="POST" action="{{ route('transactions.decline', $transaction->id) }}">
+        <form method="POST" action="{{ route('transactions.reject', $transaction->id) }}">
             @csrf
             <button type="submit"
                 class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">

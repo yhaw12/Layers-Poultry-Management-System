@@ -27,7 +27,7 @@ class PayrollController extends Controller
             $end = $request->input('end_date', now()->endOfMonth()->toDateString());
             $cacheKey = "payrolls_{$start}_{$end}";
 
-            $payrolls = Cache::remember($cacheKey, 300, function () use ($start, $end) {
+            $payrolls = Cache::remember($cacheKey, 3, function () use ($start, $end) {
                 return Payroll::with('employee')
                     ->whereBetween('pay_date', [$start, $end])
                     ->whereNull('deleted_at')
@@ -56,39 +56,73 @@ class PayrollController extends Controller
 
     public function store(Request $request)
     {
+        Log::info('Payroll store request received', ['input' => $request->all(), 'user_id' => Auth::id()]);
+
         try {
             $validated = $request->validate([
                 'employee_id' => 'required|exists:employees,id',
-                'amount' => 'required|numeric|min:0',
-                'payment_date' => 'required|date',
+                'pay_date' => 'required|date|before_or_equal:'.now()->toDateString(),
+                'bonus' => 'nullable|numeric|min:0',
+                'deductions' => 'nullable|numeric|min:0',
+                'status' => 'required|in:pending,paid',
+                'notes' => 'nullable|string|max:500',
             ]);
 
-            return DB::transaction(function () use ($validated) {
-                $payroll = Payroll::create($validated);
+            Log::info('Validation passed', ['validated' => $validated]);
+
+            return DB::transaction(function () use ($validated, $request) {
+                $employee = Employee::findOrFail($validated['employee_id']);
+                Log::info('Employee found', ['employee_id' => $employee->id, 'monthly_salary' => $employee->monthly_salary]);
+
+                $netPay = $employee->monthly_salary + ($validated['bonus'] ?? 0) - ($validated['deductions'] ?? 0);
+                if ($netPay < 0) {
+                    Log::warning('Negative net pay detected', ['net_pay' => $netPay]);
+                    throw new \Exception('Net pay cannot be negative.');
+                }
+
+                $payroll = Payroll::create([
+                    'employee_id' => $validated['employee_id'],
+                    'pay_date' => $validated['pay_date'],
+                    'base_salary' => $employee->monthly_salary,
+                    'bonus' => $validated['bonus'] ?? 0,
+                    'deductions' => $validated['deductions'] ?? 0,
+                    'net_pay' => $netPay,
+                    'status' => $validated['status'],
+                    'notes' => $validated['notes'] ?? null,
+                ]);
+
+                Log::info('Payroll created', ['payroll_id' => $payroll->id]);
 
                 Transaction::create([
                     'type' => 'payroll',
-                    'amount' => $validated['amount'],
+                    'amount' => $netPay,
                     'description' => "Payroll payment for employee ID {$validated['employee_id']}",
-                    'reference_id' => $payroll->id,
-                    'reference_type' => Payroll::class,
+                    'source_type' => Payroll::class, // Set polymorphic source_type
+                    'source_id' => $payroll->id,     // Set polymorphic source_id
+                    'reference_type' => Payroll::class, // Keep for consistency, if needed
+                    'reference_id' => $payroll->id,     // Keep for consistency, if needed
                     'user_id' => Auth::id() ?? 1,
-                    'date' => $validated['payment_date'],
+                    'date' => $validated['pay_date'],
+                    'status' => $validated['status'],
                 ]);
 
                 UserActivityLog::create([
                     'user_id' => Auth::id() ?? 1,
                     'action' => 'created_payroll',
-                    'details' => json_encode(['payroll_id' => $payroll->id, 'amount' => $payroll->amount]),
+                    'details' => json_encode(['payroll_id' => $payroll->id, 'amount' => $netPay]),
                 ]);
 
-                return redirect()->route('payrolls.index')->with('success', 'Payroll created successfully.');
+                return redirect()->route('payroll.index')->with('success', 'Payroll created successfully.');
             });
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation failed for payroll creation', ['errors' => $e->errors(), 'input' => $request->all()]);
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            Log::error('Failed to create payroll', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to create payroll.');
+            Log::error('Failed to create payroll', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'input' => $request->all()]);
+            return back()->with('error', 'Failed to create payroll: ' . $e->getMessage())->withInput();
         }
     }
+
 
     public function show($id)
     {
@@ -116,21 +150,32 @@ class PayrollController extends Controller
 
         public function update(Request $request, $id)
         {
+            Log::info('Payroll update request received', ['id' => $id, 'input' => $request->all(), 'user_id' => Auth::id()]);
+
             try {
                 $payroll = Payroll::whereNull('deleted_at')->findOrFail($id);
+                Log::info('Payroll found', ['payroll_id' => $payroll->id]);
 
                 $validated = $request->validate([
                     'employee_id' => 'required|exists:employees,id',
-                    'pay_date' => 'required|date',
+                    'pay_date' => 'required|date|before_or_equal:'.now()->toDateString(),
                     'bonus' => 'nullable|numeric|min:0',
                     'deductions' => 'nullable|numeric|min:0',
                     'status' => 'required|in:pending,paid',
                     'notes' => 'nullable|string|max:500',
                 ]);
 
-                return DB::transaction(function () use ($payroll, $validated) {
+                Log::info('Validation passed', ['validated' => $validated]);
+
+                return DB::transaction(function () use ($payroll, $validated, $request) {
                     $employee = Employee::findOrFail($validated['employee_id']);
+                    Log::info('Employee found', ['employee_id' => $employee->id, 'monthly_salary' => $employee->monthly_salary]);
+
                     $netPay = $employee->monthly_salary + ($validated['bonus'] ?? 0) - ($validated['deductions'] ?? 0);
+                    if ($netPay < 0) {
+                        Log::warning('Negative net pay detected', ['net_pay' => $netPay]);
+                        throw new \Exception('Net pay cannot be negative.');
+                    }
 
                     $payroll->update([
                         'employee_id' => $validated['employee_id'],
@@ -143,45 +188,55 @@ class PayrollController extends Controller
                         'notes' => $validated['notes'],
                     ]);
 
-                    // Update or create corresponding Transaction
-                    $transaction = Transaction::where('reference_id', $payroll->id)
-                        ->where('reference_type', Payroll::class)
+                    Log::info('Payroll updated', ['payroll_id' => $payroll->id]);
+
+                    $transaction = Transaction::where('source_type', Payroll::class)
+                        ->where('source_id', $payroll->id)
                         ->first();
 
                     if ($transaction) {
                         $transaction->update([
+                            'type' => 'payroll',
+                            'source_type' => Payroll::class, // Ensure source_type is set
+                            'source_id' => $payroll->id,     // Ensure source_id is set
                             'amount' => $netPay,
                             'date' => $validated['pay_date'],
                             'status' => $validated['status'],
                             'description' => "Payroll payment for employee ID {$validated['employee_id']}",
+                            'reference_type' => Payroll::class, // Keep for consistency
+                            'reference_id' => $payroll->id,     // Keep for consistency
                         ]);
                     } else {
                         Transaction::create([
                             'type' => 'payroll',
+                            'source_type' => Payroll::class, // Set polymorphic source_type
+                            'source_id' => $payroll->id,     // Set polymorphic source_id
                             'amount' => $netPay,
                             'description' => "Payroll payment for employee ID {$validated['employee_id']}",
-                            'reference_id' => $payroll->id,
-                            'reference_type' => Payroll::class,
-                            'user_id' => Auth::id(),
+                            'reference_type' => Payroll::class, // Keep for consistency
+                            'reference_id' => $payroll->id,     // Keep for consistency
+                            'user_id' => Auth::id() ?? 1,
                             'date' => $validated['pay_date'],
                             'status' => $validated['status'],
                         ]);
                     }
 
                     UserActivityLog::create([
-                        'user_id' => Auth::id(),
+                        'user_id' => Auth::id() ?? 1,
                         'action' => 'updated_payroll',
-                        'details' => "Updated payroll ID {$payroll->id} for employee ID {$validated['employee_id']}",
+                        'details' => json_encode(['payroll_id' => $payroll->id, 'amount' => $netPay]),
                     ]);
 
                     return redirect()->route('payroll.index')->with('success', 'Payroll record updated successfully.');
                 });
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                Log::error('Validation failed for payroll update', ['errors' => $e->errors(), 'input' => $request->all()]);
+                return back()->withErrors($e->errors())->withInput();
             } catch (\Exception $e) {
-                Log::error('Failed to update payroll', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-                return back()->with('error', 'Failed to update payroll.');
+                Log::error('Failed to update payroll', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'input' => $request->all()]);
+                return back()->with('error', 'Failed to update payroll: ' . $e->getMessage())->withInput();
             }
         }
-
 
     public function destroy(Request $request, $id)
 {

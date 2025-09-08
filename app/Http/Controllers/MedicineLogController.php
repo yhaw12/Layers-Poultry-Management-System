@@ -17,6 +17,7 @@ class MedicineLogController extends Controller
 
     public function create()
     {
+        Log::info('Accessing MedicineLogController@create', ['path' => request()->path()]);
         return view('medicine-logs.create');
     }
 
@@ -28,10 +29,17 @@ class MedicineLogController extends Controller
             'quantity' => 'required|numeric|min:0.01',
             'unit' => 'required|string|max:50',
             'date' => 'required|date',
-            'notes' => 'nullable|string',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
-        MedicineLog::create($data);
+        $log = MedicineLog::create($data);
+
+        UserActivityLog::create([
+            'user_id' => auth()->id() ?? 1,
+            'action' => 'created_medicine_log',
+            'details' => "Added medicine log for {$log->medicine_name} (Quantity: {$log->quantity} {$log->unit}) on {$log->date}",
+        ]);
+
         return redirect()->route('medicine-logs.index')->with('success', 'Medicine log added successfully');
     }
 
@@ -48,47 +56,52 @@ class MedicineLogController extends Controller
             'quantity' => 'required|numeric|min:0.01',
             'unit' => 'required|string|max:50',
             'date' => 'required|date',
-            'notes' => 'nullable|string',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $medicineLog->update($data);
+
+        UserActivityLog::create([
+            'user_id' => auth()->id() ?? 1,
+            'action' => 'updated_medicine_log',
+            'details' => "Updated medicine log for {$medicineLog->medicine_name} (Quantity: {$medicineLog->quantity} {$medicineLog->unit}) on {$medicineLog->date}",
+        ]);
+
         return redirect()->route('medicine-logs.index')->with('success', 'Medicine log updated successfully');
     }
 
     public function destroy(Request $request, $id)
-{
-    try {
-        $log = MedicineLog::findOrFail($id);
+    {
+        try {
+            $log = MedicineLog::findOrFail($id);
 
-        // Log the activity (if applicable)
-        UserActivityLog::create([
-            'user_id' => auth()->id() ?? 1,
-            'action' => 'deleted_medicine_log',
-            'details' => "Deleted medicine log for {$log->medicine_name} (Quantity: {$log->quantity} {$log->unit}) on {$log->date}",
-        ]);
+            UserActivityLog::create([
+                'user_id' => auth()->id() ?? 1,
+                'action' => 'deleted_medicine_log',
+                'details' => "Deleted medicine log for {$log->medicine_name} (Quantity: {$log->quantity} {$log->unit}) on {$log->date}",
+            ]);
 
-        // Delete the medicine log (soft delete if enabled)
-        $log->delete();
+            $log->delete();
 
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Medicine log deleted successfully.'
-            ], 200);
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Medicine log deleted successfully.'
+                ], 200);
+            }
+
+            return redirect()->route('medicine-logs.index')->with('success', 'Medicine log deleted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to delete medicine log: ' . $e->getMessage());
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete medicine log. ' . ($e->getCode() == 23000 ? 'This log is linked to other data.' : 'Please try again.')
+                ], 500);
+            }
+
+            return redirect()->route('medicine-logs.index')->with('error', 'Failed to delete medicine log.');
         }
-
-        return redirect()->route('medicine-logs.index')->with('success', 'Medicine log deleted successfully.');
-    } catch (\Exception $e) {
-        Log::error('Failed to delete medicine log: ' . $e->getMessage());
-
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete medicine log. ' . ($e->getCode() == 23000 ? 'This log is linked to other data.' : 'Please try again.')
-            ], 500);
-        }
-
-        return redirect()->route('medicine-logs.index')->with('error', 'Failed to delete medicine log.');
     }
-}
 }
