@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -17,6 +18,11 @@ use Spatie\Permission\Models\Role;
 
 class AdminUserController extends Controller
 {
+    /**
+     * Note: consider adding middleware or policy checks to protect these routes,
+     * e.g. ->middleware('can:manage users') or using $this->authorize() where appropriate.
+     */
+
     /**
      * Display a paginated listing of users with optional search/role filters.
      */
@@ -43,7 +49,7 @@ class AdminUserController extends Controller
             ->paginate($perPage)
             ->appends($request->only(['q', 'role', 'per_page']));
 
-        $roles = Role::all();
+        $roles = Role::orderBy('name')->get();
         $permissions = Permission::all()->groupBy(fn($perm) => Str::before($perm->name, '_') ?: 'general');
 
         return view('admin.users.index', compact('users', 'roles', 'permissions'));
@@ -54,7 +60,7 @@ class AdminUserController extends Controller
      */
     public function create()
     {
-        $roles = Role::all();
+        $roles = Role::orderBy('name')->get();
         return view('admin.users.create', compact('roles'));
     }
 
@@ -67,18 +73,30 @@ class AdminUserController extends Controller
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role'     => ['required', 'string', 'exists:roles,name'],
+            // accept either singular role (legacy) or roles[] (preferred)
+            'role'     => ['nullable', 'string', 'exists:roles,name'],
+            'roles'    => ['nullable', 'array'],
+            'roles.*'  => ['string', 'exists:roles,name'],
         ]);
 
-        $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
+        try {
+            $user = User::create([
+                'name'     => $data['name'],
+                'email'    => $data['email'],
+                'password' => Hash::make($data['password']),
+            ]);
 
-        $user->assignRole($data['role']);
+            // prefer explicit roles[] if provided, otherwise fallback to role
+            $roles = $data['roles'] ?? ($data['role'] ? [$data['role']] : []);
+            if (!empty($roles)) {
+                $user->syncRoles($roles);
+            }
 
-        return redirect()->route('users.index')->with('success', 'User created successfully.');
+            return redirect()->route('users.index')->with('success', 'User created successfully.');
+        } catch (\Throwable $e) {
+            Log::error('Failed creating user', ['err' => $e->getMessage(), 'input' => $request->all()]);
+            return back()->withInput()->with('error', 'Failed to create user.');
+        }
     }
 
     /**
@@ -86,14 +104,20 @@ class AdminUserController extends Controller
      */
     public function edit(User $user)
     {
-        $roles = Role::all();
+        $roles = Role::orderBy('name')->get();
         $permissions = Permission::all()->groupBy(fn($perm) => Str::before($perm->name, '_') ?: 'general');
 
         return view('admin.users.edit', compact('user', 'roles', 'permissions'));
     }
 
     /**
-     * Update user details.
+     * Update user details (roles & permissions).
+     *
+     * Behavior:
+     * - 'permissions' => full list to sync (syncPermissions)
+     * - 'roles' => array of role names
+     * - 'sync_roles' => boolean: if true, replace roles (syncRoles); if false or absent, additive assignment
+     * - legacy 'assign_role' and 'role' are still supported for compatibility.
      */
     public function update(Request $request, User $user)
     {
@@ -101,48 +125,66 @@ class AdminUserController extends Controller
             $data = $request->validate([
                 'permissions'   => 'nullable|array',
                 'permissions.*' => 'string|exists:permissions,name',
-                'role'          => 'nullable|string|exists:roles,name',
-                'assign_role'   => 'nullable|boolean',
+                'roles'         => 'nullable|array',
+                'roles.*'       => 'string|exists:roles,name',
+                'sync_roles'    => 'nullable|boolean',
+                'role'          => 'nullable|string|exists:roles,name', // legacy
+                'assign_role'   => 'nullable|boolean', // legacy
             ]);
         } catch (ValidationException $ve) {
             return response()->json(['success' => false, 'message' => 'Invalid input', 'errors' => $ve->errors()], 422);
         }
 
-        $perms = $data['permissions'] ?? [];
-        $role = $data['role'] ?? null;
-        $assignRole = $request->has('assign_role') ? (bool)$data['assign_role'] : null;
+        $perms = $data['permissions'] ?? null;
+        $roles = $data['roles'] ?? null;
+        $syncRolesFlag = isset($data['sync_roles']) ? (bool)$data['sync_roles'] : null;
+        $assignRoleFlag = isset($data['assign_role']) ? (bool)$data['assign_role'] : null;
 
+        DB::beginTransaction();
         try {
-            // Sync permissions
-            $user->syncPermissions($perms);
+            // sync permissions (if provided)
+            if ($perms !== null) {
+                $user->syncPermissions($perms);
+            }
 
-            // Handle role assignment/unassignment if role provided
-            if ($role !== null && $assignRole !== null) {
-                if ($assignRole) {
-                    // assign the role (adds this role; you may prefer syncRoles to replace roles)
-                    $user->assignRole($role);
+            // roles logic
+            if (!empty($roles)) {
+                if ($syncRolesFlag) {
+                    // deterministic replace
+                    $user->syncRoles($roles);
                 } else {
-                    // remove the role (if it exists)
-                    if ($user->hasRole($role)) {
-                        $user->removeRole($role);
+                    // additive assignment: only add roles not already present
+                    foreach ($roles as $r) {
+                        if (!$user->hasRole($r)) $user->assignRole($r);
                     }
+                }
+            } elseif ($assignRoleFlag !== null && isset($data['role'])) {
+                // legacy handling: single role + assign_role boolean
+                if ($assignRoleFlag) {
+                    $user->assignRole($data['role']);
+                } else {
+                    if ($user->hasRole($data['role'])) $user->removeRole($data['role']);
                 }
             }
 
-            // Return updated permission and role state for optimistic UI
+            DB::commit();
+
+            UserActivityLog::create([
+                'user_id' => Auth::id() ?? 1,
+                'action'  => 'updated_user_permissions_roles',
+                'details' => "Updated user {$user->id} roles/permissions via admin panel"
+            ]);
+
             return response()->json([
                 'success' => true,
-                'message' => 'Permissions updated.',
+                'message' => 'Permissions/roles updated.',
                 'user_permissions' => $user->getPermissionNames()->toArray(),
                 'user_roles' => $user->getRoleNames()->toArray(),
             ]);
         } catch (\Throwable $e) {
-            Log::error('UserPermissionsController@update failed', [
-                'err' => $e->getMessage(),
-                'user_id' => $user->id,
-                'input' => $request->all()
-            ]);
-            return response()->json(['success' => false, 'message' => 'Failed to update permissions.'], 500);
+            DB::rollBack();
+            Log::error('AdminUserController@update failed', ['err' => $e->getMessage(), 'user_id' => $user->id, 'input' => $request->all()]);
+            return response()->json(['success' => false, 'message' => 'Failed to update permissions/roles.'], 500);
         }
     }
 
@@ -161,7 +203,11 @@ class AdminUserController extends Controller
         try {
             // Optionally remove avatar file
             if (!empty($user->avatar) && Storage::disk('public')->exists('avatars/' . $user->avatar)) {
-                Storage::disk('public')->delete('avatars/' . $user->avatar);
+                try {
+                    Storage::disk('public')->delete('avatars/' . $user->avatar);
+                } catch (\Throwable $ex) {
+                    Log::warning('Failed deleting avatar file for user: ' . $user->id, ['err' => $ex->getMessage()]);
+                }
             }
 
             $user->delete();
@@ -266,7 +312,6 @@ class AdminUserController extends Controller
         }
     }
 
-
     /**
      * Sync an array of permission names for a user (AJAX).
      */
@@ -325,6 +370,10 @@ class AdminUserController extends Controller
             'message' => 'Avatar updated successfully!',
         ]);
     }
+
+    /**
+     * Show a user's grouped permissions (for modal).
+     */
     public function show(User $user)
     {
         try {
@@ -332,7 +381,7 @@ class AdminUserController extends Controller
 
             $grouped = $perms->groupBy(function ($p) {
                 $parts = explode('_', $p->name, 2);
-                return $parts[1] ?? 'general';
+                return $parts[0] ?? 'general'; // <-- use prefix (before first underscore)
             })->map(function ($group) {
                 return $group->map(function ($p) {
                     return ['name' => $p->name, 'label' => ucwords(str_replace('_', ' ', $p->name))];
@@ -363,6 +412,4 @@ class AdminUserController extends Controller
             return response()->json(['success' => false, 'message' => 'Failed to load permissions.'], 500);
         }
     }
-    
-
 }

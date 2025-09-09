@@ -1,7 +1,5 @@
 @extends('layouts.app')
 
-{{-- @extends('layouts.app') --}}
-
 @section('content')
 <div class="container mx-auto px-4 py-8 max-w-7xl overflow-hidden">
     <!-- Header Section -->
@@ -40,109 +38,254 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     @role('admin')
                         @can('create_birds')
-                            <a href="{{ route('birds.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200" aria-label="Add new bird">Add Bird</a>
+                            <a href="{{ route('birds.create') }}" class="flex items-center bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200 transform hover:scale-105" aria-label="Add new bird">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Add Bird
+                            </a>
                         @endcan
                         @can('create_eggs')
-                            <a href="{{ route('eggs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200" aria-label="Record egg production">Record Egg Production</a>
+                            <a href="{{ route('eggs.create') }}" class="flex items-center bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200 transform hover:scale-105" aria-label="Record egg production">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                Record Egg Production
+                            </a>
                         @endcan
                         @can('create_sales')
-                            <a href="{{ route('sales.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200" aria-label="Add new sale">Add Sale</a>
+                            <a href="{{ route('sales.create') }}" class="flex items-center bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200 transform hover:scale-105" aria-label="Add new sale">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Add Sale
+                            </a>
                         @endcan
                         @can('create_expenses')
-                            <a href="{{ route('expenses.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200" aria-label="Log new expense">Log Expense</a>
+                            <a href="{{ route('expenses.create') }}" class="flex items-center bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new expense">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Log Expense
+                            </a>
                         @endcan
                         @can('create_income')
-                            <a href="{{ route('income.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200" aria-label="Log new income">Log Income</a>
+                            <a href="{{ route('income.create') }}" class="flex items-center bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new income">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Log Income
+                            </a>
                         @endcan
                         @can('create_users')
-                            <a href="{{ route('users.create') }}" class="bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-center transition duration-200" aria-label="Add new user">Add User</a>
+                            <a href="{{ route('users.create') }}" class="flex items-center bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-center transition duration-200 transform hover:scale-105" aria-label="Add new user">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2m6-4v4m-4 0h8"/>
+                                </svg>
+                                Add User
+                            </a>
                         @endcan
                         @can('create_employees')
-                            <a href="{{ route('employees.create') }}" class="bg-yellow-600 text-white py-3 px-4 rounded-lg hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-center transition duration-200" aria-label="Add new employee">Add Employee</a>
+                            <a href="{{ route('employees.create') }}" class="flex items-center bg-yellow-600 text-white py-3 px-4 rounded-lg hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-center transition duration-200 transform hover:scale-105" aria-label="Add new employee">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Add Employee
+                            </a>
                         @endcan
                     @endrole
 
                     @role('farm_manager')
                         @can('create_birds')
-                            <a href="{{ route('birds.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200" aria-label="Add new bird">Add Bird</a>
+                            <a href="{{ route('birds.create') }}" class="flex items-center bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200 transform hover:scale-105" aria-label="Add new bird">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Add Bird
+                            </a>
                         @endcan
                         @can('create_eggs')
-                            <a href="{{ route('eggs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200" aria-label="Record egg production">Record Egg Production</a>
+                            <a href="{{ route('eggs.create') }}" class="flex items-center bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200 transform hover:scale-105" aria-label="Record egg production">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                Record Egg Production
+                            </a>
                         @endcan
                         @can('create_mortalities')
-                            <a href="{{ route('mortalities.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200" aria-label="Log new mortality">Log Mortality</a>
+                            <a href="{{ route('mortalities.create') }}" class="flex items-center bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new mortality">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                                Log Mortality
+                            </a>
                         @endcan
                         @can('create_feed')
-                            <a href="{{ route('feed.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200" aria-label="Log new feed">Log Feed</a>
+                            <a href="{{ route('feed.create') }}" class="flex items-center bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new feed">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18v4H3V3zm0 6h18v4H3V9zm0 6h18v4H3v-4z"/>
+                                </svg>
+                                Log Feed
+                            </a>
                         @endcan
                         @can('create_inventory')
-                            <a href="{{ route('inventory.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200" aria-label="Add new inventory">Add Inventory</a>
+                            <a href="{{ route('inventory.create') }}" class="flex items-center bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200 transform hover:scale-105" aria-label="Add new inventory">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                                </svg>
+                                Add Inventory
+                            </a>
                         @endcan
                     @endrole
 
                     @role('accountant')
                         @can('create_expenses')
-                            <a href="{{ route('expenses.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200" aria-label="Log new expense">Log Expense</a>
+                            <a href="{{ route('expenses.create') }}" class="flex items-center bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new expense">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Log Expense
+                            </a>
                         @endcan
                         @can('create_income')
-                            <a href="{{ route('income.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200" aria-label="Log new income">Log Income</a>
+                            <a href="{{ route('income.create') }}" class="flex items-center bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new income">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Log Income
+                            </a>
                         @endcan
                         @can('create_payroll')
-                            <a href="{{ route('payroll.create') }}" class="bg-yellow-600 text-white py-3 px-4 rounded-lg hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-center transition duration-200" aria-label="Log new payroll">Log Payroll</a>
+                            <a href="{{ route('payroll.create') }}" class="flex items-center bg-yellow-600 text-white py-3 px-4 rounded-lg hover:bg-yellow-700 dark:bg-yellow-500 dark:hover:bg-yellow-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new payroll">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Log Payroll
+                            </a>
                         @endcan
                     @endrole
 
                     @role('sales_manager')
                         @can('create_sales')
-                            <a href="{{ route('sales.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200" aria-label="Add new sale">Add Sale</a>
+                            <a href="{{ route('sales.create') }}" class="flex items-center bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200 transform hover:scale-105" aria-label="Add new sale">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Add Sale
+                            </a>
                         @endcan
                         @can('create_customers')
-                            <a href="{{ route('customers.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200" aria-label="Add new customer">Add Customer</a>
+                            <a href="{{ route('customers.create') }}" class="flex items-center bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200 transform hover:scale-105" aria-label="Add new customer">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Add Customer
+                            </a>
                         @endcan
                         @can('create_orders')
-                            <a href="{{ route('orders.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200" aria-label="Create new order">Create Order</a>
+                            <a href="{{ route('orders.create') }}" class="flex items-center bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200 transform hover:scale-105" aria-label="Create new order">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
+                                Create Order
+                            </a>
                         @endcan
                         @can('generate_invoices')
-                            <a href="{{ route('invoices.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200" aria-label="Generate new invoice">Generate Invoice</a>
+                            <a href="{{ route('invoices.create') }}" class="flex items-center bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200 transform hover:scale-105" aria-label="Generate new invoice">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01m-.01 4h.01"/>
+                                </svg>
+                                Generate Invoice
+                            </a>
                         @endcan
                     @endrole
 
                     @role('inventory_manager')
                         @can('create_inventory')
-                            <a href="{{ route('inventory.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200" aria-label="Add new inventory">Add Inventory</a>
+                            <a href="{{ route('inventory.create') }}" class="flex items-center bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200 transform hover:scale-105" aria-label="Add new inventory">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                                </svg>
+                                Add Inventory
+                            </a>
                         @endcan
                         @can('create_suppliers')
-                            <a href="{{ route('suppliers.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200" aria-label="Add new supplier">Add Supplier</a>
+                            <a href="{{ route('suppliers.create') }}" class="flex items-center bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200 transform hover:scale-105" aria-label="Add new supplier">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Add Supplier
+                            </a>
                         @endcan
                         @can('create_feed')
-                            <a href="{{ route('feed.create') }}" class="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200" aria-label="Log new feed">Log Feed</a>
+                            <a href="{{ route('feed.create') }}" class="flex items-center bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new feed">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h18v4H3V3zm0 6h18v4H3V9zm0 6h18v4H3v-4z"/>
+                                </svg>
+                                Log Feed
+                            </a>
                         @endcan
                         @can('create_medicine_logs')
-                            <a href="{{ route('medicine-logs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200" aria-label="Log new medicine">Log Medicine</a>
+                            <a href="{{ route('medicine-logs.create') }}" class="flex items-center bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new medicine">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2m-6 0h6"/>
+                                </svg>
+                                Log Medicine
+                            </a>
                         @endcan
                     @endrole
 
                     @role('veterinarian')
                         @can('create_health_checks')
-                            <a href="{{ route('health-checks.create') }}" class="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200" aria-label="Log new health check">Log Health Check</a>
+                            <a href="{{ route('health-checks.create') }}" class="flex items-center bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new health check">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                                Log Health Check
+                            </a>
                         @endcan
                         @can('create_diseases')
-                            <a href="{{ route('diseases.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200" aria-label="Log new disease">Log Disease</a>
+                            <a href="{{ route('diseases.create') }}" class="flex items-center bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new disease">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Log Disease
+                            </a>
                         @endcan
                         @can('create_vaccination_logs')
-                            <a href="{{ route('vaccination-logs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200" aria-label="Log new vaccination">Log Vaccination</a>
+                            <a href="{{ route('vaccination-logs.create') }}" class="flex items-center bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new vaccination">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Log Vaccination
+                            </a>
                         @endcan
                         @can('create_medicine_logs')
-                            <a href="{{ route('medicine-logs.create') }}" class="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200" aria-label="Log new medicine">Log Medicine</a>
+                            <a href="{{ route('medicine-logs.create') }}" class="flex items-center bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new medicine">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2m-6 0h6"/>
+                                </svg>
+                                Log Medicine
+                            </a>
                         @endcan
                     @endrole
 
                     @role('labourer')
                         @can('create_eggs')
-                            <a href="{{ route('eggs.create') }}" class="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200" aria-label="Record egg production">Record Egg Production</a>
+                            <a href="{{ route('eggs.create') }}" class="flex items-center bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-center transition duration-200 transform hover:scale-105" aria-label="Record egg production">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                Record Egg Production
+                            </a>
                         @endcan
                         @can('create_mortalities')
-                            <a href="{{ route('mortalities.create') }}" class="bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200" aria-label="Log new mortality">Log Mortality</a>
+                            <a href="{{ route('mortalities.create') }}" class="flex items-center bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-center transition duration-200 transform hover:scale-105" aria-label="Log new mortality">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                                Log Mortality
+                            </a>
                         @endcan
                     @endrole
                 </div>
@@ -265,7 +408,7 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                         @foreach ($cards as $card)
-                            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+                            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow transition-all duration-200 hover:shadow-xl hover:scale-105">
                                 <div class="flex items-center justify-between">
                                     <h3 class="font-semibold text-gray-700 dark:text-gray-200 text-base sm:text-lg">{{ $card['label'] }}</h3>
                                     <span class="text-xl sm:text-2xl">{{ $card['icon'] }}</span>
@@ -330,7 +473,7 @@
                         @foreach ($kpis as $item)
                             @if ($group === 'Operations' && in_array($item['label'], ['Employees', 'Payroll', 'Sales', 'Customers']))
                                 @role('admin')
-                                    <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
+                                    <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-4 shadow transition-all duration-200 hover:shadow-xl hover:scale-105">
                                         <div class="flex items-center justify-between">
                                             <h4 class="text-gray-700 dark:text-gray-300 font-medium text-base sm:text-lg">{{ $item['label'] }}</h4>
                                             <span class="text-xl sm:text-2xl">{{ $item['icon'] }}</span>
@@ -340,7 +483,7 @@
                                     </div>
                                 @endrole
                             @else
-                                <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-4 shadow">
+                                <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-4 shadow transition-all duration-200 hover:shadow-xl hover:scale-105">
                                     <div class="flex items-center justify-between">
                                         <h4 class="text-gray-700 dark:text-gray-300 font-medium text-base sm:text-lg">{{ $item['label'] }}</h4>
                                         <span class="text-xl sm:text-2xl">{{ $item['icon'] }}</span>
@@ -357,7 +500,7 @@
 
         @can('manage_finances')
             <div class="mb-6">
-                <div class="container-box bg-gradient-to-r from-yellow-100 to-gray-50 dark:from-yellow-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
+                <div class="container-box bg-gradient-to-r from-yellow-100 to-gray-50 dark:from-yellow-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow duration-200 hover:shadow-xl">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
                             <svg class="w-5 h-5 mr-2 text-yellow-500 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -376,7 +519,7 @@
                         @if (isset($pendingApprovals) && $pendingApprovals->isNotEmpty())
                             <ul class="space-y-3">
                                 @foreach ($pendingApprovals->take(3) as $approval)
-                                    <li class="transition-all duration-300">
+                                    <li class="transition-all duration-300 hover:scale-105">
                                         <div class="flex justify-between items-center p-4 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900">
                                             <div>
                                                 <p class="text-base text-gray-600 dark:text-gray-400">{{ $approval->date }}</p>
@@ -411,7 +554,7 @@
             </div>
         @endcan
 
-        <div class="container-box bg-gradient-to-r from-blue-100 to-gray-50 dark:from-blue-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
+        <div class="container-box bg-gradient-to-r from-blue-100 to-gray-50 dark:from-blue-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow duration-200 hover:shadow-xl">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
                     <svg class="w-5 h-5 mr-2 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -429,22 +572,22 @@
                 @if (isset($payrollStatus) && $payrollStatus->isNotEmpty())
                     @php $latest = $payrollStatus->first(); @endphp
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
+                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900 hover:scale-105">
                             <p class="text-base text-gray-600 dark:text-gray-400">Latest Pay Date</p>
                             <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ $latest->date }}</p>
                         </div>
 
-                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
+                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900 hover:scale-105">
                             <p class="text-base text-gray-600 dark:text-gray-400">Employees</p>
                             <p class="text-2xl font-bold">{{ $latest->employees }}</p>
                         </div>
 
-                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900">
+                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:bg-blue-50 dark:hover:bg-blue-900 hover:scale-105">
                             <p class="text-base text-gray-600 dark:text-gray-400">Total Paid</p>
                             <p class="text-2xl font-bold text-green-600 dark:text-green-400">₵{{ number_format($latest->total, 2) }}</p>
                         </div>
 
-                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300">
+                        <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-all duration-300 hover:scale-105">
                             <p class="text-base text-gray-600 dark:text-gray-400 mb-1">Status</p>
                             <span class="px-2 py-1 text-sm font-medium rounded-full {{ $latest->status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100' }}">
                                 {{ ucfirst($latest->status) }}
@@ -465,7 +608,7 @@
     <!-- Transaction and Order Overview -->
     <section class="mb-8">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="container-box bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-indigo-500 border-2 border-transparent">
+            <div class="container-box bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-all duration-200 hover:shadow-xl hover:scale-105 border-2 border-transparent hover:border-indigo-500">
                 <a href="{{ route('transactions.index') }}" class="block" aria-label="View all pending transactions">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center">
@@ -485,7 +628,7 @@
                 </a>
             </div>
 
-            <div class="container-box bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-indigo-500 border-2 border-transparent">
+            <div class="container-box bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-all duration-200 hover:shadow-xl hover:scale-105 border-2 border-transparent hover:border-indigo-500">
                 <a href="{{ route('transactions.index') }}" class="block" aria-label="View total transaction amount">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center">
@@ -505,7 +648,7 @@
                 </a>
             </div>
 
-            <div class="container-box bg-gradient-to-r from-purple-50 to-white dark:from-purple-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-purple-500 border-2 border-transparent">
+            <div class="container-box bg-gradient-to-r from-purple-50 to-white dark:from-purple-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-all duration-200 hover:shadow-xl hover:scale-105 border-2 border-transparent hover:border-purple-500">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
                         <svg class="w-8 h-8 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -536,7 +679,7 @@
                 </div>
             </div>
 
-            <div class="container-box bg-gradient-to-r from-purple-50 to-white dark:from-purple-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl hover:border-purple-500 border-2 border-transparent">
+            <div class="container-box bg-gradient-to-r from-purple-50 to-white dark:from-purple-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-all duration-200 hover:shadow-xl hover:scale-105 border-2 border-transparent hover:border-purple-500">
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center">
                         <svg class="w-8 h-8 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -559,7 +702,7 @@
     <!-- Sales and Mortality -->
     <section class="mb-8">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="container-box bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
+            <div class="container-box bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow duration-200 hover:shadow-xl hover:scale-105">
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
                     <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17"></path>
@@ -573,14 +716,14 @@
                 </div>
 
                 <div class="tab-content" id="egg-sales">
-                    <div class="p-4 bg-green-50 dark:bg-green-900 rounded-lg">
+                    <div class="p-4 bg-green-50 dark:bg-green-900 rounded-lg transition-all duration-200 hover:scale-105">
                         <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Egg Sales</h4>
                         <p class="text-3xl font-bold text-green-600 dark:text-green-400">₵{{ number_format($eggSales ?? 0, 2) }}</p>
                     </div>
                 </div>
 
                 <div class="tab-content hidden" id="bird-sales">
-                    <div class="p-4 bg-green-50 dark:bg-green-900 rounded-lg">
+                    <div class="p-4 bg-green-50 dark:bg-green-900 rounded-lg transition-all duration-200 hover:scale-105">
                         <h4 class="text-lg font-medium text-gray-700 dark:text-gray-300">Bird Sales</h4>
                         <p class="text-3xl font-bold text-green-600 dark:text-green-400">₵{{ number_format($birdSales ?? 0, 2) }}</p>
                     </div>
@@ -605,7 +748,7 @@
                 </div>
             </div>
 
-            <div class="container-box bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
+            <div class="container-box bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow duration-200 hover:shadow-xl hover:scale-105">
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
                     <svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -649,12 +792,12 @@
     <!-- Role-Specific Sections -->
     <section class="mb-8">
         @role('labourer')
-            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow transition-all duration-200 hover:shadow-xl">
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Daily Instructions</h2>
                 @if (isset($dailyInstructions) && $dailyInstructions->isNotEmpty())
                     <ul class="space-y-3">
                         @foreach ($dailyInstructions as $item)
-                            <li class="list-item">
+                            <li class="list-item transition-all duration-200 hover:scale-105">
                                 <span class="highlight">{{ $item->content }}</span> (Posted: {{ $item->created_at->format('Y-m-d H:i') }})
                             </li>
                         @endforeach
@@ -666,12 +809,12 @@
         @endrole
 
         @role('farm_manager')
-            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow transition-all duration-200 hover:shadow-xl">
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Flock Health Summary</h2>
                 @if (isset($healthSummary) && $healthSummary->isNotEmpty())
                     <ul class="space-y-3">
                         @foreach ($healthSummary as $item)
-                            <li class="list-item">
+                            <li class="list-item transition-all duration-200 hover:scale-105">
                                 <span class="highlight">{{ $item->date->format('Y-m-d') }}</span>: {{ $item->checks }} checks, {{ $item->unhealthy }} unhealthy
                             </li>
                         @endforeach
@@ -683,12 +826,12 @@
         @endrole
 
         @role('veterinarian')
-            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow transition-all duration-200 hover:shadow-xl">
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Vaccination Schedule</h2>
                 @if (isset($vaccinationSchedule) && $vaccinationSchedule->isNotEmpty())
                     <ul class="space-y-3">
                         @foreach ($vaccinationSchedule as $item)
-                            <li class="list-item">
+                            <li class="list-item transition-all duration-200 hover:scale-105">
                                 <div class="flex justify-between items-center">
                                     <span>
                                         <span class="highlight">{{ $item->vaccine_name }}</span> (Due: {{ $item->due_date->format('Y-m-d') }})
@@ -709,12 +852,12 @@
         @endrole
 
         @role('inventory_manager')
-            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+            <div class="container-box bg-white dark:bg-gray-800 rounded-xl p-6 shadow transition-all duration-200 hover:shadow-xl">
                 <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Key Suppliers</h2>
                 @if (isset($suppliers) && $suppliers->isNotEmpty())
                     <ul class="space-y-3">
                         @foreach ($suppliers as $item)
-                            <li class="list-item">
+                            <li class="list-item transition-all duration-200 hover:scale-105">
                                 <div class="flex justify-between items-center">
                                     <span>
                                         <span class="highlight">{{ $item->name }}</span> ({{ $item->contact_info }})
@@ -736,7 +879,7 @@
 
     <!-- Vaccination Overview -->
     <section class="mb-8">
-        <div class="container-box bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow hover:shadow-xl">
+        <div class="container-box bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 shadow-lg rounded-xl p-6 transition-shadow duration-200 hover:shadow-xl hover:scale-105">
             <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -756,7 +899,7 @@
         <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Performance Trends</h2>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+            <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow transition-all duration-200 hover:shadow-xl hover:scale-105">
                 <div class="flex items-center justify-between mb-2">
                     <h4 class="chart-title">Egg Trend</h4>
                     <select id="eggChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" aria-label="Select egg trend chart type">
@@ -774,7 +917,7 @@
                 @endif
             </div>
 
-            <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+            <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow transition-all duration-200 hover:shadow-xl hover:scale-105">
                 <div class="flex items-center justify-between mb-2">
                     <h4 class="chart-title">Feed Trend</h4>
                     <select id="feedChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" aria-label="Select feed trend chart type">
@@ -793,7 +936,7 @@
             </div>
 
             @role('admin')
-                <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+                <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow transition-all duration-200 hover:shadow-xl hover:scale-105">
                     <div class="flex items-center justify-between mb-2">
                         <h4 class="chart-title">Sales Trend</h4>
                         <select id="salesChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" aria-label="Select sales trend chart type">
@@ -812,7 +955,7 @@
                 </div>
             @endrole
 
-            <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
+            <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow transition-all duration-200 hover:shadow-xl hover:scale-105">
                 <div class="flex items-center justify-between mb-2">
                     <h4 class="chart-title">Income Trend</h4>
                     <select id="incomeChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" aria-label="Select income trend chart type">
@@ -831,7 +974,7 @@
             </div>
 
             @role('admin')
-                <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow col-span-1 lg:col-span-2">
+                <div class="chart-container bg-white dark:bg-gray-800 rounded-xl p-6 shadow col-span-1 lg:col-span-2 transition-all duration-200 hover:shadow-xl hover:scale-105">
                     <div class="flex items-center justify-between mb-2">
                         <h4 class="chart-title">Invoice Status Distribution</h4>
                         <select id="invoiceChartType" class="chart-select border rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" aria-label="Select invoice status chart type">

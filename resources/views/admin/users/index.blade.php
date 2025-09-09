@@ -177,7 +177,7 @@
     </div>
 </div>
 
-{{-- Delete confirmation modal (same as before) --}}
+{{-- Delete confirmation modal --}}
 <div id="users-delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full shadow-lg overflow-hidden">
         <div class="px-6 py-5 border-b dark:border-gray-800">
@@ -194,7 +194,6 @@
 </div>
 
 {{-- Permissions modal: rectangular, multi-column --}}
-
 <div id="users-permissions-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="bg-white dark:bg-gray-900 rounded-lg max-w-6xl w-full shadow-lg overflow-hidden" role="document" aria-labelledby="perm-modal-title" style="box-shadow: 0 15px 35px rgba(0,0,0,0.25);">
         <div class="px-6 py-4 border-b dark:border-gray-800 flex items-center justify-between">
@@ -213,9 +212,10 @@
         <form id="users-permissions-form" class="p-4" autocomplete="off">
             <div class="mb-3 flex flex-col md:flex-row md:items-center md:gap-3">
                 <div class="flex-1">
-                    <label for="role_select" class="text-xs text-gray-600 dark:text-gray-400">Apply role defaults</label>
+                    <label for="role_select" class="text-xs text-gray-600 dark:text-gray-400">Apply role defaults (select one or more)</label>
                     <select id="role_select" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm">
-                        <option value="">-- Choose role to apply --</option>
+                        <option value="">-- Choose role(s) to apply --</option>
+                        <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple roles. Applying multiple roles will union their permissions.</p>
                     </select>
                 </div>
 
@@ -224,7 +224,7 @@
 
                     <label class="inline-flex items-center space-x-2 text-sm">
                         <input id="assign-role-checkbox" type="checkbox" class="h-4 w-4">
-                        <span>Assign selected role to user on save</span>
+                        <span>Assign selected role(s) to user on save</span>
                     </label>
                 </div>
             </div>
@@ -241,30 +241,37 @@
     </div>
 </div>
 
-@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // CSRF token
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    // CSRF token (ensure your layout has <meta name="csrf-token" content="{{ csrf_token() }}">)
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
 
-    // Delete modal code (same as before)
+    if (!csrfToken) {
+        console.warn('CSRF token meta tag not found. Ensure your main layout includes: <meta name="csrf-token" content=\"{{ csrf_token() }}\">');
+    }
+
+    /* ---------- Delete modal ---------- */
     const deleteModal = document.getElementById('users-delete-modal');
     const cancelDeleteBtn = document.getElementById('users-cancel-delete');
     const confirmDeleteBtn = document.getElementById('users-confirm-delete');
     let targetDeleteFormAction = '';
 
-    function openDeleteModal(e) {
+    window.openDeleteModal = function(e) {
         e.preventDefault();
-        const button = e.currentTarget;
-        const userId = button.dataset.userId;
+        const button = e.currentTarget || e.target.closest('[data-user-id]');
+        const userId = button && button.dataset && button.dataset.userId;
         const form = document.getElementById('delete-form-' + userId);
-        if (!form) return alert('Delete form not found.');
+        if (!form) {
+            alert('Delete form not found for user ' + userId);
+            return;
+        }
         targetDeleteFormAction = form.getAttribute('action');
         deleteModal.classList.remove('hidden');
         deleteModal.classList.add('flex');
         deleteModal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
-    }
+    };
 
     function closeDeleteModal() {
         deleteModal.classList.add('hidden');
@@ -274,20 +281,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.body.style.overflow = '';
     }
 
-    document.body.addEventListener('click', function(e) {
-        const btn = e.target.closest('[data-user-id]');
-        if (!btn) return;
-        if (btn.matches('button') && btn.textContent.trim().toLowerCase().includes('delete')) {
-            openDeleteModal(e);
-        }
-    });
-
-    if (cancelDeleteBtn) {
-        cancelDeleteBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            closeDeleteModal();
-        });
-    }
+    if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', e => { e.preventDefault(); closeDeleteModal(); });
 
     deleteModal.addEventListener('click', function(e) {
         if (e.target === deleteModal) closeDeleteModal();
@@ -296,25 +290,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (confirmDeleteBtn) {
         confirmDeleteBtn.addEventListener('click', async function (e) {
             e.preventDefault();
-            if (!targetDeleteFormAction) {
-                closeDeleteModal();
-                return;
-            }
-
+            if (!targetDeleteFormAction) { closeDeleteModal(); return; }
             confirmDeleteBtn.disabled = true;
             try {
+                console.debug('[delete] sending DELETE to', targetDeleteFormAction);
                 const res = await fetch(targetDeleteFormAction, {
                     method: 'DELETE',
                     credentials: 'same-origin',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    }
+                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
                 });
-
-                let json = {};
+                let json = null;
                 try { json = await res.json(); } catch(_) { json = null; }
-
+                console.debug('[delete] response', res.status, json);
                 if (res.ok && (json ? (json.success ?? true) : true)) {
                     const match = targetDeleteFormAction.match(/\/users\/(\d+)$/);
                     if (match) {
@@ -325,11 +312,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     closeDeleteModal();
                 } else {
-                    alert((json && (json.message || json.error)) || 'Failed to delete user.');
+                    alert((json && (json.message || json.error)) || 'Failed to delete user. See console for details.');
+                    console.error('Delete failed', res.status, json);
                 }
             } catch (err) {
-                console.error(err);
-                alert('An error occurred while deleting.');
+                console.error('Delete error', err);
+                alert('An error occurred while deleting. See console for details.');
             } finally {
                 confirmDeleteBtn.disabled = false;
             }
@@ -350,63 +338,106 @@ document.addEventListener('DOMContentLoaded', function () {
     const assignRoleCheckbox = document.getElementById('assign-role-checkbox');
 
     let currentPermissionsUserId = null;
-    let lastFetchedRoles = []; // local roles list from server
+    let lastFetchedRoles = [];
 
-    // Open modal and fetch grouped permission data and roles
+    // Fallback submission via regular form
+    function submitFallbackForm(userId, selectedPermissions, rolesToApply, assignRole) {
+        console.warn('[fallback] Submitting regular form to server as fallback');
+        const f = document.createElement('form');
+        f.method = 'POST';
+        f.action = `/users/${userId}/permissions`;
+        f.style.display = 'none';
+
+        // CSRF token input if present
+        if (csrfToken) {
+            const t = document.createElement('input'); t.type = 'hidden'; t.name = '_token'; t.value = csrfToken; f.appendChild(t);
+        }
+
+        selectedPermissions.forEach(p => {
+            const ip = document.createElement('input'); ip.type='hidden'; ip.name='permissions[]'; ip.value = p; f.appendChild(ip);
+        });
+        if (Array.isArray(rolesToApply) && rolesToApply.length) {
+            rolesToApply.forEach(rn => {
+                const r = document.createElement('input'); r.type='hidden'; r.name='roles[]'; r.value = rn; f.appendChild(r);
+            });
+            // sync_roles as hidden true -> server will replace roles
+            const sr = document.createElement('input'); sr.type='hidden'; sr.name='sync_roles'; sr.value='1'; f.appendChild(sr);
+        }
+        if (assignRole) { const a = document.createElement('input'); a.type='hidden'; a.name='assign_role'; a.value='1'; f.appendChild(a); }
+
+        document.body.appendChild(f);
+        f.submit();
+    }
+
+    // Open permissions modal and fetch data
     window.openPermissionsModal = async function(userId) {
         currentPermissionsUserId = userId;
         permContainer.innerHTML = '<div class="p-4 text-sm text-gray-500">Loading permissions...</div>';
-        permModal.classList.remove('hidden');
-        permModal.classList.add('flex');
+        permModal.classList.remove('hidden'); permModal.classList.add('flex');
         permModal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
 
-        try {
-            const url = `/users/${userId}/permissions`;
-            const res = await fetch(url, {
-                credentials: 'same-origin',
-                headers: { 'Accept': 'application/json' }
-            });
+        const url = `/users/${userId}/permissions`;
+        console.debug('[perm] fetching', url);
 
-            if (!res.ok) {
-            const txt = await res.text().catch(()=>null);
-            console.error('Permissions fetch failed (non-OK):', res.status, txt);
-            throw new Error('Failed to fetch permissions');
+        try {
+            const res = await fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
+            console.debug('[perm] fetch status', res.status, res.headers.get('content-type'));
+
+            const ctype = (res.headers.get('content-type') || '').toLowerCase();
+            if (res.status === 419) {
+                throw new Error('CSRF token mismatch (419). Ensure your layout includes a csrf meta tag and the header X-CSRF-TOKEN is being sent.');
             }
-            const data = await res.json().catch(async ()=>{
+            if (res.status === 401 || res.status === 302) {
+                const t = await res.text().catch(()=>null);
+                console.error('[perm] auth/redirect response (likely missing cookies/session):', res.status, t);
+                throw new Error('Unauthorized or redirected. Check that fetch sends cookies (credentials) and you have a valid session.');
+            }
+
+            if (ctype.indexOf('application/json') === -1) {
                 const txt = await res.text().catch(()=>null);
-                console.error('Permissions JSON parse failed, response:', txt);
-                return {};
-            });
-            if (!data.success) {
-                console.error('Permissions API returned success=false:', data);
+                console.error('[perm] expected JSON but got', ctype, res.status, txt);
+                throw new Error('Server returned non-JSON response (see console). This often indicates a redirect to login or an exception page. Check network tab.');
+            }
+
+            const data = await res.json();
+            console.debug('[perm] json', data);
+
+            if (!data || data.success === false) {
+                console.error('Permissions API returned success=false or invalid payload', data);
                 throw new Error(data.message || 'Failed to fetch permissions');
             }
 
+            // Header updates
+            document.getElementById('perm-modal-title').textContent = 'Permissions — ' + (data.user?.name || 'User');
+            document.getElementById('perm-modal-sub').textContent = data.user?.email || '';
 
-            document.getElementById('perm-modal-title').textContent = 'Permissions — ' + data.user.name;
-            document.getElementById('perm-modal-sub').textContent = data.user.email;
-
-            // populate roleSelect
-            roleSelect.innerHTML = '<option value=\"\">-- Choose role to apply --</option>';
+            // populate roleSelect (multi-select)
+            roleSelect.innerHTML = '<option value="">-- Choose role(s) to apply --</option>';
             lastFetchedRoles = data.roles || [];
             lastFetchedRoles.forEach(r => {
-                const opt = document.createElement('option');
-                opt.value = r.name;
-                opt.textContent = r.display || r.name;
-                roleSelect.appendChild(opt);
+                const opt = document.createElement('option'); opt.value = r.name; opt.textContent = r.display || r.name; roleSelect.appendChild(opt);
             });
 
-            renderPermissions(data.grouped, data.user_permissions || []);
+            // Render grouped permissions
+            renderPermissions(data.grouped || {}, data.user_permissions || []);
+            console.info('[perm] permissions loaded for user', userId);
+
+            // if user_roles present, preselect them in roleSelect (optional)
+            const userRoles = data.user_roles || [];
+            Array.from(roleSelect.options).forEach(opt => {
+                if (userRoles.indexOf(opt.value) !== -1) opt.selected = true;
+            });
+
         } catch (err) {
-            console.error(err);
-            permContainer.innerHTML = '<div class="p-4 text-sm text-red-600">Failed to load permissions.</div>';
+            console.error('[perm] fetch error', err);
+            permContainer.innerHTML = `<div class="p-4 text-sm text-red-600">Failed to load permissions: ${escapeHtml(err.message || String(err))}</div>`;
         }
     };
 
+    // Render grouped permissions (adds group checkbox handlers etc.)
     function renderPermissions(grouped, userPerms) {
         permContainer.innerHTML = '';
-
         Object.keys(grouped || {}).forEach(resource => {
             const items = grouped[resource] || [];
 
@@ -423,10 +454,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const groupSelect = document.createElement('label');
             groupSelect.className = 'inline-flex items-center space-x-2 text-sm';
-            groupSelect.innerHTML = `
-                <input type="checkbox" class="group-select-checkbox h-4 w-4" data-group="${resource}">
-                <span class="text-xs">All</span>
-            `;
+            groupSelect.innerHTML = `<input type="checkbox" class="group-select-checkbox h-4 w-4" data-group="${escapeHtmlAttr(resource)}"><span class="text-xs">All</span>`;
 
             header.appendChild(title);
             header.appendChild(groupSelect);
@@ -436,19 +464,27 @@ document.addEventListener('DOMContentLoaded', function () {
             list.className = 'grid grid-cols-1 gap-2 sm:grid-cols-2';
 
             items.forEach(p => {
-                const isChecked = userPerms.indexOf(p.name) !== -1 ? 'checked' : '';
+                const isChecked = Array.isArray(userPerms) && userPerms.indexOf(p.name) !== -1;
                 const labelText = p.label || p.name || 'Unknown';
                 const label = document.createElement('label');
                 label.className = 'inline-flex items-center space-x-2 text-sm';
-                label.innerHTML = `
-                    <input type="checkbox" name="permissions[]" value="${p.name}" class="perm-checkbox h-4 w-4" ${isChecked}>
-                    <span class="text-sm break-words">${labelText}</span>
-                `;
+                label.innerHTML = `<input type="checkbox" name="permissions[]" value="${escapeHtmlAttr(p.name)}" class="perm-checkbox h-4 w-4" ${isChecked ? 'checked' : ''}><span class="text-sm break-words">${escapeHtml(labelText)}</span>`;
                 list.appendChild(label);
             });
 
             card.appendChild(list);
             permContainer.appendChild(card);
+
+            // group checkbox toggles all in group
+            const groupCb = card.querySelector('.group-select-checkbox');
+            groupCb && groupCb.addEventListener('change', function () {
+                const checked = !!this.checked;
+                card.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = checked);
+                updateGroupCheckboxState(resource);
+            });
+
+            // each checkbox updates group state
+            card.querySelectorAll('.perm-checkbox').forEach(cb => cb.addEventListener('change', () => updateGroupCheckboxState(resource)));
 
             updateGroupCheckboxState(resource);
         });
@@ -465,68 +501,56 @@ document.addEventListener('DOMContentLoaded', function () {
         groupCheckbox.checked = (checked === total && total > 0);
     }
 
-    function closePermModal() {
-        permModal.classList.add('hidden');
-        permModal.classList.remove('flex');
-        permModal.setAttribute('aria-hidden', 'true');
-        permContainer.innerHTML = '';
-        currentPermissionsUserId = null;
-        document.body.style.overflow = '';
+    function escapeHtml(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function escapeHtmlAttr(s) {
+        if (s == null) return '';
+        return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    if (closePermBtn) closePermBtn.addEventListener('click', closePermModal);
-    if (cancelPermBtn) cancelPermBtn.addEventListener('click', function(e) { e.preventDefault(); closePermModal(); });
-
-    // global select/deselect
-    if (globalSelectAll) {
-        globalSelectAll.addEventListener('click', function () {
-            permContainer.querySelectorAll('.perm-checkbox').forEach(c => c.checked = true);
-            permContainer.querySelectorAll('.group-select-checkbox').forEach(cb => { cb.checked = true; cb.indeterminate = false; });
-        });
-    }
-    if (globalDeselectAll) {
-        globalDeselectAll.addEventListener('click', function () {
-            permContainer.querySelectorAll('.perm-checkbox').forEach(c => c.checked = false);
-            permContainer.querySelectorAll('.group-select-checkbox').forEach(cb => { cb.checked = false; cb.indeterminate = false; });
-        });
-    }
-
-    // Apply role defaults: check permissions that belong to selected role
+    // Apply role defaults (union if multiple selected)
     if (applyRoleBtn) {
         applyRoleBtn.addEventListener('click', function () {
-            const selectedRole = roleSelect.value;
-            if (!selectedRole) return alert('Select a role to apply its default permissions.');
-            const roleObj = lastFetchedRoles.find(r => r.name === selectedRole);
-            if (!roleObj) return alert('Selected role not found.');
-
-            // check all permissions then uncheck those not in role's permission list (to replace)
-            permContainer.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = false);
-            (roleObj.permissions || []).forEach(pname => {
-                const el = permContainer.querySelector(`.perm-checkbox[value="${CSS.escape(pname)}"]`);
-                if (el) el.checked = true;
+            const selectedRoleNames = Array.from(roleSelect.selectedOptions).map(o => o.value).filter(Boolean);
+            if (!selectedRoleNames.length) return alert('Select at least one role to apply its default permissions.');
+            const rolePermSet = new Set();
+            selectedRoleNames.forEach(name => {
+                const roleObj = lastFetchedRoles.find(r => r.name === name);
+                if (roleObj && Array.isArray(roleObj.permissions)) {
+                    roleObj.permissions.forEach(p => rolePermSet.add(p));
+                }
             });
-
-            // update group checkbox states
-            permContainer.querySelectorAll('[data-group]').forEach(node => {
-                const g = node.getAttribute('data-group');
-                updateGroupCheckboxState(g);
-            });
+            permContainer.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = rolePermSet.has(cb.value));
+            permContainer.querySelectorAll('[data-group]').forEach(node => updateGroupCheckboxState(node.getAttribute('data-group')));
         });
     }
 
-    // Save permissions (AJAX) + optional assign/unassign role + optimistic UI update
+    if (globalSelectAll) globalSelectAll.addEventListener('click', () => {
+        permContainer.querySelectorAll('.perm-checkbox').forEach(c => c.checked = true);
+        permContainer.querySelectorAll('.group-select-checkbox').forEach(cb => { cb.checked = true; cb.indeterminate = false; });
+    });
+    if (globalDeselectAll) globalDeselectAll.addEventListener('click', () => {
+        permContainer.querySelectorAll('.perm-checkbox').forEach(c => c.checked = false);
+        permContainer.querySelectorAll('.group-select-checkbox').forEach(cb => { cb.checked = false; cb.indeterminate = false; });
+    });
+
+    // Save handler with debug & fallback form submission
     if (permissionsForm) {
         permissionsForm.addEventListener('submit', async function (e) {
             e.preventDefault();
-            if (!currentPermissionsUserId) return alert('No user selected.');
+            if (!currentPermissionsUserId) { alert('No user selected'); return; }
 
             savePermBtn.disabled = true;
             const selected = Array.from(permContainer.querySelectorAll('.perm-checkbox:checked')).map(n => n.value);
-            const roleToApply = roleSelect.value || null;
-            const assignRole = assignRoleCheckbox.checked ? true : null;
+            const selectedRoles = Array.from(roleSelect.selectedOptions).map(o => o.value).filter(Boolean);
+            const assignRole = !!assignRoleCheckbox.checked;
 
+            console.debug('[perm] saving', { userId: currentPermissionsUserId, selected, selectedRoles, assignRole });
+
+            const url = `/users/${currentPermissionsUserId}/permissions`;
             try {
-                const url = `/users/${currentPermissionsUserId}/permissions`;
                 const res = await fetch(url, {
                     method: 'POST',
                     credentials: 'same-origin',
@@ -535,34 +559,63 @@ document.addEventListener('DOMContentLoaded', function () {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        permissions: selected,
-                        role: roleToApply,
-                        assign_role: assignRole
-                    })
+                    body: JSON.stringify({ permissions: selected, roles: selectedRoles, sync_roles: true, assign_role: assignRole })
                 });
 
-                const json = await res.json().catch(()=>({}));
+                console.debug('[perm] save response status', res.status, res.headers.get('content-type'));
 
-                if (res.ok && json.success) {
-                    // Optimistic UI: update role badges for the user row
-                    const updatedRoles = json.user_roles || [];
-                    updateRoleBadges(currentPermissionsUserId, updatedRoles);
+                const ctype = (res.headers.get('content-type') || '').toLowerCase();
+                if (res.status === 419) {
+                    alert('CSRF failure: 419. Ensure csrf token present in layout and request headers.');
+                    throw new Error('CSRF token mismatch (419)');
+                }
+                if (res.status === 401 || res.status === 302) {
+                    const txt = await res.text().catch(()=>null);
+                    console.error('[perm] unauthorized/redirect response', res.status, txt);
+                    if (confirm('Save failed due to auth/redirect. Submit via normal form as a fallback?')) {
+                        submitFallbackForm(currentPermissionsUserId, selected, selectedRoles, assignRole);
+                        return;
+                    }
+                    throw new Error('Unauthorized or redirected. Check cookies/session.');
+                }
 
+                if (ctype.indexOf('application/json') === -1) {
+                    const txt = await res.text().catch(()=>null);
+                    console.error('[perm] expected application/json but got', ctype, txt);
+                    if (confirm('Server returned a non-JSON response. Try submitting with normal form fallback?')) {
+                        submitFallbackForm(currentPermissionsUserId, selected, selectedRoles, assignRole);
+                        return;
+                    }
+                    throw new Error('Non-JSON response from server');
+                }
+
+                const json = await res.json().catch(()=>null);
+                console.debug('[perm] save json', json);
+
+                if ((res.ok && (json?.success === undefined || json.success)) || json?.success) {
+                    const returnedRoles = Array.isArray(json.user_roles) ? json.user_roles : (json.user_roles || []);
+                    const normalized = returnedRoles.map(r => typeof r === 'string' ? r : (r.name || r.role || 'unknown'));
+                    updateRoleBadges(currentPermissionsUserId, normalized);
                     closePermModal();
+                    console.info('[perm] saved successfully');
                 } else {
-                    alert(json.message || 'Failed to update permissions.');
+                    const message = json?.message || json?.error || 'Failed to update permissions';
+                    console.error('[perm] save failed', res.status, json);
+                    alert(message);
                 }
             } catch (err) {
-                console.error(err);
-                alert('An error occurred while updating permissions.');
+                console.error('[perm] save exception', err);
+                if (confirm('An error occurred while saving permissions. Try a normal form submit as a fallback?')) {
+                    submitFallbackForm(currentPermissionsUserId, selected, selectedRoles, assignRole);
+                } else {
+                    alert('Save failed. See console and network tab for details.');
+                }
             } finally {
                 savePermBtn.disabled = false;
             }
         });
     }
 
-    // Update role badges in the table row (optimistic)
     function updateRoleBadges(userId, roles) {
         try {
             const cell = document.querySelector('.user-roles-cell[data-user-id="'+userId+'"]');
@@ -572,9 +625,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             const htmlParts = roles.map(r => {
-                const safe = (r === 'admin') ? '<span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100">'+escapeHtml(r)+'</span>'
-                                            : '<span class="px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 dark:bg-gray-700 dark:text-gray-200">'+escapeHtml(r)+'</span>';
-                return safe;
+                const roleName = (typeof r === 'string') ? r : (r.name || r.role || '');
+                const safeName = escapeHtml(roleName);
+                if (roleName === 'admin') {
+                    return '<span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100">'+safeName+'</span>';
+                } else {
+                    return '<span class="px-2 py-1 text-xs font-medium rounded bg-blue-50 text-blue-700 dark:bg-gray-700 dark:text-gray-200">'+safeName+'</span>';
+                }
             });
             cell.innerHTML = '<div class="flex flex-wrap gap-2">' + htmlParts.join('') + '</div>';
         } catch (err) {
@@ -582,26 +639,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function escapeHtml(s) {
-        if (!s) return '';
-        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // close modal handlers & ESC
+    if (closePermBtn) closePermBtn.addEventListener('click', () => closePermModal());
+    if (cancelPermBtn) cancelPermBtn.addEventListener('click', (e) => { e.preventDefault(); closePermModal(); });
+    permModal.addEventListener('click', (e) => { if (e.target === permModal) closePermModal(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { if (!deleteModal.classList.contains('hidden')) closeDeleteModal(); if (!permModal.classList.contains('hidden')) closePermModal(); } });
+
+    function closePermModal() {
+        permModal.classList.add('hidden');
+        permModal.classList.remove('flex');
+        permModal.setAttribute('aria-hidden', 'true');
+        permContainer.innerHTML = '';
+        currentPermissionsUserId = null;
+        document.body.style.overflow = '';
     }
-
-    // close when clicking backdrop
-    permModal.addEventListener('click', function (e) {
-        if (e.target === permModal) closePermModal();
-    });
-
-    // close on ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            if (!deleteModal.classList.contains('hidden')) closeDeleteModal();
-            if (!permModal.classList.contains('hidden')) closePermModal();
-        }
-    });
-
-}); // end DOMContentLoaded
+});
 </script>
-@endpush
-
 @endsection
