@@ -12,7 +12,7 @@ class PenFactory extends Factory
     public function definition()
     {
         return [
-            'name' => $this->faker->word . ' Flock', // Appending 'Flock' for clarity
+            'name' => ucfirst($this->faker->unique()->words(3, true)) . ' Flock', // Appending 'Flock' for clarity
         ];
     }
 }

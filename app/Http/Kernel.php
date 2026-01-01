@@ -27,4 +27,5 @@ class Kernel extends HttpKernel
         'bindings'   => SubstituteBindings::class,
         'throttle'   => ThrottleRequests::class,
     ];
+    
 }

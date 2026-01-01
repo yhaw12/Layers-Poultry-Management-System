@@ -60,7 +60,7 @@ Route::middleware('auth')->group(function () {
 
     // Alerts & Notifications
     Route::get('alerts', [AlertController::class, 'index'])->name('alerts.index');
-    Route::get('notifications', [AlertController::class, 'view'])->name('notifications.index');
+    Route::get('notifications', [AlertController::class, 'index'])->name('notifications.index');
     Route::post('alerts/{alert}/read', [AlertController::class, 'read'])->name('alerts.read');
     Route::post('alerts/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismiss-all');
     Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])
@@ -126,7 +126,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:admin');
 
     Route::get('users/{user}/permissions', [AdminUserController::class, 'permissions'])->name('users.permissions');
-    Route::post('users/{user}/permissions', [AdminUserController::class, 'updatePermissions'])->name('users.permissions.update');
+    Route::post('users/{user}/permissions', [AdminUserController::class, 'update']);
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

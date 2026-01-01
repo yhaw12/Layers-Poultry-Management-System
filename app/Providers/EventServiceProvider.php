@@ -14,6 +14,7 @@ use App\Models\Egg;
 use App\Models\Feed;
 use App\Models\Sale;
 use App\Models\Customer;
+use App\Models\Supplier;
 use App\Observers\EmployeeObserver;
 use App\Observers\MedicineLogObserver;
 use App\Observers\PayrollObserver;
@@ -26,6 +27,7 @@ use App\Observers\EggObserver;
 use App\Observers\FeedObserver;
 use App\Observers\SaleObserver;
 use App\Observers\CustomerObserver;
+use App\Observers\UserActivityObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -60,6 +62,9 @@ class EventServiceProvider extends ServiceProvider
         Feed::observe(FeedObserver::class);
         Sale::observe(SaleObserver::class); 
         Customer::observe(CustomerObserver::class);
+
+
+    
     }
 
     /**

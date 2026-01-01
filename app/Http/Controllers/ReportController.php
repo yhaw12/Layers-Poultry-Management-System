@@ -10,6 +10,7 @@ use App\Models\Expense;
 use App\Models\Feed;
 use App\Models\Income;
 use App\Models\Payroll;
+use App\Models\Mortalities; // Ensure this model exists
 use App\Models\Transaction;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -22,7 +23,7 @@ use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Validation\ValidationException;
 
-use GuzzleHttp\Client; // optional; fallback provided if Guzzle not installed
+use GuzzleHttp\Client;
 
 class ReportController extends Controller
 {
@@ -31,7 +32,7 @@ class ReportController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
-        // seconds; configurable in config/reports.php or default 3 seconds (dev-friendly)
+        // Cache duration in seconds (default 5 minutes)
         $this->cacheTTL = config('reports.cache_ttl', 300);
     }
 
@@ -153,7 +154,7 @@ class ReportController extends Controller
             $startStr = $start->toDateTimeString();
             $endStr = $end->toDateTimeString();
 
-            // Always compute common KPIs (profit_loss structure) for consistency across views
+            // --- 1. Basic Financial KPIs (Always included) ---
             $totalIncome = Income::whereBetween('date', [$startStr, $endStr])
                 ->withoutTrashed()
                 ->sum('amount') ?? 0;
@@ -177,11 +178,12 @@ class ReportController extends Controller
                 'end' => $end->toDateString(),
             ];
 
-            // Compute avg_crates_per_day for KPI
+            // --- 2. Production KPI ---
             $eggTotal = $trends['eggProduction']->sum('value');
             $days = $start->diffInDays($end) + 1;
             $data['avg_crates_per_day'] = $days > 0 ? $eggTotal / $days : 0;
 
+            // --- 3. Report Specific Logic ---
             if ($reportType === 'weekly') {
                 $weekly = Egg::select(
                     DB::raw('YEAR(date_laid) as year'),
@@ -197,6 +199,7 @@ class ReportController extends Controller
 
                 $data['weekly'] = $weekly;
                 $data['eggProduction'] = $trends['eggProduction'];
+
             } elseif ($reportType === 'monthly') {
                 $monthly = Egg::select(
                     DB::raw('YEAR(date_laid) as year'),
@@ -212,13 +215,90 @@ class ReportController extends Controller
 
                 $data['monthly'] = $monthly;
                 $data['eggProduction'] = $trends['eggProduction'];
+
+            } elseif ($reportType === 'efficiency') {
+                // --- EFFICIENCY REPORT ---
+                
+                // A. Mortality Trend
+                $mortalityData = Mortalities::select(
+                        DB::raw('DATE(date) as date'), 
+                        DB::raw('SUM(quantity) as value')
+                    )
+                    ->whereBetween('date', [$startStr, $endStr])
+                    ->whereNull('deleted_at')
+                    ->groupBy(DB::raw('DATE(date)'))
+                    ->orderBy('date', 'asc')
+                    ->get();
+
+                // B. Expense Breakdown
+                $expenseBreakdown = Expense::select('category', DB::raw('SUM(amount) as total'))
+                    ->whereBetween('date', [$startStr, $endStr])
+                    ->withoutTrashed()
+                    ->groupBy('category')
+                    ->get();
+
+                // C. FCR (Proxy: Feed Purchases vs Egg Production)
+                $totalFeedKg = Feed::whereBetween('purchase_date', [$startStr, $endStr])
+                    ->withoutTrashed()
+                    ->sum('quantity'); 
+                
+                $totalCrates = Egg::whereBetween('date_laid', [$startStr, $endStr])
+                    ->withoutTrashed()
+                    ->sum('crates');
+
+                $fcr = ($totalCrates > 0) ? round($totalFeedKg / $totalCrates, 2) : 0;
+
+                // D. Medicine Costs
+                $medicineCost = Expense::where('category', 'Veterinary')
+                    ->whereBetween('date', [$startStr, $endStr])
+                    ->sum('amount');
+
+                // E. Egg Grade Analysis (Quality)
+                $eggGrades = Egg::select('egg_size', DB::raw('SUM(crates) as total'))
+                    ->whereBetween('date_laid', [$startStr, $endStr])
+                    ->whereNotNull('egg_size')
+                    ->withoutTrashed()
+                    ->groupBy('egg_size')
+                    ->get();
+
+                // F. Top 5 Customers
+                $topCustomers = Sale::select('customer_id', DB::raw('SUM(total_amount) as total_spent'))
+                    ->whereBetween('sale_date', [$startStr, $endStr])
+                    ->withoutTrashed()
+                    ->with('customer:id,name')
+                    ->groupBy('customer_id')
+                    ->orderByDesc('total_spent')
+                    ->limit(5)
+                    ->get()
+                    ->map(function ($sale) {
+                        return [
+                            'name' => $sale->customer->name ?? 'Unknown',
+                            'total' => $sale->total_spent
+                        ];
+                    });
+
+                $data['efficiency'] = [
+                    'mortality_trend' => $mortalityData,
+                    'expense_breakdown' => $expenseBreakdown,
+                    'fcr' => $fcr,
+                    'total_feed' => $totalFeedKg,
+                    'total_crates' => $totalCrates,
+                    'medicine_cost' => $medicineCost,
+                    'egg_grades' => $eggGrades,
+                    'top_customers' => $topCustomers
+                ];
+                
+                // Add trends for generic charts
+                $data['incomeData'] = $trends['incomeData'];
+                $data['expenseData'] = $trends['expenseData'];
+
             } elseif ($reportType === 'custom') {
                 try {
                     $request->validate([
                         'start_date' => 'required|date',
                         'end_date' => 'required|date|after_or_equal:start_date',
                         'metrics' => 'nullable|array',
-                        'metrics.*' => 'in:eggs,sales,expenses,payrolls,transactions,feed,income',
+                        'metrics.*' => 'in:eggs,sales,expenses,payrolls,transactions,inventory',
                     ]);
                 } catch (ValidationException $ve) {
                     Log::warning('ReportController: custom validation failed', ['errors' => $ve->errors()]);
@@ -233,8 +313,6 @@ class ReportController extends Controller
                         ->select('date_laid', 'crates')
                         ->orderBy('date_laid')
                         ->get();
-                } else {
-                    $data['eggs'] = collect();
                 }
 
                 if (in_array('sales', $metrics, true)) {
@@ -244,8 +322,6 @@ class ReportController extends Controller
                         ->select('sale_date', 'customer_id', 'saleable_id', 'saleable_type', 'quantity', 'total_amount')
                         ->orderBy('sale_date')
                         ->get();
-                } else {
-                    $data['sales'] = collect();
                 }
 
                 if (in_array('expenses', $metrics, true)) {
@@ -254,8 +330,6 @@ class ReportController extends Controller
                         ->select('date', 'description', 'amount')
                         ->orderBy('date')
                         ->get();
-                } else {
-                    $data['expenses'] = collect();
                 }
 
                 if (in_array('payrolls', $metrics, true)) {
@@ -265,8 +339,6 @@ class ReportController extends Controller
                         ->select('pay_date', 'employee_id', 'base_salary', 'bonus', 'deductions', 'net_pay', 'status')
                         ->orderBy('pay_date')
                         ->get();
-                } else {
-                    $data['payrolls'] = collect();
                 }
 
                 if (in_array('transactions', $metrics, true)) {
@@ -276,15 +348,26 @@ class ReportController extends Controller
                         ->select('date', 'type', 'amount', 'status', 'description', 'reference_id', 'reference_type')
                         ->orderBy('date')
                         ->get();
-                } else {
-                    $data['transactions'] = collect();
+                }
+
+                if (in_array('inventory', $metrics, true)) {
+                    $feedValue = Feed::whereNull('deleted_at')->sum('cost') ?? 0;
+                    $birdValue = 0; // Placeholder until Bird model has cost tracking
+                    
+                    $data['valuation'] = [
+                        'feed_value' => $feedValue,
+                        'bird_value' => $birdValue,
+                        'total_stock_value' => $feedValue + $birdValue
+                    ];
                 }
 
                 $data['eggProduction'] = $trends['eggProduction'];
                 $data['incomeData'] = $trends['incomeData'];
                 $data['expenseData'] = $trends['expenseData'];
                 $data['salesComparison'] = $trends['salesComparison'];
+
             } elseif ($reportType === 'profitability') {
+                // Profitability Logic
                 $totalExpenses = Expense::whereBetween('date', [$start->toDateTimeString(), $end->toDateTimeString()])
                     ->withoutTrashed()
                     ->sum('amount') ?? 0;
@@ -311,7 +394,6 @@ class ReportController extends Controller
                         ->whereNull('sales.deleted_at');
                 })
                 ->leftJoin('feed', function ($join) use ($start, $end) {
-                    // join to feed table (your migrations used table name 'feed')
                     $join->on('birds.id', '=', 'feed.bird_id')
                         ->whereBetween('feed.purchase_date', [$start->toDateTimeString(), $end->toDateTimeString()])
                         ->whereNull('feed.deleted_at');
@@ -333,8 +415,7 @@ class ReportController extends Controller
                 $data['profitability'] = $profitability;
                 $data['incomeData'] = $trends['incomeData'];
                 $data['expenseData'] = $trends['expenseData'];
-            } elseif ($reportType === 'profit-loss') {
-                // Already computed above
+
             } elseif ($reportType === 'forecast') {
                 $pastIncome = Income::where('date', '>=', now()->subMonths(6))
                     ->withoutTrashed()
@@ -358,7 +439,7 @@ class ReportController extends Controller
                 ];
             }
 
-            // defaults to ensure keys exist
+            // Defaults to ensure keys exist in view/json
             $defaults = [
                 'weekly' => collect(),
                 'monthly' => collect(),
@@ -368,6 +449,7 @@ class ReportController extends Controller
                 'payrolls' => collect(),
                 'transactions' => collect(),
                 'profitability' => collect(),
+                'efficiency' => [],
                 'forecast' => [],
                 'eggProduction' => $trends['eggProduction'],
                 'feedConsumption' => $trends['feedConsumption'],
@@ -459,9 +541,6 @@ class ReportController extends Controller
         }
     }
 
-    /**
-     * data endpoint that returns JSON with consistent shape
-     */
     public function data(Request $request)
     {
         try {
@@ -521,17 +600,11 @@ class ReportController extends Controller
 
     /**
      * Generate chart images (base64 data URIs) for the PDF using QuickChart.io
-     *
-     * Note: QuickChart requires outbound HTTP access. This method attempts to use Guzzle if available,
-     * and falls back to file_get_contents(). If neither works (e.g. no connectivity), it returns [].
-     *
-     * Returned array keys: e.g. ['eggProduction' => ['title' => 'Egg Production', 'image' => 'data:image/png;base64,...'], ...]
      */
     protected function generateChartImages(string $type, array $data): array
     {
         $images = [];
 
-        // helper to build a simple Chart.js config
         $makeConfig = function (array $labels, array $values, string $title = '') {
             return [
                 'type' => 'line',
@@ -558,9 +631,8 @@ class ReportController extends Controller
             ];
         };
 
-        // Map some common data sources to charts
         try {
-            // eggProduction
+            // Standard Charts
             if (!empty($data['eggProduction']) && $data['eggProduction'] instanceof Collection) {
                 $labels = $data['eggProduction']->pluck('date')->map(fn($d)=> (string)$d)->values()->all();
                 $values = $data['eggProduction']->pluck('value')->map(fn($v)=> (float)$v)->values()->all();
@@ -569,7 +641,6 @@ class ReportController extends Controller
                 if ($img) $images['eggProduction'] = ['title' => 'Egg Production', 'image' => $img];
             }
 
-            // incomeData
             if (!empty($data['incomeData']) && $data['incomeData'] instanceof Collection) {
                 $labels = $data['incomeData']->pluck('date')->map(fn($d)=> (string)$d)->values()->all();
                 $values = $data['incomeData']->pluck('value')->map(fn($v)=> (float)$v)->values()->all();
@@ -578,7 +649,6 @@ class ReportController extends Controller
                 if ($img) $images['income'] = ['title' => 'Income', 'image' => $img];
             }
 
-            // expenseData
             if (!empty($data['expenseData']) && $data['expenseData'] instanceof Collection) {
                 $labels = $data['expenseData']->pluck('date')->map(fn($d)=> (string)$d)->values()->all();
                 $values = $data['expenseData']->pluck('value')->map(fn($v)=> (float)$v)->values()->all();
@@ -587,29 +657,70 @@ class ReportController extends Controller
                 if ($img) $images['expenses'] = ['title' => 'Expenses', 'image' => $img];
             }
 
-            // salesComparison: has egg_sales and bird_sales per date
-            if (!empty($data['salesComparison']) && $data['salesComparison'] instanceof Collection) {
-                $labels = $data['salesComparison']->pluck('date')->map(fn($d)=> (string)$d)->values()->all();
-                $eggSales = $data['salesComparison']->pluck('egg_sales')->map(fn($v)=> (float)$v)->values()->all();
-                $birdSales = $data['salesComparison']->pluck('bird_sales')->map(fn($v)=> (float)$v)->values()->all();
+            // Efficiency Charts (Mortality, Breakdown, Egg Grades)
+            if (!empty($data['efficiency']['mortality_trend']) && $data['efficiency']['mortality_trend'] instanceof Collection) {
+                $labels = $data['efficiency']['mortality_trend']->pluck('date')->map(fn($d) => (string)$d)->all();
+                $values = $data['efficiency']['mortality_trend']->pluck('value')->all();
+                
+                $conf = $makeConfig($labels, $values, 'Mortality Trend');
+                $conf['data']['datasets'][0]['borderColor'] = 'red';
+                $conf['data']['datasets'][0]['backgroundColor'] = 'rgba(255, 99, 132, 0.2)';
+                
+                $img = $this->quickChartFetch($conf);
+                if ($img) $images['mortality'] = ['title' => 'Mortality Trend', 'image' => $img];
+            }
 
-                $conf = [
-                    'type' => 'bar',
+            if (!empty($data['efficiency']['expense_breakdown']) && $data['efficiency']['expense_breakdown'] instanceof Collection) {
+                $labels = $data['efficiency']['expense_breakdown']->pluck('category')->all();
+                $values = $data['efficiency']['expense_breakdown']->pluck('total')->all();
+
+                $pieConfig = [
+                    'type' => 'pie',
                     'data' => [
                         'labels' => $labels,
-                        'datasets' => [
-                            ['label' => 'Egg sales', 'data' => $eggSales],
-                            ['label' => 'Bird sales', 'data' => $birdSales]
-                        ]
+                        'datasets' => [[
+                            'data' => $values,
+                            'backgroundColor' => ['#4CAF50', '#FFC107', '#F44336', '#2196F3', '#9C27B0']
+                        ]]
                     ],
                     'options' => [
-                        'plugins' => ['title' => ['display' => true, 'text' => 'Sales Comparison']],
-                        'scales' => ['y' => ['beginAtZero' => true]]
+                        'plugins' => [
+                            'title' => ['display' => true, 'text' => 'Expense Breakdown']
+                        ]
                     ]
                 ];
-                $img = $this->quickChartFetch($conf);
-                if ($img) $images['salesComparison'] = ['title' => 'Sales Comparison', 'image' => $img];
+
+                $img = $this->quickChartFetch($pieConfig);
+                if ($img) $images['expense_breakdown'] = ['title' => 'Expenses by Category', 'image' => $img];
             }
+
+            if (!empty($data['efficiency']['egg_grades']) && $data['efficiency']['egg_grades'] instanceof Collection) {
+                $labels = $data['efficiency']['egg_grades']->pluck('egg_size')->map(fn($s) => ucfirst($s ?? 'Unsorted'))->all();
+                $values = $data['efficiency']['egg_grades']->pluck('total')->all();
+
+                if (count($values) > 0) {
+                    $pieConfig = [
+                        'type' => 'doughnut',
+                        'data' => [
+                            'labels' => $labels,
+                            'datasets' => [[
+                                'data' => $values,
+                                'backgroundColor' => ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'] 
+                            ]]
+                        ],
+                        'options' => [
+                            'plugins' => [
+                                'title' => ['display' => true, 'text' => 'Production by Egg Size'],
+                                'legend' => ['position' => 'right']
+                            ]
+                        ]
+                    ];
+
+                    $img = $this->quickChartFetch($pieConfig);
+                    if ($img) $images['egg_grades'] = ['title' => 'Egg Grades', 'image' => $img];
+                }
+            }
+
         } catch (\Exception $e) {
             Log::warning('generateChartImages failed partially', ['err' => $e->getMessage()]);
         }
@@ -619,19 +730,14 @@ class ReportController extends Controller
 
     /**
      * Helper that given a Chart.js config array will attempt to fetch a PNG image from QuickChart
-     * and return a data:image/png;base64,... string. Returns null on failure.
-     *
-     * This implementation first attempts to use Guzzle (if installed), otherwise falls back to file_get_contents.
      */
     protected function quickChartFetch(array $chartConfig, int $width = 800, int $height = 400): ?string
     {
         try {
-            // encode config into query parameter
             $chartJson = json_encode($chartConfig, JSON_UNESCAPED_SLASHES);
             $encoded = rawurlencode($chartJson);
             $url = "https://quickchart.io/chart?width={$width}&height={$height}&format=png&chart={$encoded}";
 
-            // Prefer Guzzle if available
             if (class_exists(Client::class)) {
                 $client = new Client(['timeout' => 10.0]);
                 $resp = $client->get($url);
@@ -642,7 +748,6 @@ class ReportController extends Controller
                 return null;
             }
 
-            // fallback - allow file_get_contents if allow_url_fopen enabled
             if (ini_get('allow_url_fopen')) {
                 $body = @file_get_contents($url);
                 if ($body !== false) {
@@ -650,7 +755,6 @@ class ReportController extends Controller
                 }
             }
 
-            // if both fail, log and return null
             Log::warning('quickChartFetch: HTTP fetch not possible (no Guzzle and allow_url_fopen disabled)');
             return null;
         } catch (\Throwable $e) {
@@ -700,6 +804,13 @@ class ReportController extends Controller
                             $rows[] = ['year' => $r->year, 'month' => $r->month_num, 'total' => $r->total];
                         }
                         break;
+                    case 'efficiency':
+                        if (isset($data['efficiency']['expense_breakdown'])) {
+                            foreach ($data['efficiency']['expense_breakdown'] as $ex) {
+                                $rows[] = ['Category' => $ex->category, 'Total' => $ex->total];
+                            }
+                        }
+                        break;
                     case 'custom':
                         $metrics = $request->input('metrics', []);
                         if (!empty($metrics)) {
@@ -720,7 +831,9 @@ class ReportController extends Controller
                             fputcsv($fp, $row);
                         }
                     } else {
-                        fputcsv($fp, array_keys((array)$rows[0]));
+                        if (isset($rows[0])) {
+                            fputcsv($fp, array_keys((array)$rows[0]));
+                        }
                         foreach ($rows as $r) fputcsv($fp, (array)$r);
                     }
                     rewind($fp);
@@ -736,7 +849,6 @@ class ReportController extends Controller
             }
 
             if ($format === 'pdf') {
-                // render a PDF (blade reports.index_pdf should exist)
                 $pdf = Pdf::loadView('reports.index_pdf', compact('type', 'data', 'columns', 'includeChart', 'includeSummary'));
                 return $pdf->download("report_{$type}_" . now()->format('Ymd') . '.pdf');
             }

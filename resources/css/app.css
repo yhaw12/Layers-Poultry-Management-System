@@ -6,7 +6,7 @@
 
 
 .container-box {
-    @apply bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700;
+    @apply bg-[#f3efef] dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700;
 }
 .list-item {
     @apply text-gray-700 dark:text-gray-300 text-sm sm:text-base;

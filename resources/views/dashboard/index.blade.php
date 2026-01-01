@@ -15,12 +15,12 @@
             <form method="GET" class="flex flex-wrap items-end gap-4">
                 <div class="flex-1 min-w-[150px]">
                     <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
-                    <input type="date" id="start_date" name="start_date" value="{{ $start ?? now()->startOfMonth()->format('Y-m-d') }}" class="w-full border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200" aria-label="Select start date">
+                    <input type="date" id="start_date" name="start_date" value="{{ $start ?? now()->startOfMonth()->format('d-m-Y') }}" class="w-full border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200" aria-label="Select start date">
                 </div>
 
                 <div class="flex-1 min-w-[150px]">
                     <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
-                    <input type="date" id="end_date" name="end_date" value="{{ $end ?? now()->endOfMonth()->format('Y-m-d') }}" class="w-full border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200" aria-label="Select end date">
+                    <input type="date" id="end_date" name="end_date" value="{{ $end ?? now()->endOfMonth()->format('d-m-Y') }}" class="w-full border rounded-lg p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 transition duration-200" aria-label="Select end date">
                 </div>
 
                 <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 transition duration-200" aria-label="Apply date filter">Filter</button>
@@ -302,7 +302,7 @@
                             </svg>
                             Weather
                         </h2>
-                        <div id="weather-icon" aria-hidden="true"></div>
+                        <div id="weather-icon" aria-hidden="true" class="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
                     </div>
 
                     <div id="weather-widget" class="space-y-1">
@@ -995,7 +995,7 @@
         </div>
     </section>
 </div>
-@endsection
+
 
 
 <script>
@@ -1043,7 +1043,7 @@ function normalizeSeries(raw) {
 
 /* ---------- Embed server-provided variables (fallbacks included) ---------- */
 const RAW = {
-  eggProduction: @json($eggTrend ?? $eggProduction ?? $eggProduction ?? []),
+  eggProduction: @json($eggTrend ?? []),
   feedConsumption: @json($feedTrend ?? $feedConsumption ?? []),
   salesData: @json($salesTrend ?? $salesData ?? []),
   incomeData: @json($incomeTrend ?? $incomeData ?? []),
@@ -1403,3 +1403,5 @@ document.addEventListener('DOMContentLoaded', () => {
     iconEl.innerHTML = iconSvg;
 });
 </script>
+
+@endsection

@@ -136,15 +136,24 @@ class DashboardController extends Controller
 
                 // monthly income last 6 months
                 $monthlyIncome = [];
+                $sixMonthsAgo = now()->subMonths(6)->startOfMonth();
+
+                $monthlyIncomeData = Income::selectRaw("DATE_FORMAT(date, '%Y-%m') as month, SUM(amount) as total")
+                    ->where('date', '>=', $sixMonthsAgo)
+                    ->whereNull('deleted_at')
+                    ->groupBy('month')
+                    ->orderBy('month', 'desc')
+                    ->pluck('total', 'month');
+
+                // Fill in missing months with 0 if necessary
+                $monthlyIncome = [];
                 for ($i = 0; $i < 6; $i++) {
-                    $month = now()->subMonths($i);
-                    $monthlyIncome[$month->format('Y-m')] = Income::whereMonth('date', $month->month)->whereYear('date', $month->year)->whereNull('deleted_at')->sum('amount') ?? 0;
+                    $key = now()->subMonths($i)->format('Y-m');
+                    $monthlyIncome[$key] = $monthlyIncomeData[$key] ?? 0;
                 }
 
                 // chart trends
-                $eggProduction = Egg::select(DB::raw('DATE(date_laid) as date'), DB::raw('SUM(crates) as value'))
-                    ->whereBetween('date_laid', [$start, $end])->whereNull('deleted_at')->groupBy(DB::raw('DATE(date_laid)'))->orderBy('date', 'asc')->limit(50)->get();
-
+                $eggProduction = Egg::selectRaw("DATE_FORMAT(date_laid, '%Y-%m-%d') as date, SUM(crates) as value")->groupBy('date')->get();
                 $feedConsumption = Feed::select(DB::raw('DATE(purchase_date) as date'), DB::raw('SUM(quantity) as value'))
                     ->whereBetween('purchase_date', [$start, $end])->whereNull('deleted_at')->groupBy(DB::raw('DATE(purchase_date)'))->orderBy('date', 'asc')->limit(50)->get();
 

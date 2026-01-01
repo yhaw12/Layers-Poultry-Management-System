@@ -31,7 +31,7 @@ class BirdFactory extends Factory
             'age' => $this->faker->numberBetween(0, 52),
             'entry_date' => $entryDate,
             'vaccination_status' => $this->faker->optional(0.7)->boolean(),
-            'housing_location' => $this->faker->optional(0.8)->randomElement(['Barn A', 'Coop B', 'Shed C', 'Pen D']),
+            // 'housing_location' => $this->faker->optional(0.8)->randomElement(['Barn A', 'Coop B', 'Shed C', 'Pen D']),
             'stage' => $this->faker->randomElement(['chick', 'juvenile', 'adult']),
             'synced_at' => $this->faker->dateTimeBetween('-1 year', 'now'),
             'created_at' => now(),

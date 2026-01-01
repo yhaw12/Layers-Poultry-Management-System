@@ -1,157 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <title>Report - {{ strtoupper($type ?? 'report') }}</title>
+    <meta charset="utf-8">
+    <title>Executive Report - {{ ucfirst($type) }}</title>
     <style>
-        body { font-family: DejaVu Sans, Arial, sans-serif; color: #222; font-size: 12px; }
-        header { margin-bottom: 12px; }
-        h1 { font-size: 18px; margin: 0 0 8px 0; }
-        .meta { font-size: 11px; color: #555; margin-bottom: 16px; }
-        .summary { margin-bottom: 14px; }
-        .summary .item { margin: 4px 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th, td { border: 1px solid #dcdcdc; padding: 6px 8px; text-align: left; font-size: 11px; }
-        th { background: #f4f4f4; }
-        .chart { margin: 10px 0; text-align: center; page-break-inside: avoid; }
-        .chart img { max-width: 100%; height: auto; }
-        .section { margin-top: 18px; page-break-inside: avoid; }
-        .muted { color: #666; font-size: 11px; }
+        @page { margin: 0px; }
+        body {
+            font-family: 'DejaVu Sans', sans-serif; /* Best for currency symbols like ₵ */
+            font-size: 12px;
+            color: #333;
+            line-height: 1.4;
+            margin: 40px;
+        }
+        /* Header Section */
+        .header-bg {
+            position: absolute; top: 0; left: 0; right: 0; height: 120px;
+            background-color: #2c3e50; z-index: -1;
+        }
+        .header-content { color: white; padding-top: 30px; margin-bottom: 50px; }
+        .company-name { font-size: 24px; font-weight: bold; text-transform: uppercase; }
+        .report-title { font-size: 16px; margin-top: 5px; opacity: 0.9; }
+        
+        /* Meta Data */
+        .meta-table { width: 100%; margin-bottom: 20px; border: none; }
+        .meta-table td { padding: 5px; border: none; vertical-align: top; }
+        .meta-label { font-weight: bold; color: #555; width: 100px; }
+
+        /* KPI Cards (Simulated in PDF) */
+        .summary-box {
+            background-color: #f8f9fa; border: 1px solid #e9ecef;
+            padding: 10px; margin-bottom: 20px; border-radius: 4px;
+        }
+        .summary-header { font-size: 14px; font-weight: bold; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-bottom: 10px; color: #2c3e50; }
+        .kpi-row { display: table; width: 100%; }
+        .kpi-item { display: table-cell; width: 33%; }
+        .kpi-val { font-size: 14px; font-weight: bold; color: #2c3e50; }
+        .kpi-label { font-size: 10px; text-transform: uppercase; color: #777; }
+
+        /* Data Tables */
+        table.data { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        table.data th { background-color: #2c3e50; color: white; padding: 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
+        table.data td { border-bottom: 1px solid #eee; padding: 8px; font-size: 11px; }
+        table.data tr:nth-child(even) { background-color: #f9f9f9; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        
+        /* Charts */
+        .chart-container { text-align: center; margin: 20px 0; page-break-inside: avoid; }
+        .chart-container img { max-width: 100%; border: 1px solid #ddd; padding: 5px; }
+
+        /* Footer */
+        footer { position: fixed; bottom: -30px; left: 0px; right: 0px; height: 50px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Report: {{ ucfirst($type ?? 'report') }}</h1>
-        <div class="meta">
-            Generated: {{ now()->format('Y-m-d H:i') }}
-            @if(isset($data['profit_loss']['start']))
-                — Period: {{ $data['profit_loss']['start'] }} to {{ $data['profit_loss']['end'] }}
-            @endif
-        </div>
-    </header>
-
-    {{-- Optional KPI Summary --}}
-    @if(!empty($includeSummary) || !empty($data['profit_loss']))
-        <div class="summary section">
-            <h2 style="font-size:14px;margin-bottom:6px;">Summary</h2>
-            <div class="item"><strong>Total Income:</strong> ₵ {{ number_format($data['profit_loss']['total_income'] ?? 0, 2) }}</div>
-            <div class="item"><strong>Total Expenses:</strong> ₵ {{ number_format(($data['profit_loss']['total_expenses'] ?? 0) + ($data['profit_loss']['total_payroll'] ?? 0), 2) }}</div>
-            <div class="item"><strong>Profit / Loss:</strong> ₵ {{ number_format($data['profit_loss']['profit_loss'] ?? 0, 2) }}</div>
-        </div>
-    @endif
-
-    {{-- Charts (images are base64 data URIs) --}}
-    @if(!empty($includeChart) && !empty($data['chart_images']))
-        <div class="section">
-            <h2 style="font-size:14px;margin-bottom:6px;">Charts</h2>
-            @foreach($data['chart_images'] as $ci)
-                <div class="chart">
-                    <div style="font-weight:600;margin-bottom:6px;">{{ $ci['title'] ?? 'Chart' }}</div>
-                    <img src="{{ $ci['image'] }}" alt="{{ $ci['title'] ?? 'chart' }}" />
-                </div>
-            @endforeach
-        </div>
-    @endif
-
-    {{-- Small tables depending on type --}}
-    <div class="section">
-        @if($type === 'weekly' && !empty($data['weekly']))
-            <h2 style="font-size:14px;margin-bottom:6px;">Weekly Egg Production</h2>
-            <table>
-                <thead>
-                    <tr><th>Year</th><th>Week</th><th>Total Crates</th></tr>
-                </thead>
-                <tbody>
-                    @foreach($data['weekly'] as $r)
-                        <tr>
-                            <td>{{ $r->year }}</td>
-                            <td>{{ $r->week }}</td>
-                            <td>{{ number_format($r->total, 2) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
-
-        @if($type === 'monthly' && !empty($data['monthly']))
-            <h2 style="font-size:14px;margin-top:12px;margin-bottom:6px;">Monthly Egg Production</h2>
-            <table>
-                <thead><tr><th>Year</th><th>Month</th><th>Total Crates</th></tr></thead>
-                <tbody>
-                @foreach($data['monthly'] as $r)
-                    <tr>
-                        <td>{{ $r->year }}</td>
-                        <td>{{ \Carbon\Carbon::createFromDate($r->year, $r->month_num, 1)->format('F Y') }}</td>
-                        <td>{{ number_format($r->total, 2) }}</td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-        @endif
-
-        @if($type === 'custom')
-            <h2 style="font-size:14px;margin-top:12px;margin-bottom:6px;">Custom Metrics</h2>
-
-            @if(!empty($data['eggs']) && $data['eggs']->count())
-                <h3 style="font-size:12px;margin-bottom:4px;">Eggs</h3>
-                <table>
-                    <thead><tr><th>Date Laid</th><th>Crates</th></tr></thead>
-                    <tbody>
-                        @foreach($data['eggs'] as $e)
-                            <tr><td>{{ $e->date_laid }}</td><td>{{ number_format($e->crates, 2) }}</td></tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @endif
-
-            @if(!empty($data['sales']) && $data['sales']->count())
-                <h3 style="font-size:12px;margin-top:8px;margin-bottom:4px;">Sales</h3>
-                <table>
-                    <thead><tr><th>Date</th><th>Customer</th><th>Product</th><th>Qty</th><th>Total</th></tr></thead>
-                    <tbody>
-                        @foreach($data['sales'] as $s)
-                            <tr>
-                                <td>{{ $s->sale_date }}</td>
-                                <td>{{ optional($s->customer)->name ?? 'N/A' }}</td>
-                                <td>
-                                    @if($s->saleable_type === \App\Models\Bird::class)
-                                        {{ optional($s->saleable)->breed ?? 'Bird' }}
-                                    @else
-                                        Egg Batch #{{ $s->saleable_id }}
-                                    @endif
-                                </td>
-                                <td>{{ $s->quantity }}</td>
-                                <td>₵ {{ number_format($s->total_amount, 2) }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @endif
-        @endif
-
-        @if($type === 'profitability' && !empty($data['profitability']))
-            <h2 style="font-size:14px;margin-top:12px;margin-bottom:6px;">Profitability by Bird</h2>
-            <table>
-                <thead><tr><th>ID</th><th>Breed</th><th>Type</th><th>Sales</th><th>Feed Cost</th><th>Op Cost</th><th>Profit</th></tr></thead>
-                <tbody>
-                    @foreach($data['profitability'] as $r)
-                        <tr>
-                            <td>{{ $r->bird_id }}</td>
-                            <td>{{ $r->breed }}</td>
-                            <td>{{ $r->type }}</td>
-                            <td>₵ {{ number_format($r->sales, 2) }}</td>
-                            <td>₵ {{ number_format($r->feed_cost, 2) }}</td>
-                            <td>₵ {{ number_format($r->operational_cost ?? 0, 2) }}</td>
-                            <td>₵ {{ number_format($r->profit, 2) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
+    <div class="header-bg"></div>
+    <div class="header-content">
+        <div class="company-name">{{ config('app.name', 'POULTRY TRACKER') }}</div>
+        <div class="report-title">{{ ucfirst($type) }} Performance Report</div>
     </div>
 
-    <footer style="position:fixed; bottom:8px; left:16px; right:16px; text-align:center; color:#888; font-size:10px;">
-        Generated by Farm App — {{ now()->format('Y') }}
+    <table class="meta-table">
+        <tr>
+            <td>
+                <div class="meta-label">Generated:</div> {{ now()->format('d M Y, h:i A') }}<br>
+                <div class="meta-label">Generated By:</div> {{ auth()->user()->name ?? 'System' }}
+            </td>
+            <td class="text-right">
+                @if(isset($data['profit_loss']['start']))
+                    <div class="meta-label">Period Start:</div> {{ \Carbon\Carbon::parse($data['profit_loss']['start'])->format('d M Y') }}<br>
+                    <div class="meta-label">Period End:</div> {{ \Carbon\Carbon::parse($data['profit_loss']['end'])->format('d M Y') }}
+                @endif
+            </td>
+        </tr>
+    </table>
+
+    {{-- Executive Summary --}}
+    @if(!empty($includeSummary) || !empty($data['profit_loss']))
+        <div class="summary-box">
+            <div class="summary-header">Financial Summary</div>
+            <div class="kpi-row">
+                <div class="kpi-item">
+                    <div class="kpi-label">Total Revenue</div>
+                    <div class="kpi-val" style="color: green;">₵ {{ number_format($data['profit_loss']['total_income'] ?? 0, 2) }}</div>
+                </div>
+                <div class="kpi-item">
+                    <div class="kpi-label">Total Expenses</div>
+                    <div class="kpi-val" style="color: #c0392b;">₵ {{ number_format(($data['profit_loss']['total_expenses'] ?? 0) + ($data['profit_loss']['total_payroll'] ?? 0), 2) }}</div>
+                </div>
+                <div class="kpi-item text-right">
+                    <div class="kpi-label">Net Profit</div>
+                    <div class="kpi-val">₵ {{ number_format($data['profit_loss']['profit_loss'] ?? 0, 2) }}</div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Charts Section --}}
+    @if(!empty($includeChart) && !empty($data['chart_images']))
+        @foreach($data['chart_images'] as $ci)
+            <div class="chart-container">
+                <h4>{{ $ci['title'] }}</h4>
+                <img src="{{ $ci['image'] }}" />
+            </div>
+        @endforeach
+    @endif
+
+    {{-- Data Sections --}}
+    
+    {{-- Weekly --}}
+    @if($type === 'weekly' && !empty($data['weekly']))
+        <h3>Weekly Production Data</h3>
+        <table class="data">
+            <thead><tr><th>Year</th><th>Week Number</th><th class="text-right">Total Crates</th><th class="text-right">Daily Avg</th></tr></thead>
+            <tbody>
+                @foreach($data['weekly'] as $r)
+                    <tr>
+                        <td>{{ $r->year }}</td>
+                        <td>Week {{ $r->week }}</td>
+                        <td class="text-right">{{ number_format($r->total, 2) }}</td>
+                        <td class="text-right">{{ number_format($r->total / 7, 2) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    {{-- Profitability --}}
+    @if($type === 'profitability' && !empty($data['profitability']))
+        <h3>Bird Batch Profitability</h3>
+        <table class="data">
+            <thead>
+                <tr>
+                    <th>Breed/Batch</th>
+                    <th>Type</th>
+                    <th class="text-right">Sales</th>
+                    <th class="text-right">Feed Cost</th>
+                    <th class="text-right">Ops Cost</th>
+                    <th class="text-right">Net Profit</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($data['profitability'] as $r)
+                    <tr>
+                        <td>{{ $r->breed }}</td>
+                        <td>{{ ucfirst($r->type) }}</td>
+                        <td class="text-right">₵ {{ number_format($r->sales, 2) }}</td>
+                        <td class="text-right">₵ {{ number_format($r->feed_cost, 2) }}</td>
+                        <td class="text-right">₵ {{ number_format($r->operational_cost ?? 0, 2) }}</td>
+                        <td class="text-right" style="font-weight:bold; color: {{ $r->profit >= 0 ? 'green' : 'red' }}">
+                            ₵ {{ number_format($r->profit, 2) }}
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    {{-- Custom Analytics --}}
+    @if($type === 'custom')
+        @if(!empty($data['sales']) && count($data['sales']) > 0)
+            <h3>Sales History</h3>
+            <table class="data">
+                <thead><tr><th>Date</th><th>Customer</th><th>Product</th><th class="text-right">Qty</th><th class="text-right">Total</th></tr></thead>
+                <tbody>
+                    @foreach($data['sales'] as $s)
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($s->sale_date)->format('d/m/Y') }}</td>
+                            <td>{{ optional($s->customer)->name ?? 'Unknown' }}</td>
+                            <td>{{ $s->saleable_type === \App\Models\Bird::class ? 'Bird' : 'Egg' }}</td>
+                            <td class="text-right">{{ $s->quantity }}</td>
+                            <td class="text-right">₵ {{ number_format($s->total_amount, 2) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    @endif
+
+    <footer>
+        Confidential Report | Generated by Poultry Tracker System | Page <span class="page-number"></span>
     </footer>
 </body>
 </html>

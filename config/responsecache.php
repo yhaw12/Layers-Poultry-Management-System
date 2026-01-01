@@ -95,4 +95,12 @@ return [
      * This class is responsible for serializing responses.
      */
      'serializer' => \Spatie\ResponseCache\Serializers\DefaultSerializer::class,
+
+     // config/responsecache.php
+
+'do_not_cache_routes' => [
+    'users/*/permissions', // <--- ADD THIS LINE
+    'users/*/permissions/*',
+    'api/*',
+],
 ];
