@@ -60,7 +60,7 @@ Route::middleware('auth')->group(function () {
 
     // Alerts & Notifications
     Route::get('alerts', [AlertController::class, 'index'])->name('alerts.index');
-    Route::get('notifications', [AlertController::class, 'index'])->name('notifications.index');
+    Route::get('notifications', [AlertController::class, 'view'])->name('notifications.index');
     Route::post('alerts/{alert}/read', [AlertController::class, 'read'])->name('alerts.read');
     Route::post('alerts/dismiss-all', [AlertController::class, 'dismissAll'])->name('alerts.dismiss-all');
     Route::post('alerts/custom/create', [AlertController::class, 'createCustom'])
@@ -198,9 +198,12 @@ Route::middleware(['auth'])->prefix('sales')->name('sales.')->group(function () 
 
     Route::get('/{sale}/invoice', [SalesController::class, 'invoice'])->name('invoice');
     Route::get('/{sale}/invoice/preview', [SalesController::class, 'invoicePreview'])->name('invoice.preview');
-    Route::post('/{sale}/record-payment', [SalesController::class, 'recordPayment'])->name('recordPayment');
-
     Route::get('/pending-json', [SalesController::class, 'pendingJson'])->name('pendingJson');
+    Route::post('/{sale}/record-payment', [SalesController::class, 'recordPayment'])->name('recordPayment');
+    Route::post('/sales/{sale}/record-payment', [SalesController::class, 'recordPayment'])
+    ->name('sales.recordPayment');
+
+   
 });
 
 /*

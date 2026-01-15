@@ -51,13 +51,27 @@ class Egg extends Model
 
     // Nicely formatted display name for selects
     public function displayName(): string
-    {
-        // $pen = optional($this->pen)->name;
-        $date = optional($this->date_laid)->format('Y-m-d');
-        $extra = $this->additional_eggs ? "+{$this->additional_eggs} eggs" : null;
-        $parts = ["Batch #{$this->id}", $date, "{$this->crates} crates"];
-        // if ($pen) $parts[] = $pen;
-        if ($extra) $parts[] = $extra;
-        return implode(' — ', array_filter($parts));
+{
+    $parts = [];
+
+    // 1. Identification
+    $parts[] = "B-{$this->id}";
+
+    // 2. The most important metric (Quantity)
+    $quantity = "{$this->crates}ct";
+    if ($this->additional_eggs) {
+        $quantity .= " (+{$this->additional_eggs})";
     }
+    $parts[] = $quantity;
+
+    // 3. Specifics (Size/Date)
+    if ($this->egg_size) {
+        $parts[] = $this->egg_size;
+    }
+
+    $parts[] = $this->date_laid?->diffForHumans() ?? 'No Date';
+
+    // Result: B-102 — 12ct (+5) — LARGE — 2 days ago
+    return implode(' | ', $parts);
+}
 }

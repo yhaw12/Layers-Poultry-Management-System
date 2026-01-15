@@ -13,6 +13,7 @@ class MortalitiesFactory extends Factory
     public function definition()
     {
         return [
+            'bird_id' => Bird::inRandomOrder()->first()->id ?? Bird::factory(),
             'date' => $this->faker->dateTimeBetween('-30 days', 'now'),
             'quantity' => $this->faker->numberBetween(1, 10),
             'cause' => $this->faker->randomElement(['disease', 'predator', 'accident']),

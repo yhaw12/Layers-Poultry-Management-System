@@ -26,7 +26,7 @@
             </svg>
 
             <!-- Message (optional, updated by Loader.show(message)) -->
-            <div id="global-loader-message" class="text-sm text-white text-center sr-only">Loading...</div>
+            {{-- <div id="global-loader-message" class="text-sm text-white text-center sr-only">Loading...</div> --}}
         </div>
     </div>
 
@@ -388,23 +388,29 @@
             updateNotificationDropdown() {
                 if (!this.notificationList) return;
                 
-                if (this.notifications.length > 0) {
+                if (this.notifications && this.notifications.length > 0) {
                     this.notificationList.innerHTML = this.notifications.map(n => {
                         const bgClass = this.getBackgroundClass(n.type);
-                        const textClass = this.getTextClass(n.type);
                         
                         return `
-                            <div class="p-3 border-b dark:border-gray-700 ${bgClass}">
-                                <p class="text-sm text-gray-800 dark:text-gray-200">${this.escapeHtml(n.message)}</p>
-                                <div class="flex gap-2 mt-1">
-                                    ${n.url && n.url !== '#' ? `<a href="${this.escapeHtml(n.url)}" class="text-blue-600 dark:text-blue-400 hover:underline text-xs">View</a>` : ''}
-                                    <button class="text-blue-600 dark:text-blue-400 hover:underline text-xs" onclick="window.notificationManager.markAsRead('${n.id}')">Mark as Read</button>
+                            <div class="p-3 border-b dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${bgClass}">
+                                <div class="flex flex-col">
+                                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">${this.escapeHtml(n.message)}</p>
+                                    <span class="text-[10px] text-gray-500 mt-1">${n.time}</span>
+                                    <div class="flex gap-4 mt-2">
+                                        ${n.url && n.url !== '#' ? `<a href="${n.url}" class="text-blue-600 dark:text-blue-400 hover:underline text-xs font-semibold">View</a>` : ''}
+                                        <button 
+                                            class="text-gray-600 dark:text-gray-400 hover:text-blue-600 text-xs" 
+                                            onclick="event.preventDefault(); window.notificationManager.markAsRead('${n.id}')">
+                                            Mark as Read
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         `;
                     }).join('');
                 } else {
-                    this.notificationList.innerHTML = '<p class="p-3 text-sm text-gray-600 dark:text-gray-400">No new notifications.</p>';
+                    this.notificationList.innerHTML = '<div class="p-8 text-center"><p class="text-sm text-gray-500 dark:text-gray-400 italic">No new notifications</p></div>';
                 }
             }
 

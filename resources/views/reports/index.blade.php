@@ -97,6 +97,57 @@
             </div>
         </div>
     </section>
+    {{-- Updated Advanced Intelligence Section --}}
+    <section class="mt-8 mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Executive Farm Intelligence
+            </h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Economic FCR</div>
+                <div class="text-2xl font-black text-blue-600 mt-1">₵{{ number_format($data['advanced_metrics']['economic_fcr'] ?? 0, 2) }}</div>
+                <div class="text-[10px] text-gray-500 mt-1">Feed cost per ₵100 revenue.</div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Production Gap</div>
+                <div class="text-2xl font-black {{ ($data['advanced_metrics']['production_gap'] ?? 0) > 15 ? 'text-red-500' : 'text-green-500' }} mt-1">
+                    {{ $data['advanced_metrics']['production_gap'] ?? 0 }}%
+                </div>
+                <div class="text-[10px] text-gray-500 mt-1">Distance from 85% lay target.</div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Dead Money</div>
+                <div class="text-2xl font-black text-orange-600 mt-1">₵{{ number_format($data['advanced_metrics']['dead_money'] ?? 0, 0) }}</div>
+                <div class="text-[10px] text-gray-500 mt-1">Value of unsold inventory.</div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Labor ROI</div>
+                <div class="text-2xl font-black text-gray-900 dark:text-white mt-1">{{ $data['advanced_metrics']['labor_efficiency'] ?? '0.00' }}x</div>
+                <div class="text-[10px] text-gray-500 mt-1">Revenue per ₵1.00 wages.</div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Stock Age</div>
+                <div class="flex items-center justify-between mt-1">
+                    <span class="text-2xl font-black text-gray-900 dark:text-white">{{ $data['advanced_metrics']['stock_aging_days'] ?? 0 }}d</span>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase 
+                        {{ ($data['advanced_metrics']['spoilage_risk'] ?? '') === 'High' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' }}">
+                        {{ $data['advanced_metrics']['spoilage_risk'] ?? 'Low' }}
+                    </span>
+                </div>
+                <div class="text-[10px] text-gray-500 mt-1">Avg days before sale.</div>
+            </div>
+
+        </div>
+    </section>
 
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         
@@ -104,7 +155,7 @@
             <form id="report-filter-form" method="GET" action="{{ route('reports.index') }}">
                 @csrf
                 <div class="flex flex-wrap gap-2 mb-6">
-                    @foreach (['weekly', 'monthly', 'efficiency', 'profitability', 'forecast', 'custom'] as $tab)
+                    @foreach (['weekly', 'monthly', 'efficiency', 'payments', 'profitability', 'forecast', 'custom'] as $tab)
                         <button type="button" data-tab="{{ $tab }}"
                                 class="tab-btn px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border 
                                 {{ $reportType === $tab 
@@ -307,35 +358,75 @@
                 </div>
             </div>
 
-            <div id="profitability-panel" class="tab-panel {{ $reportType === 'profitability' ? '' : 'hidden' }}">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Batch Profitability Analysis</h3>
-                <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+            <div id="payments-panel" class="tab-panel {{ $reportType === 'payments' ? '' : 'hidden' }}">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    @forelse($data['payments']['breakdown'] ?? [] as $method)
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-l-4 
+                            {{ $method->payment_method == 'cash' ? 'border-green-500' : ($method->payment_method == 'mobile_money' ? 'border-blue-500' : 'border-purple-500') }}">
+                            <div class="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                {{ str_replace('_', ' ', $method->payment_method) }}
+                            </div>
+                            <div class="text-2xl font-bold mt-1">₵ {{ number_format($method->total, 2) }}</div>
+                        </div>
+                    @empty
+                        <div class="col-span-3 text-center py-4 text-gray-500">No payment breakdown available.</div>
+                    @endforelse
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <h4 class="font-bold text-gray-700 dark:text-gray-200 mb-4 uppercase text-xs">Revenue Source Distribution</h4>
+                        <div class="h-64"><canvas id="method-doughnut-chart"></canvas></div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="p-4 text-left">Date</th>
+                                    <th class="p-4 text-left">Customer</th>
+                                    <th class="p-4 text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y dark:divide-gray-700">
+                                @forelse($data['payments']['list'] ?? [] as $pay)
+                                    <tr>
+                                        <td class="p-4 text-gray-500">{{ $pay->payment_date->format('d M') }}</td>
+                                        <td class="p-4 font-medium">{{ $pay->customer->name ?? 'Unknown Customer' }}</td>
+                                        <td class="p-4 text-right font-bold text-green-600">₵{{ number_format($pay->amount, 2) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="3" class="p-4 text-center text-gray-400">No recent payments.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 mt-8">
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Batch/Breed</th>
-                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Sales</th>
-                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Feed</th>
-                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Ops</th>
-                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Profit</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Method</th>
+                                <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-600 bg-white dark:bg-gray-800">
-                            @forelse($profitability as $row)
+                        <tbody class="bg-white dark:bg-gray-800 divide-y dark:divide-gray-700">
+                            @forelse($data['payments']['detailed'] ?? [] as $pay)
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                                        {{ $row->breed }} 
-                                        <span class="ml-2 px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300">{{ ucfirst($row->type) }}</span>
+                                    <td class="px-6 py-4 text-sm text-gray-500">{{ $pay->payment_date->format('d M, Y') }}</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{{ $pay->customer->name ?? 'Guest' }}</td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2 py-1 text-[10px] font-bold uppercase rounded bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300">
+                                            {{ str_replace('_', ' ', $pay->payment_method) }}
+                                        </span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">₵ {{ number_format($row->sales, 2) }}</td>
-                                    <td class="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">₵ {{ number_format($row->feed_cost, 2) }}</td>
-                                    <td class="px-6 py-4 text-sm text-right text-gray-600 dark:text-gray-300">₵ {{ number_format($row->operational_cost, 2) }}</td>
-                                    <td class="px-6 py-4 text-sm text-right font-bold {{ $row->profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
-                                        ₵ {{ number_format($row->profit, 2) }}
-                                    </td>
+                                    <td class="px-6 py-4 text-sm text-right font-bold text-green-600">₵ {{ number_format($pay->amount, 2) }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">No bird data available for this period.</td></tr>
+                                <tr><td colspan="4" class="p-10 text-center text-gray-400 italic">No payments found for this range.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -481,68 +572,69 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tab Switching Logic
     const tabs = document.querySelectorAll('.tab-btn');
     const typeInput = document.getElementById('report-type');
-    const panels = document.querySelectorAll('.tab-panel');
-    const metricsSection = document.getElementById('metrics-section');
+    const filterForm = document.getElementById('report-filter-form');
+    const compareToggle = document.getElementById('compare-toggle');
+    const compareField = document.getElementById('compare-field');
+
+    // Handle compare toggle
+    if (compareToggle && compareField) {
+        compareToggle.addEventListener('change', (e) => {
+            compareField.value = e.target.checked ? '1' : '0';
+        });
+    }
 
     tabs.forEach(btn => {
         btn.addEventListener('click', () => {
-            // UI Update
-            tabs.forEach(t => {
-                t.classList.remove('bg-blue-600', 'text-white', 'border-blue-600', 'shadow-md');
-                t.classList.add('bg-white', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-300', 'border-gray-200', 'dark:border-gray-600');
-            });
-            btn.classList.remove('bg-white', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-300', 'border-gray-200', 'dark:border-gray-600');
-            btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600', 'shadow-md');
-
-            // Logic Update
             const target = btn.getAttribute('data-tab');
-            typeInput.value = target;
-            panels.forEach(p => p.classList.add('hidden'));
-            document.getElementById(target + '-panel').classList.remove('hidden');
+            
+            if(target === typeInput.value) return;
 
-            if(target === 'custom') {
-                metricsSection.classList.remove('hidden');
-            } else {
-                metricsSection.classList.add('hidden');
-            }
+            typeInput.value = target;
+            filterForm.submit();
         });
     });
 
-    // --- Chart Data Preparation (Formatting Dates to DD/MM/YYYY) ---
+    // --- Chart Data Preparation ---
     const efficiencyData = @json($efficiencyData);
     const weeklyData = @json($weekly);
     const monthlyData = @json($monthly);
     const reportType = "{{ $reportType }}";
+    const paymentsData = @json($data['payments'] ?? []);
 
     // Helper: Convert YYYY-MM-DD to DD/MM/YYYY
     const formatDate = (isoString) => {
         if (!isoString) return '';
         const d = new Date(isoString);
-        return d.toLocaleDateString('en-GB'); // 'en-GB' gives dd/mm/yyyy
+        return d.toLocaleDateString('en-GB');
     };
+
+    // Global Chart Defaults for Dark Mode
+    const isDark = document.documentElement.classList.contains('dark');
+    Chart.defaults.color = isDark ? '#9ca3af' : '#4b5563';
+    Chart.defaults.borderColor = isDark ? '#374151' : '#e5e7eb';
 
     // Chart.js Helper
     const createChart = (id, type, labels, data, label, color = 'blue') => {
         const ctx = document.getElementById(id);
-        if(!ctx) return;
+        if(!ctx) return null;
         
         const colors = {
             blue: 'rgba(59, 130, 246, 0.5)',
             red: 'rgba(239, 68, 68, 0.5)',
-            green: 'rgba(16, 185, 129, 0.5)'
+            green: 'rgba(16, 185, 129, 0.5)',
+            purple: 'rgba(139, 92, 246, 0.5)',
+            orange: 'rgba(251, 146, 60, 0.5)'
         };
 
         const borderColors = {
             blue: '#3b82f6',
             red: '#ef4444',
-            green: '#10b981'
-        }
+            green: '#10b981',
+            purple: '#8b5cf6',
+            orange: '#fb923c'
+        };
 
-        // Global Chart Defaults for Dark Mode
-        Chart.defaults.color = document.documentElement.classList.contains('dark') ? '#9ca3af' : '#4b5563';
-        Chart.defaults.borderColor = document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb';
-
-        new Chart(ctx, {
+        return new Chart(ctx, {
             type: type,
             data: {
                 labels: labels,
@@ -584,12 +676,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Render logic
-    // Helper to get date range from week number (Client-side)
+    // Helper to get date range from week number
     const getWeekRange = (year, week) => {
         const d = new Date(year, 0, 1 + (week - 1) * 7);
         const dayOfWeek = d.getDay();
-        const ISOweekStart = d;
+        const ISOweekStart = new Date(d);
         if (dayOfWeek <= 4) 
             ISOweekStart.setDate(d.getDate() - d.getDay() + 1);
         else 
@@ -598,21 +689,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const end = new Date(ISOweekStart);
         end.setDate(end.getDate() + 6);
         
-        // Format: 01 Jan - 07 Jan
         const fmt = date => date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
         return `W${week}: ${fmt(ISOweekStart)} - ${fmt(end)}`;
     };
 
-    // Render based on current report type
+    // WEEKLY REPORT
     if (reportType === 'weekly' && weeklyData.length) {
-        // Generate nice labels
-        const labels = weeklyData.map(d => {
-            // Short label for X-axis to save space
-            return `W${d.week}`; 
-        });
-
-        // We use the 'tooltip' callback to show the full date range
+        const labels = weeklyData.map(d => `W${d.week}`);
         const ctx = document.getElementById('weekly-chart');
+        
         if(ctx) {
             new Chart(ctx, {
                 type: 'line',
@@ -636,33 +721,40 @@ document.addEventListener('DOMContentLoaded', () => {
                         tooltip: {
                             callbacks: {
                                 title: function(context) {
-                                    // Retrieve the specific data point to calculate dates
                                     const index = context[0].dataIndex;
                                     const row = weeklyData[index];
                                     return getWeekRange(row.year, row.week);
                                 }
                             }
                         }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [2, 4] } },
+                        x: { grid: { display: false } }
                     }
                 }
             });
         }
     }
     
+    // MONTHLY REPORT
     if (reportType === 'monthly' && monthlyData.length) {
-        // Month names are already strings in view, but for chart we might need them or just "M5"
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        createChart('monthly-chart', 'bar', monthlyData.map(d => monthNames[d.month_num - 1] + ' ' + d.year), monthlyData.map(d => d.total), 'Crates', 'green');
+        const labels = monthlyData.map(d => monthNames[d.month_num - 1] + ' ' + d.year);
+        const data = monthlyData.map(d => d.total);
+        createChart('monthly-chart', 'bar', labels, data, 'Crates', 'green');
     }
 
+    // EFFICIENCY REPORT
     if (reportType === 'efficiency') {
+        // Mortality Trend
         if (efficiencyData.mortality_trend) {
-            // Apply date formatting
             const mLabels = efficiencyData.mortality_trend.map(d => formatDate(d.date));
             const mData = efficiencyData.mortality_trend.map(d => d.value);
             createChart('mortality-chart', 'line', mLabels, mData, 'Daily Mortality', 'red');
         }
 
+        // Expense Breakdown (Pie)
         if (efficiencyData.expense_breakdown) {
             const eCtx = document.getElementById('expense-pie-chart');
             if (eCtx) {
@@ -673,18 +765,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         datasets: [{
                             data: efficiencyData.expense_breakdown.map(d => d.total),
                             backgroundColor: ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6'],
-                            borderWidth: 0
+                            borderWidth: 0,
+                            hoverOffset: 8
                         }]
                     },
                     options: { 
                         responsive: true, 
                         maintainAspectRatio: false,
-                        plugins: { legend: { position: 'right' } }
+                        plugins: { 
+                            legend: { position: 'right' }
+                        }
                     }
                 });
             }
         }
 
+        // Egg Grades (Pie)
         if (efficiencyData.egg_grades) {
             const gCtx = document.getElementById('grade-pie-chart');
             if (gCtx) {
@@ -696,16 +792,47 @@ document.addEventListener('DOMContentLoaded', () => {
                         datasets: [{
                             data: efficiencyData.egg_grades.map(d => d.total),
                             backgroundColor: ['#EC4899', '#6366F1', '#14B8A6', '#F59E0B'],
-                            borderWidth: 0
+                            borderWidth: 0,
+                            hoverOffset: 8
                         }]
                     },
                     options: { 
                         responsive: true, 
                         maintainAspectRatio: false,
-                        plugins: { legend: { position: 'right' } }
+                        plugins: { 
+                            legend: { position: 'right' }
+                        }
                     }
                 });
             }
+        }
+    }
+
+    // PAYMENTS REPORT
+    if (reportType === 'payments') {
+        const paymentCtx = document.getElementById('method-doughnut-chart');
+
+        if (paymentCtx && paymentsData.chartData && paymentsData.chartData.length > 0) {
+            new Chart(paymentCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: paymentsData.chartLabels,
+                    datasets: [{
+                        data: paymentsData.chartData,
+                        backgroundColor: ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B'],
+                        borderWidth: 0,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    cutout: '70%'
+                }
+            });
         }
     }
 
@@ -717,14 +844,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportMainBtn = document.getElementById('export-btn');
 
     // Dropdown toggle
-    exportMainBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        dropdown.classList.toggle('hidden');
-    });
+    if (exportMainBtn) {
+        exportMainBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden');
+        });
+    }
     
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
-        if (!dropdown.contains(e.target) && !exportMainBtn.contains(e.target)) {
+        if (dropdown && !dropdown.contains(e.target) && exportMainBtn && !exportMainBtn.contains(e.target)) {
             dropdown.classList.add('hidden');
         }
     });
@@ -744,6 +873,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Export format selection
+    document.querySelectorAll('.export-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const format = btn.getAttribute('data-format');
+            const url = new URL(window.location.href);
+            url.pathname = '/reports/export';
+            url.searchParams.set('format', format);
+            url.searchParams.set('type', reportType);
+            
+            window.open(url.toString(), '_blank');
+            dropdown.classList.add('hidden');
+        });
+    });
+
     // Preset buttons logic (Updates input dates)
     document.querySelectorAll('.preset-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -752,15 +895,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const start = new Date();
             start.setDate(end.getDate() - days);
             
-            // Format to YYYY-MM-DD for input value (HTML requirement)
             const fmt = d => d.toISOString().split('T')[0];
             document.getElementById('start_date').value = fmt(start);
             document.getElementById('end_date').value = fmt(end);
-            
-            // Optional: Auto submit
-            // document.getElementById('report-filter-form').submit();
         });
     });
+
+    // Show/hide custom metrics based on tab selection
+    const metricsSection = document.getElementById('metrics-section');
+    if (metricsSection) {
+        tabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.getAttribute('data-tab');
+                if (target === 'custom') {
+                    metricsSection.classList.remove('hidden');
+                } else {
+                    metricsSection.classList.add('hidden');
+                }
+            });
+        });
+    }
 });
 </script>
 @endpush

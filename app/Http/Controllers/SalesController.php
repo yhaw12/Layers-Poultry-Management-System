@@ -25,19 +25,21 @@ use Illuminate\Validation\ValidationException;
 
 class SalesController extends Controller
 {
-    public function index(Request $request)
+   public function index(Request $request)
     {
         try {
             $request->validate([
                 'start_date' => 'nullable|date|before_or_equal:end_date',
-                'end_date' => 'nullable|date|after_or_equal:start_date',
-                'status' => 'nullable|in:pending,paid,partially_paid,overdue',
+                'end_date'   => 'nullable|date|after_or_equal:start_date',
+                'status'     => 'nullable|in:pending,paid,partially_paid,overdue',
+                'search'     => 'nullable|string|max:255', 
             ]);
 
             $start = $request->input('start_date', now()->subMonths(6)->startOfMonth()->toDateString());
-            $end = $request->input('end_date', now()->endOfMonth()->toDateString());
+            $end   = $request->input('end_date', now()->endOfMonth()->toDateString());
+            $search = $request->input('search');
 
-            $query = Sale::with('customer', 'saleable', 'payments')
+            $query = Sale::with(['customer', 'saleable', 'payments'])
                 ->whereBetween('sale_date', [$start, $end])
                 ->whereNull('deleted_at');
 
@@ -45,39 +47,24 @@ class SalesController extends Controller
                 $query->where('status', $request->status);
             }
 
-            $sales = $query->orderBy('sale_date', 'desc')->paginate(10)->withQueryString();
-
-            $totalAmountKey = "sales_total_amount_{$start}_{$end}_{$request->status}";
-            $totalAmount = null;
-            try {
-                if (method_exists(Cache::store(), 'tags')) {
-                    $totalAmount = Cache::tags(['sales'])->remember($totalAmountKey, 300, function () use ($start, $end, $request) {
-                        $q = Sale::whereBetween('sale_date', [$start, $end])->whereNull('deleted_at');
-                        if ($request->status) $q->where('status', $request->status);
-                        return (float) $q->sum('total_amount');
-                    });
-                } else {
-                    $totalAmount = Cache::remember($totalAmountKey, 300, function () use ($start, $end, $request) {
-                        $q = Sale::whereBetween('sale_date', [$start, $end])->whereNull('deleted_at');
-                        if ($request->status) $q->where('status', $request->status);
-                        return (float) $q->sum('total_amount');
-                    });
-                }
-            } catch (\Throwable $e) {
-                Log::warning('Failed to use cache tags for sales totals: ' . $e->getMessage());
-                $totalAmount = (float) Sale::whereBetween('sale_date', [$start, $end])->whereNull('deleted_at')->sum('total_amount');
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('id', 'like', "%{$search}%")
+                      ->orWhereHas('customer', function($subQ) use ($search) {
+                          $subQ->where('name', 'like', "%{$search}%")
+                               ->orWhere('phone', 'like', "%{$search}%");
+                      });
+                });
             }
 
-            $company = [
-                'name' => config('app.name', 'Poultry Tracker'),
-                'address' => 'Aprah Opeicuma, Awutu Senya West',
-                'phone' => '0593036689',
-                'email' => 'info@poultrytracker.local',
-            ];
+            $sales = $query->orderBy('sale_date', 'desc')->paginate(10)->withQueryString();
+            
+            // Calculate total from the filtered query
+            $totalAmount = (float) $query->sum('total_amount');
 
-            return view('sales.index', compact('sales', 'start', 'end', 'company', 'totalAmount'));
+            return view('sales.index', compact('sales', 'start', 'end', 'totalAmount'));
         } catch (\Exception $e) {
-            Log::error('Failed to load sales', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('Failed to load sales', ['error' => $e->getMessage()]);
             return back()->with('error', 'Failed to load sales.');
         }
     }
@@ -668,157 +655,73 @@ class SalesController extends Controller
  * Record payment (supports AJAX JSON responses)
  */
     public function recordPayment(Request $request, Sale $sale)
-    {
+{
+    // Force JSON response even for validation errors
+    if ($request->ajax() || $request->wantsJson()) {
         try {
-            if (!Auth::check()) {
-                if ($request->expectsJson()) {
-                    return response()->json(['error' => 'Authentication required'], 401);
-                }
-                return back()->withErrors(['auth' => 'User must be authenticated to record a payment.']);
-            }
-
-            // Refresh sale so we work with the latest values
-            $sale->refresh();
-
-            if ($sale->isPaid()) {
-                if ($request->expectsJson()) {
-                    return response()->json(['error' => 'Invoice is already fully paid.'], 422);
-                }
-                return redirect()->route('sales.index')->with('error', 'Invoice is already fully paid.');
-            }
-
             $validated = $request->validate([
                 'amount' => 'required|numeric|min:0.01',
                 'payment_date' => 'required|date',
-                'payment_method' => 'nullable|string|in:cash,bank_transfer,mobile_money|max:255',
-                'notes' => 'nullable|string|max:1000',
+                'payment_method' => 'required|string|in:cash,mobile_money,bank_transfer',
             ]);
 
-            $amount = round((float) $validated['amount'], 2);
-
-            // compute current balance from DB to avoid race conditions
-            $balance = round((float) $sale->total_amount - (float) $sale->paid_amount, 2);
+            $amount = round((float)$validated['amount'], 2);
+            $sale->refresh();
+            $balance = round((float)$sale->total_amount - (float)$sale->paid_amount, 2);
 
             if ($amount > $balance) {
-                if ($request->expectsJson()) {
-                    return response()->json(['error' => 'Payment amount exceeds outstanding balance.', 'balance' => $balance], 422);
-                }
-                return back()->withErrors(['amount' => 'Payment amount exceeds outstanding balance.']);
+                return response()->json(['success' => false, 'error' => "Amount (₵$amount) exceeds balance (₵$balance)"], 422);
             }
 
             DB::beginTransaction();
 
-            // Create payment (persist)
-            $payment = Payment::create([
-                'sale_id'        => $sale->id,
-                'customer_id'    => $sale->customer_id ?? ($sale->customer ? $sale->customer->id : null),
-                'amount'         => $amount,
-                'payment_date'   => $validated['payment_date'],
-                'payment_method' => $validated['payment_method'] ?? null,
-                'notes'          => $validated['notes'] ?? null,
-                'created_by'     => Auth::id(),
+            Payment::create([
+                'sale_id' => $sale->id,
+                'customer_id' => $sale->customer_id,
+                'amount' => $amount,
+                'payment_date' => $validated['payment_date'],
+                'payment_method' => $validated['payment_method'],
+                'created_by' => Auth::id(),
             ]);
 
-            // Create a transaction record to represent this payment.
-            // This is the canonical "payment" record used for payment history lookups.
-            $paymentTransaction = Transaction::create([
+            Transaction::create([
                 'type' => 'payment',
                 'amount' => $amount,
-                'status' => 'approved', // payments are recorded as approved
+                'status' => 'approved',
                 'date' => $validated['payment_date'],
                 'source_type' => Sale::class,
                 'source_id' => $sale->id,
                 'user_id' => Auth::id(),
-                'description' => "Payment of ₵ {$amount} for Sale #{$sale->id}",
+                'description' => "Payment for Sale #{$sale->id}",
             ]);
 
-            // Recalculate paid_amount from payments (ensures correctness even with concurrent edits)
-            // Use payment_date as asOf so future-dated payments behave correctly
-            $asOf = Carbon::parse($payment->payment_date ?? now());
-            $sale->recalculatePaidAmount($asOf);
-            $sale->updatePaymentStatus($asOf);
+            // Sync math and status
+            $sale->refresh();
+            $totalPaid = (float)$sale->payments()->sum('amount');
+            $sale->paid_amount = $totalPaid;
 
-            // Ensure cashier is recorded on the Sale if missing
-            if (empty($sale->cashier_id)) {
-                $sale->update(['cashier_id' => Auth::id()]);
+            if ($totalPaid >= (float)$sale->total_amount) {
+                $sale->status = 'paid';
+            } elseif ($totalPaid > 0) {
+                $sale->status = 'partially_paid';
             }
-
-            // If sale just became fully paid, sync income record if needed
-            if ($sale->isPaid()) {
-                Income::where('source', "Sale #{$sale->id}")
-                    ->update(['synced_at' => now()]);
-            }
-
-            $customerName = $sale->customer ? $sale->customer->name : 'Unknown';
-
-            // Activity log
-            $detailText = "Recorded payment of ₵ {$amount} (Payment ID: {$payment->id}) for Sale #{$sale->id} to {$customerName}. New paid_amount: ₵ {$sale->paid_amount} (Balance: ₵ {$sale->balance()}).";
-            UserActivityLog::create([
-                'user_id' => Auth::id(),
-                'action' => 'recorded_payment',
-                'details' => $detailText,
-            ]);
-
-            Alert::create([
-                'message' => "Payment of ₵ {$amount} recorded for invoice #{$sale->id} ({$customerName})",
-                'type' => 'payment',
-                'user_id' => Auth::id(),
-            ]);
-
-            // Targeted cache invalidation:
-            try {
-                if (method_exists(Cache::store(), 'tags')) {
-                    Cache::tags(['sales'])->flush();
-                } else {
-                    Log::warning('Cache store does not support tags; no targeted sales cache flush was performed.');
-                }
-            } catch (\Throwable $e) {
-                Log::warning('Failed to flush sales cache tags: ' . $e->getMessage());
-            }
-
+            
+            $sale->save();
             DB::commit();
 
-            // fresh sale so front-end gets the latest cashier relation
-            $sale->refresh();
-            $cashierName = optional($sale->cashier)->name ?? null;
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment recorded! Total Paid: ₵' . number_format($totalPaid, 2),
+                'redirect' => route('sales.index')
+            ], 200);
 
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Payment recorded successfully.',
-                    'sale_id' => $sale->id,
-                    'payment_id' => $payment->id,
-                    'payment_transaction_id' => $paymentTransaction->id,
-                    'paid_amount' => (float) $sale->paid_amount,
-                    'total_amount' => (float) $sale->total_amount,
-                    'balance' => (float) $sale->balance(),
-                    'status' => $sale->status,
-                    'cashier_id' => $sale->cashier_id,
-                    'cashier_name' => $cashierName,
-                ]);
-            }
-
-            return redirect()->route('sales.index')->with('success', 'Payment recorded successfully.');
-        } catch (\Illuminate\Validation\ValidationException $ve) {
-            if ($request->expectsJson()) {
-                return response()->json(['errors' => $ve->errors()], 422);
-            }
-            throw $ve;
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to record payment', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'sale_id' => $sale->id ?? null,
-                'request' => $request->all(),
-            ]);
-
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Failed to record payment: ' . $e->getMessage()], 500);
-            }
-
-            return back()->with('error', 'Failed to record payment: ' . $e->getMessage());
+            Log::error("Payment Error: " . $e->getMessage());
+            return response()->json(['success' => false, 'error' => 'Database Error: ' . $e->getMessage()], 500);
         }
     }
+    return back()->with('error', 'Invalid Request Type');
+}
 
 }

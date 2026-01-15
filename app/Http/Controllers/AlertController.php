@@ -11,61 +11,42 @@ class AlertController extends Controller
 {
     public function index(Request $request)
     {
+        // If the request is coming from the Browser Address Bar (Normal Page Load)
+        // We should show the full notifications page.
+        if (!$request->expectsJson() && !$request->ajax()) {
+            return redirect()->route('notifications.index');
+        }
+
         try {
             $user = Auth::user();
-            
             if (!$user) {
-                // Return JSON immediately for API calls
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
 
-            $preferences = $user->notification_preferences ?? [
-                'email' => true,
-                'in_app' => true,
-                'critical_only' => false,
-            ];
-
-            if (isset($preferences['in_app']) && !$preferences['in_app']) {
-                return response()->json([]);
+            // Logic to get unread alerts
+            $query = Alert::where('is_read', false);
+            if (!$user->hasRole('admin')) {
+                $query->where('user_id', $user->id);
             }
 
-            // Optimize query: Select only needed columns if possible
-            $query = Alert::query();
+            $alerts = $query->latest()->take(10)->get();
 
-            if ($user->hasRole('admin')) {
-                $query->where('is_read', false);
-            } else {
-                $query->where('user_id', $user->id)->where('is_read', false);
-            }
-
-            // Limit results to prevent massive JSON payloads
-            $alerts = $query->latest()->take(50)->get();
-
-            $notifications = $alerts->map(function ($alert) use ($preferences) {
-                // Skip if preference is critical only and alert is not critical
-                if ($preferences['critical_only'] && $alert->type !== 'critical') {
-                    return null;
-                }
-
+            // Convert to a simple array for the JS dropdown
+            $notifications = $alerts->map(function ($alert) {
                 return [
-                    'id' => $alert->id,
+                    'id' => (string)$alert->id,
                     'message' => $alert->message,
                     'type' => $alert->type,
                     'url' => $alert->url ?? '#',
-                    // FIX: optional() allows toDateTimeString() to fail silently if created_at is null
-                    'created_at' => optional($alert->created_at)->toDateTimeString(), 
+                    'time' => optional($alert->created_at)->diffForHumans() ?? 'Just now',
                 ];
-            })->filter()->values(); // Remove nulls from map and re-index
+            });
 
+            // CRITICAL: Ensure we return JSON here
             return response()->json($notifications);
 
         } catch (\Exception $e) {
-            Log::error('Failed to fetch notifications', [
-                'error' => $e->getMessage(),
-                'user_id' => Auth::id() ?? 'none',
-            ]);
-            
-            return response()->json(['error' => 'Server error'], 500);
+            return response()->json(['error' => 'Server Error'], 500);
         }
     }
 

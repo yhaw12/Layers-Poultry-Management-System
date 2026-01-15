@@ -121,37 +121,17 @@ class Sale extends Model
     {
         try {
             $asOf = $asOf ? Carbon::parse($asOf) : Carbon::now();
-
-            // Ensure paid_amount is in sync with payments up to $asOf
             $this->recalculatePaidAmount($asOf);
 
             $paid = round((float)$this->paid_amount, 2);
             $total = round((float)$this->total_amount, 2);
 
-            // sanitize
-            if ($total < 0) {
-                $total = 0;
-            }
-            if ($paid < 0) {
-                $paid = 0;
-            }
-
-            $newStatus = $this->status ?? self::STATUS_PENDING;
-
-            if ($total === 0) {
-                // defensive: treat zero-total invoices as paid
-                $newStatus = self::STATUS_PAID;
-            } elseif ($paid >= $total) {
+            if ($total > 0 && $paid >= $total) {
                 $newStatus = self::STATUS_PAID;
             } elseif ($paid > 0 && $paid < $total) {
-                // partially paid, but if overdue date passed mark overdue
-                if ($this->due_date && Carbon::parse($this->due_date)->endOfDay()->lessThan($asOf)) {
-                    $newStatus = self::STATUS_OVERDUE;
-                } else {
-                    $newStatus = self::STATUS_PARTIALLY_PAID;
-                }
-            } else { // $paid == 0
-                if ($this->due_date && Carbon::parse($this->due_date)->endOfDay()->lessThan($asOf)) {
+                $newStatus = self::STATUS_PARTIALLY_PAID;
+            } else {
+                if ($this->due_date && Carbon::parse($this->due_date)->endOfDay()->isPast()) {
                     $newStatus = self::STATUS_OVERDUE;
                 } else {
                     $newStatus = self::STATUS_PENDING;
@@ -163,10 +143,7 @@ class Sale extends Model
                 $this->save();
             }
         } catch (\Throwable $e) {
-            Log::error('Failed to update payment status for sale', [
-                'sale_id' => $this->id ?? null,
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('Status update failed: ' . $e->getMessage());
         }
     }
 

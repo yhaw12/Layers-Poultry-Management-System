@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('alive')->nullable();
             $table->integer('dead')->nullable()->default(0);
             $table->date('purchase_date')->nullable();
-            $table->decimal('cost', 8, 2)->nullable();
+            $table->decimal('cost', 15, 2)->nullable();
             $table->boolean('working')->default(true);
             $table->integer('age');
             $table->boolean('vaccination_status')->nullable();
