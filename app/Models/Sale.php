@@ -179,5 +179,9 @@ class Sale extends Model
         return $this->cashier ? $this->cashier->name : null;
     }
 
+        public function items() {
+        return $this->hasMany(SaleItem::class);
+    }
+
 
 }

@@ -119,36 +119,54 @@
                             @php
                                 $paidAmount = round((float)$sale->paid_amount, 2);
                                 $totalAmount = round((float)$sale->total_amount, 2);
+                                $balance = $totalAmount - $paidAmount;
                                 
-                                if ($totalAmount > 0 && $paidAmount >= $totalAmount) {
-                                    $dispStatus = 'paid';
-                                    $dispText = 'Paid';
+                                // UX Status Logic
+                                if ($balance <= 0.01) {
+                                    $statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+                                    $statusText = 'Paid';
                                 } elseif ($paidAmount > 0) {
-                                    $dispStatus = 'partially_paid';
-                                    $dispText = 'Partially Paid';
+                                    $statusColor = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+                                    $statusText = 'Partial';
                                 } else {
-                                    $dispStatus = $sale->status;
-                                    $dispText = ucfirst(str_replace('_', ' ', $dispStatus));
+                                    $statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+                                    $statusText = 'Pending';
                                 }
                             @endphp
-                            <tr data-sale-id="{{ $sale->id }}" class="sale-row hover:bg-gray-50 dark:hover:bg-gray-600/30 transition-colors">
-                                <td class="p-4 font-semibold text-blue-600">{{ $sale->id }}</td>
-                                <td class="p-4">{{ $sale->customer->name ?? 'Unknown' }}</td>
-                                <td class="p-4 font-semibold">₵ <span class="row-total">{{ number_format($totalAmount, 2, '.', '') }}</span></td>
-                                <td class="p-4 text-gray-500">₵ <span class="row-paid">{{ number_format($paidAmount, 2, '.', '') }}</span></td>
+                            <tr data-sale-id="{{ $sale->id }}" class="sale-row hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="p-4 font-mono text-sm text-blue-600 dark:text-blue-400">#{{ str_pad($sale->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                <td class="p-4 font-medium text-gray-900 dark:text-white">{{ $sale->customer->name ?? 'Guest' }}</td>
+                                <td class="p-4 font-semibold text-gray-700 dark:text-gray-200">₵ <span class="row-total">{{ number_format($totalAmount, 2) }}</span></td>
+                                <td class="p-4 text-gray-500 dark:text-gray-400">
+                                    ₵ <span class="row-paid">{{ number_format($paidAmount, 2) }}</span>
+                                    @if($balance > 0)
+                                        <div class="text-xs text-red-500 font-bold mt-1">Due: {{ number_format($balance, 2) }}</div>
+                                    @endif
+                                </td>
                                 <td class="p-4">
-                                    <span class="sale-status px-2.5 py-1 text-xs font-semibold rounded-full 
-                                        {{ $dispStatus == 'paid' ? 'bg-green-100 text-green-800' : ($dispStatus == 'partially_paid' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800') }}">
-                                        {{ $dispText }}
+                                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase {{ $statusColor }}">
+                                        {{ $statusText }}
                                     </span>
                                 </td>
-                                <td class="p-4 text-gray-500">{{ $sale->sale_date->format('Y-m-d') }}</td>
-                                <td class="p-4 flex gap-2">
-                                    @if ($paidAmount < $totalAmount)
-                                        <button data-action="open-pay-modal" data-sale-id="{{ $sale->id }}" data-paid="{{ $paidAmount }}" data-total="{{ $totalAmount }}" class="px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition">Pay</button>
+                                <td class="p-4 text-sm text-gray-500 dark:text-gray-400">
+                                    {{ $sale->sale_date->format('M d, Y') }}
+                                </td>
+                                <td class="p-4 flex items-center gap-3">
+                                    {{-- UX FIX: Icon Buttons to save space --}}
+                                    @if ($balance > 0.01)
+                                        <button data-action="open-pay-modal" data-sale-id="{{ $sale->id }}" data-paid="{{ $paidAmount }}" data-total="{{ $totalAmount }}" 
+                                            class="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition p-1" title="Record Payment">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        </button>
                                     @endif
-                                    <a href="{{ route('sales.invoice', $sale->id) }}" class="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition">Inv</a>
-                                    <a href="{{ route('sales.edit', $sale) }}" class="px-3 py-1 bg-yellow-500 text-white rounded text-xs hover:bg-yellow-600 transition">Edit</a>
+                                    
+                                    <a href="{{ route('sales.invoice', $sale->id) }}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition p-1" title="View Invoice">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    </a>
+
+                                    <a href="{{ route('sales.edit', $sale) }}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition p-1" title="Edit Sale">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                    </a>
                                 </td>
                             </tr>
                         @endforeach
@@ -174,39 +192,70 @@
         </div>
     </div>
 
-    <div id="paymentModal" class="fixed inset-0 hidden flex items-center justify-center z-50 px-4">
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0">
-            <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">Record Payment for #<span id="payIdDisplay"></span></h3>
+        <div id="paymentModal" class="fixed inset-0 hidden flex items-center justify-center z-50 px-4">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl max-w-md w-full relative shadow-2xl transform transition-all duration-300 scale-95 opacity-0">
+            
+            <button type="button" 
+                    onclick="closeModal('paymentModal')" 
+                    class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                    aria-label="Close modal">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+
+            <h3 class="text-xl font-bold mb-6 text-gray-800 dark:text-white flex items-center">
+                <svg class="w-6 h-6 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                Record Payment #<span id="payIdDisplay" class="ml-1 text-blue-600"></span>
+            </h3>
+
             <form id="paymentForm">
-                <div class="space-y-4">
+                <div class="space-y-5">
                     <div>
-                        <label class="block text-sm font-medium mb-1">Amount (₵)</label>
-                        <input type="number" id="pay_amount" step="0.01" class="w-full rounded-lg border border-gray-300 dark:bg-gray-700 dark:border-gray-600 p-2" required>
-                        <span id="payMaxAmount" class="text-xs text-gray-500 mt-1 block"></span>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Amount (₵)</label>
+                        <input type="number" id="pay_amount" step="0.01" 
+                            class="w-full rounded-xl border border-gray-300 dark:bg-gray-700 dark:border-gray-600 p-3 text-lg font-bold text-green-600 focus:ring-2 focus:ring-green-500 outline-none transition" 
+                            required>
+                        <span id="payMaxAmount" class="text-xs text-gray-500 mt-2 block italic"></span>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Date</label>
-                        <input type="date" id="pay_date" value="{{ date('Y-m-d') }}" class="w-full border border-gray-300 rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600" required>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                            <input type="date" id="pay_date" value="{{ date('Y-m-d') }}" 
+                                class="w-full border border-gray-300 rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 text-sm" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Method</label>
+                            <select id="pay_method" class="w-full border border-gray-300 rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 text-sm">
+                                <option value="cash">Cash</option>
+                                <option value="mobile_money">Mobile Money</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Method</label>
-                        <select id="pay_method" class="w-full border border-gray-300 rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600">
-                            <option value="cash">Cash</option>
-                            <option value="mobile_money">Mobile Money</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                        </select>
+
+                    <div id="payError" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-start">
+                        <svg class="w-5 h-5 mr-2 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                        <span></span>
                     </div>
-                    <div id="payError" class="hidden p-2 bg-red-100 text-red-800 rounded text-xs font-bold"><span></span></div>
-                    <div class="flex justify-end space-x-2 pt-4">
-                        <button type="button" onclick="closeModal('paymentModal')" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg">Cancel</button>
-                        <button type="submit" id="paySubmitBtn" class="px-4 py-2 bg-green-500 text-white rounded-lg flex items-center shadow hover:bg-green-600 transition">
+
+                    <div class="flex flex-col gap-2 pt-4">
+                        <button type="submit" id="paySubmitBtn" 
+                                class="w-full py-3 bg-green-600 text-white rounded-xl font-bold shadow-lg hover:bg-green-700 active:transform active:scale-95 transition duration-200">
                             <span id="payBtnText">Confirm Payment</span>
+                        </button>
+                        <button type="button" onclick="closeModal('paymentModal')" 
+                                class="w-full py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition">
+                            Maybe Later
                         </button>
                     </div>
                 </div>
             </form>
+            </div>
         </div>
-    </div>
 </div>
 
 <script>
@@ -266,7 +315,15 @@
     // Handle AJAX Payment Submission
     document.getElementById('paymentForm').onsubmit = async function(e) {
         e.preventDefault();
-        const sid = this.dataset.saleId;
+        
+        // FIX: Retrieve sid directly from the form dataset where we stored it
+        const sid = this.dataset.saleId; 
+        
+        if (!sid) {
+            console.error("Sale ID (sid) is missing from form dataset.");
+            return;
+        }
+
         const btn = document.getElementById('paySubmitBtn');
         const err = document.getElementById('payError');
         const btnText = document.getElementById('payBtnText');
@@ -275,40 +332,41 @@
         btnText.innerText = 'Processing...';
         err.classList.add('hidden');
 
-        const payload = {
-            amount: document.getElementById('pay_amount').value,
-            payment_date: document.getElementById('pay_date').value,
-            payment_method: document.getElementById('pay_method').value
-        };
-
         try {
-            const res = await fetch(`/sales/${sid}/record-payment`, {
+            const res = await fetch(`/sales/${sid}/record-payment?t=${Date.now()}`, {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrf,
+                    'X-CSRF-TOKEN': csrf, // Ensure this variable exists at the top of your script
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    amount: document.getElementById('pay_amount').value,
+                    payment_date: document.getElementById('pay_date').value,
+                    payment_method: document.getElementById('pay_method').value
+                })
             });
 
-            const data = await res.json();
+            const contentType = res.headers.get("content-type");
 
-            if (res.ok && data.success) {
-                showToast(data.message || 'Payment Successful');
-                // SUCCESS: Automatic Route to Sales Index
-                setTimeout(() => {
-                    window.location.href = "{{ route('sales.index') }}";
-                }, 1000);
+            if (contentType && contentType.includes("application/json")) {
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message);
+                    // UX FIX: Reload to update the table status badges immediately
+                    window.location.reload(); 
+                } else {
+                    throw new Error(data.error || "Payment failed");
+                }
             } else {
-                err.querySelector('span').innerText = data.error || data.message || 'Validation Error';
-                err.classList.remove('hidden');
-                btn.disabled = false;
-                btnText.innerText = 'Confirm Payment';
+                // This handles the ResponseCache HTML interference
+                throw new Error("System Error: Received HTML instead of JSON. Please run 'php artisan responsecache:clear' in your terminal.");
             }
+
         } catch (e) {
-            showToast('Network error occurred', 'error');
+            err.querySelector('span').innerText = e.message;
+            err.classList.remove('hidden');
             btn.disabled = false;
             btnText.innerText = 'Confirm Payment';
         }

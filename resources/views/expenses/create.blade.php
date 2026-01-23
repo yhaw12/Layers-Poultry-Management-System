@@ -37,7 +37,7 @@
                         <select name="category" id="category" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('category') border-red-500 @enderror" required>
                             <option value="Structure" {{ old('category') == 'Structure' ? 'selected' : '' }}>Structure</option>
                             <option value="Feed" {{ old('category') == 'Feed' ? 'selected' : '' }}>Feed</option>
-                            <option value="Veterinary" {{ old('category') == 'Veterinary' ? 'selected' : '' }}>Veterinary</option>
+                            <option value="MedicineLog" {{ old('category') == 'MedicineLog' ? 'selected' : '' }}>MedicineLog</option>
                             <option value="Utilities" {{ old('category') == 'Utilities' ? 'selected' : '' }}>Utilities</option>
                             <option value="Labor" {{ old('category') == 'Labor' ? 'selected' : '' }}>Labor</option>
                         </select>

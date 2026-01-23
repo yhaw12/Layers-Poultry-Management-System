@@ -11,6 +11,16 @@ class MedicineLog extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'medicine_logs';
-    protected $fillable = ['medicine_name', 'type', 'quantity', 'unit', 'date', 'notes'];
+
+    protected $fillable = [
+        'medicine_name', 
+        'type', 
+        'quantity', 
+        'unit', 
+        'date', 
+        'notes',
+        'expense_id' // <--- Add this line
+    ];
+
     protected $casts = ['date' => 'date'];
 }

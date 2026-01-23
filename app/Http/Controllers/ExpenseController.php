@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\Feed;
+use App\Models\MedicineLog;
+use App\Models\Payroll;
 use App\Models\Transaction;
 use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
@@ -50,7 +53,7 @@ class ExpenseController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'category'    => 'required|in:Structure,Feed,Veterinary,Utilities,Labor',
+            'category'    => 'required|in:Structure,Feed,MedicineLog,Utilities,Labor',
             'description' => 'nullable|string|max:255',
             'amount'      => 'required|numeric|min:0',
             'date'        => 'required|date',
@@ -62,6 +65,10 @@ class ExpenseController extends Controller
             // Sync to Feed Inventory if category is Feed
             if ($validated['category'] === 'Feed') {
                 $this->syncToFeed($expense);
+            } elseif ($validated['category'] === 'MedicineLog') {
+                $this->syncToMedicine($expense);
+            }elseif ($validated['category'] === 'Labor') {
+                $this->syncToPayroll($expense);
             }
 
             Transaction::create([
@@ -98,7 +105,7 @@ class ExpenseController extends Controller
     public function update(Request $request, Expense $expense)
     {
         $validated = $request->validate([
-            'category'    => 'required|in:Structure,Feed,Veterinary,Utilities,Labor',
+            'category'    => 'required|in:Structure,Feed,MedicineLog,Utilities,Labor',
             'description' => 'nullable|string|max:255',
             'amount'      => 'required|numeric|min:0',
             'date'        => 'required|date',
@@ -108,12 +115,22 @@ class ExpenseController extends Controller
             $oldCategory = $expense->category;
             $expense->update($validated);
 
-            // Handle Feed Sync
+            // --- SYNC LOGIC START ---
+            
+            // Clean up previous syncs if category changed
+            if ($oldCategory !== $validated['category']) {
+                if ($oldCategory === 'Feed') Feed::where('expense_id', $expense->id)->delete();
+                if ($oldCategory === 'MedicineLog') MedicineLog::where('expense_id', $expense->id)->delete();
+                if ($oldCategory === 'Labor') Payroll::where('expense_id', $expense->id)->delete();
+            }
+
+            // Apply new sync
             if ($validated['category'] === 'Feed') {
                 $this->syncToFeed($expense);
-            } elseif ($oldCategory === 'Feed' && $validated['category'] !== 'Feed') {
-                // If it was feed but now isn't, remove from inventory
-                Feed::where('description', 'like', "EXP-{$expense->id}-%")->delete();
+            } elseif ($validated['category'] === 'MedicineLog') {
+                $this->syncToMedicine($expense);
+            } elseif ($validated['category'] === 'Labor') {
+                $this->syncToPayroll($expense);
             }
 
             Transaction::updateOrCreate(
@@ -187,5 +204,105 @@ class ExpenseController extends Controller
                 'synced_at'     => now(),
             ]
         );
+    }
+
+
+    /**
+     * Helper to sync Expense to MedicineLog Table
+     */
+    private function syncToMedicine(Expense $expense)
+    {
+        // Parsing Logic: "Antibiotics 5" -> Name: Antibiotics, Qty: 5
+        $desc = trim($expense->description);
+        $parts = explode(' ', $desc);
+        
+        $quantity = 1; // Default
+        $name = $desc;
+
+        if (count($parts) > 1) {
+            $lastPart = end($parts);
+            if (is_numeric($lastPart)) {
+                $quantity = (float) $lastPart;
+                array_pop($parts);
+                $name = implode(' ', $parts);
+            }
+        }
+
+        MedicineLog::updateOrCreate(
+            ['expense_id' => $expense->id],
+            [
+                'medicine_name' => $name,
+                'type'          => 'purchase', // Expenses are always purchases
+                'quantity'      => $quantity,
+                'unit'          => 'units',    // Default unit since expense description doesn't specify
+                'date'          => $expense->date,
+                'notes'         => 'Synced from Expense Record',
+            ]
+        );
+    }
+
+
+    /**
+     * Helper to sync Expense to Payroll Table
+     * Looks for Employee name in description.
+     */
+    private function syncToPayroll(Expense $expense)
+    {
+        $description = strtolower($expense->description);
+        $employees = Employee::whereNull('deleted_at')->get();
+        $matchedEmployee = null;
+
+        // MATCHING LOGIC
+        foreach ($employees as $employee) {
+            $empName = strtolower($employee->name);
+            
+            // 1. Check Exact Full Name Match (Best)
+            if (str_contains($description, $empName)) {
+                $matchedEmployee = $employee;
+                break; 
+            }
+
+            // 2. Check First Name or Last Name (Whole Word Match)
+            $nameParts = explode(' ', $empName);
+            foreach ($nameParts as $part) {
+                if (strlen($part) > 2) { // Ignore short initials like "A."
+                    // Ensure it matches "John" but not "Johnson" using boundaries
+                    if (preg_match("/\b" . preg_quote($part, '/') . "\b/", $description)) {
+                        $matchedEmployee = $employee;
+                        break 2; // Break both loops
+                    }
+                }
+            }
+
+            // 3. Check for at least 4 continuous letters (Fuzzy Match)
+            // Only if we haven't found a match yet
+            if (strlen($empName) >= 4) {
+                // Check if any 4-char chunk of the employee name exists in the description
+                // We check chunks to avoid false positives on very short overlaps
+                $chunks = str_split($empName, 4);
+                if (count($chunks) > 0 && str_contains($description, $chunks[0])) {
+                     $matchedEmployee = $employee;
+                     break;
+                }
+            }
+        }
+
+        // If we found an employee, create/update the Payroll record
+        if ($matchedEmployee) {
+            Payroll::updateOrCreate(
+                ['expense_id' => $expense->id],
+                [
+                    'employee_id' => $matchedEmployee->id,
+                    'pay_date'    => $expense->date,
+                    // We assume the Expense Amount is the final Net Pay they received
+                    'net_pay'     => $expense->amount, 
+                    'base_salary' => $matchedEmployee->monthly_salary, // Keep original salary record
+                    'bonus'       => 0,
+                    'deductions'  => 0,
+                    'status'      => 'paid', // Since it's an expense, it's already paid
+                    'notes'       => 'Synced from Expense: ' . $expense->description,
+                ]
+            );
+        }
     }
 }

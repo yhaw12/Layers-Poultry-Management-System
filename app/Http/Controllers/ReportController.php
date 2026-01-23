@@ -139,133 +139,140 @@ class ReportController extends Controller
      * Central method returning structured data for a given report type
      */
     private function getReportData(Request $request, string $reportType): array
-{
-    if (!Auth::check()) {
-        throw new \Exception('User must be authenticated.');
+    {
+        if (!Auth::check()) {
+            throw new \Exception('User must be authenticated.');
+        }
+
+        [$start, $end] = $this->normalizeDates($request);
+        $userId = Auth::id();
+        $compareFlag = $request->input('compare', '0') === '1';
+        $cacheKey = "report_{$reportType}_u{$userId}_s{$start->timestamp}_e{$end->timestamp}_c{$compareFlag}";
+
+        // Clear cache if debugging (optional, remove in production)
+        // Cache::forget($cacheKey);
+
+        return Cache::remember($cacheKey, $this->cacheTTL, function () use ($request, $reportType, $start, $end, $compareFlag) {
+            $data = [];
+            $startStr = $start->toDateTimeString();
+            $endStr = $end->toDateTimeString();
+            $daysInPeriod = $start->diffInDays($end) + 1;
+
+            // --- 1. CORE FINANCIALS (KPIs) ---
+            $totalIncome = Income::whereBetween('date', [$startStr, $endStr])->withoutTrashed()->sum('amount') ?? 0;
+            $totalExpenses = Expense::whereBetween('date', [$startStr, $endStr])->withoutTrashed()->sum('amount') ?? 0;
+            $totalPayroll = Payroll::whereBetween('pay_date', [$startStr, $endStr])->whereNull('deleted_at')->sum('net_pay') ?? 0;
+            $totalOperationalCost = $totalExpenses + $totalPayroll;
+
+            $data['profit_loss'] = [
+                'total_income' => $totalIncome,
+                'total_expenses' => $totalExpenses,
+                'total_payroll' => $totalPayroll,
+                'profit_loss' => $totalIncome - $totalOperationalCost,
+                'start' => $start->toDateString(),
+                'end' => $end->toDateString(),
+            ];
+
+            // --- 2. GLOBAL CHART DATA (Populates Trends & Comparisons Tabs) ---
+            $data['charts'] = [
+                'eggTrend' => Egg::selectRaw("DATE_FORMAT(date_laid, '%Y-%m-%d') as date, SUM(crates) as value")
+                    ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
+                
+                'feedTrend' => Feed::selectRaw("DATE(purchase_date) as date, SUM(quantity) as value")
+                    ->whereBetween('purchase_date', [$startStr, $endStr])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
+                
+                'salesTrend' => Sale::selectRaw("DATE(sale_date) as date, SUM(total_amount) as value")
+                    ->whereBetween('sale_date', [$startStr, $endStr])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
+                
+                'incomeTrend' => Income::selectRaw("DATE(date) as date, SUM(amount) as value")
+                    ->whereBetween('date', [$startStr, $endStr])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
+                
+                'salesComparison' => Sale::select(
+                        DB::raw('DATE(sale_date) as date'),
+                        DB::raw("SUM(CASE WHEN saleable_type LIKE '%Egg%' THEN total_amount ELSE 0 END) as egg_sales"),
+                        DB::raw("SUM(CASE WHEN saleable_type LIKE '%Bird%' THEN total_amount ELSE 0 END) as bird_sales")
+                    )
+                    ->whereBetween('sale_date', [$startStr, $endStr])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
+
+                'invoiceStatuses' => [
+                    'Pending' => Sale::where('status', 'pending')->whereBetween('sale_date', [$startStr, $endStr])->count(),
+                    'Paid' => Sale::where('status', 'paid')->whereBetween('sale_date', [$startStr, $endStr])->count(),
+                    'Partial' => Sale::where('status', 'partially_paid')->whereBetween('sale_date', [$startStr, $endStr])->count(),
+                    'Overdue' => Sale::where('status', 'overdue')->whereBetween('sale_date', [$startStr, $endStr])->count(),
+                ],
+
+                // NEW: Transaction Trend for Payments Tab
+                'transactionTrend' => Transaction::selectRaw("DATE(date) as date, SUM(amount) as value")
+                    ->whereBetween('date', [$startStr, $endStr])
+                    ->whereNull('deleted_at')
+                    ->groupBy('date')
+                    ->orderBy('date')
+                    ->get(),
+            ];
+
+            // --- 3. ADVANCED METRICS ---
+            $eggTotal = $data['charts']['eggTrend']->sum('value');
+            $data['avg_crates_per_day'] = $daysInPeriod > 0 ? $eggTotal / $daysInPeriod : 0;
+            
+            $totalFeedKg = $data['charts']['feedTrend']->sum('value');
+            $data['advanced_metrics'] = [
+                'economic_fcr' => ($totalIncome > 0) ? round(($totalFeedKg * 150 / $totalIncome) * 100, 2) : 0, 
+                'stock_aging_days' => 0, // Placeholder
+                'spoilage_risk' => 'Low'
+            ];
+
+            // --- 4. TAB-SPECIFIC DATA ---
+            if ($reportType === 'weekly') {
+                $data['weekly'] = Egg::selectRaw('YEAR(date_laid) as year, WEEK(date_laid, 1) as week, SUM(crates) as total')
+                    ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('year', 'week')->orderBy('year', 'desc')->orderBy('week', 'desc')->get();
+            } 
+            elseif ($reportType === 'monthly') {
+                $data['monthly'] = Egg::selectRaw('YEAR(date_laid) as year, MONTH(date_laid) as month_num, SUM(crates) as total')
+                    ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('year', 'month_num')->orderBy('year', 'desc')->orderBy('month_num', 'desc')->get();
+            } 
+            elseif ($reportType === 'efficiency') {
+                $data['efficiency'] = [
+                    'mortality_trend' => Mortalities::selectRaw("DATE(date) as date, SUM(quantity) as value")
+                        ->whereBetween('date', [$startStr, $endStr])->groupBy('date')->orderBy('date')->get(),
+                    'expense_breakdown' => Expense::selectRaw("category, SUM(amount) as total")
+                        ->whereBetween('date', [$startStr, $endStr])->groupBy('category')->get(),
+                    'egg_grades' => Egg::selectRaw("egg_size, SUM(crates) as total")
+                        ->whereBetween('date_laid', [$startStr, $endStr])->whereNotNull('egg_size')->groupBy('egg_size')->get(),
+                    'top_customers' => Sale::select('customer_id', DB::raw('SUM(total_amount) as total_spent'))
+                        ->whereBetween('sale_date', [$startStr, $endStr])->with('customer:id,name')->groupBy('customer_id')->orderByDesc('total_spent')->limit(5)->get()
+                        ->map(fn($s) => ['name' => $s->customer->name ?? 'Unknown', 'total' => $s->total_spent]),
+                ];
+            } 
+            elseif ($reportType === 'payments') {
+                $data['payments'] = [
+                    'chartData' => Payment::selectRaw('SUM(amount) as total')->whereBetween('payment_date', [$startStr, $endStr])->groupBy('payment_method')->pluck('total'),
+                    'chartLabels' => Payment::selectRaw('payment_method')->whereBetween('payment_date', [$startStr, $endStr])->groupBy('payment_method')->pluck('payment_method')->map(fn($m)=>ucfirst(str_replace('_',' ',$m))),
+                    'list' => Payment::with('customer')->whereBetween('payment_date', [$startStr, $endStr])->latest()->limit(10)->get(),
+                    'detailed' => Payment::with('customer')->whereBetween('payment_date', [$startStr, $endStr])->orderBy('payment_date', 'desc')->get()
+                ];
+            }
+            elseif ($reportType === 'forecast') {
+                $dailyInc = $daysInPeriod > 0 ? $totalIncome / $daysInPeriod : 0;
+                $dailyExp = $daysInPeriod > 0 ? $totalExpenses / $daysInPeriod : 0;
+                $data['forecast'] = [
+                    'forecasted_income' => $dailyInc * 30 * 1.05,
+                    'forecasted_expenses' => $dailyExp * 30 * 1.02,
+                    'forecasted_profit' => ($dailyInc * 30 * 1.05) - ($dailyExp * 30 * 1.02)
+                ];
+            }
+            elseif ($reportType === 'custom') {
+                $metrics = $request->input('metrics', []);
+                if (in_array('sales', $metrics)) $data['sales'] = Sale::with('customer')->whereBetween('sale_date', [$startStr, $endStr])->withoutTrashed()->orderBy('sale_date')->get();
+                // Add other custom logic here if needed
+            }
+
+            // --- 5. Return Merge with Totals ---
+            return array_merge([
+                'totalTransactions' => Transaction::whereBetween('date', [$startStr, $endStr])->whereNull('deleted_at')->sum('amount'),
+                'totals' => ['income' => $totalIncome, 'profit' => $totalIncome - $totalOperationalCost]
+            ], $data);
+        });
     }
-
-    [$start, $end] = $this->normalizeDates($request);
-    $userId = Auth::id();
-    $compareFlag = $request->input('compare', '0') === '1' || $request->query('compare') === '1';
-    $cacheKey = "report_{$reportType}_user_{$userId}_start_{$start->format('Ymd')}_end_{$end->format('Ymd')}_compare_" . ($compareFlag ? '1' : '0');
-
-    return Cache::remember($cacheKey, $this->cacheTTL, function () use ($request, $reportType, $start, $end, $compareFlag) {
-        $data = [];
-        $trends = $this->getCommonTrends($start, $end);
-        $startStr = $start->toDateTimeString();
-        $endStr = $end->toDateTimeString();
-        $daysInPeriod = $start->diffInDays($end) + 1;
-
-        // --- 1. Basic Financial KPIs ---
-        $totalIncome = Income::whereBetween('date', [$startStr, $endStr])->withoutTrashed()->sum('amount') ?? 0;
-        $totalExpenses = Expense::whereBetween('date', [$startStr, $endStr])->withoutTrashed()->sum('amount') ?? 0;
-        $totalPayroll = Payroll::whereBetween('pay_date', [$startStr, $endStr])->whereNull('deleted_at')->sum('net_pay') ?? 0;
-        $totalOperationalCost = $totalExpenses + $totalPayroll;
-
-        $data['profit_loss'] = [
-            'total_income' => $totalIncome,
-            'total_expenses' => $totalExpenses,
-            'total_payroll' => $totalPayroll,
-            'profit_loss' => $totalIncome - $totalOperationalCost,
-            'start' => $start->toDateString(),
-            'end' => $end->toDateString(),
-        ];
-
-        // --- 2. Production KPI ---
-        $eggTotal = $trends['eggProduction']->sum('value');
-        $data['avg_crates_per_day'] = $daysInPeriod > 0 ? $eggTotal / $daysInPeriod : 0;
-
-        // --- 3. Report Specific Logic (ALL TYPES INCLUDED) ---
-        if ($reportType === 'weekly') {
-            $data['weekly'] = Egg::select(DB::raw('YEAR(date_laid) as year'), DB::raw('WEEK(date_laid, 1) as week'), DB::raw('SUM(crates) as total'))
-                ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('year', 'week')->orderBy('year', 'desc')->orderBy('week', 'desc')->get();
-        } 
-        elseif ($reportType === 'monthly') {
-            $data['monthly'] = Egg::select(DB::raw('YEAR(date_laid) as year'), DB::raw('MONTH(date_laid) as month_num'), DB::raw('SUM(crates) as total'))
-                ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('year', 'month_num')->orderBy('year', 'desc')->orderBy('month_num', 'desc')->get();
-        } 
-        elseif ($reportType === 'efficiency') {
-            $data['efficiency'] = [
-                'mortality_trend' => Mortalities::select(DB::raw('DATE(date) as date'), DB::raw('SUM(quantity) as value'))
-                    ->whereBetween('date', [$startStr, $endStr])->whereNull('deleted_at')->groupBy(DB::raw('DATE(date)'))->orderBy('date', 'asc')->get(),
-                'expense_breakdown' => Expense::select('category', DB::raw('SUM(amount) as total'))
-                    ->whereBetween('date', [$startStr, $endStr])->withoutTrashed()->groupBy('category')->get(),
-                'fcr' => ($eggTotal > 0) ? round(Feed::whereBetween('purchase_date', [$startStr, $endStr])->sum('quantity') / $eggTotal, 2) : 0,
-                'total_feed' => Feed::whereBetween('purchase_date', [$startStr, $endStr])->withoutTrashed()->sum('quantity'),
-                'total_crates' => $eggTotal,
-                'medicine_cost' => Expense::where('category', 'Veterinary')->whereBetween('date', [$startStr, $endStr])->sum('amount'),
-                'egg_grades' => Egg::select('egg_size', DB::raw('SUM(crates) as total'))->whereBetween('date_laid', [$startStr, $endStr])->whereNotNull('egg_size')->withoutTrashed()->groupBy('egg_size')->get(),
-                'top_customers' => Sale::select('customer_id', DB::raw('SUM(total_amount) as total_spent'))->whereBetween('sale_date', [$startStr, $endStr])->withoutTrashed()->with('customer:id,name')->groupBy('customer_id')->orderByDesc('total_spent')->limit(5)->get()->map(fn($s) => ['name' => $s->customer->name ?? 'Unknown', 'total' => $s->total_spent]),
-            ];
-        } 
-        elseif ($reportType === 'custom') {
-            $metrics = $request->input('metrics', []);
-            if (in_array('eggs', $metrics)) $data['eggs'] = Egg::whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->orderBy('date_laid')->get();
-            if (in_array('sales', $metrics)) $data['sales'] = Sale::with('customer')->whereBetween('sale_date', [$startStr, $endStr])->withoutTrashed()->orderBy('sale_date')->get();
-            if (in_array('expenses', $metrics)) $data['expenses'] = Expense::whereBetween('date', [$startStr, $endStr])->withoutTrashed()->orderBy('date')->get();
-            if (in_array('payrolls', $metrics)) $data['payrolls'] = Payroll::with('employee')->whereBetween('pay_date', [$startStr, $endStr])->whereNull('deleted_at')->orderBy('pay_date')->get();
-        } 
-        elseif ($reportType === 'profitability') {
-            $data['profitability'] = Bird::select('birds.id as bird_id', 'birds.breed', 'birds.type', DB::raw('COALESCE(SUM(sales.total_amount), 0) as sales'), DB::raw('COALESCE(SUM(feed.quantity * feed.cost), 0) as feed_cost'))
-                ->leftJoin('sales', fn($j) => $j->on('birds.id', '=', 'sales.saleable_id')->where('sales.saleable_type', '=', Bird::class)->whereNull('sales.deleted_at'))
-                ->leftJoin('feed', fn($j) => $j->on('birds.id', '=', 'feed.bird_id')->whereBetween('feed.purchase_date', [$startStr, $endStr])->whereNull('feed.deleted_at'))
-                ->whereNull('birds.deleted_at')->groupBy('birds.id', 'birds.breed', 'birds.type')->get();
-        } 
-        elseif ($reportType === 'forecast') {
-            $pastIncome = Income::where('date', '>=', now()->subMonths(6))->withoutTrashed()->sum('amount') / 6;
-            $data['forecast'] = ['forecasted_income' => $pastIncome * 1.05, 'forecasted_expenses' => $totalOperationalCost * 1.03, 'forecasted_profit' => ($pastIncome * 1.05) - ($totalOperationalCost * 1.03)];
-        } 
-        elseif ($reportType === 'payments') {
-            $data['payments'] = [
-                'breakdown' => Payment::select('payment_method', DB::raw('SUM(amount) as total'))->whereBetween('payment_date', [$start->toDateString(), $end->toDateString()])->groupBy('payment_method')->get(),
-                'detailed' => Payment::with(['customer', 'sale'])->whereBetween('payment_date', [$start->toDateString(), $end->toDateString()])->orderBy('payment_date', 'desc')->get(),
-                'list' => Payment::with('customer')->whereBetween('payment_date', [$start->toDateString(), $end->toDateString()])->limit(10)->get()
-            ];
-        }
-
-        // --- 4. ADVANCED POULTRY INTELLIGENCE (Always Calculated) ---
-        $totalFeedCost = Feed::whereBetween('purchase_date', [$startStr, $endStr])->withoutTrashed()->sum(DB::raw('quantity * cost')) ?? 0;
-        $totalBirds = Bird::whereNull('deleted_at')->sum('quantity') ?? 0;
-        $totalEggsSold = Sale::where('saleable_type', Egg::class)->whereBetween('sale_date', [$startStr, $endStr])->withoutTrashed()->sum('quantity');
-        
-        $avgCratePrice = Sale::where('saleable_type', Egg::class)->whereBetween('sale_date', [$startStr, $endStr])->avg(DB::raw('total_amount / quantity')) ?: 0;
-        $impliedStock = max(0, $eggTotal - $totalEggsSold);
-        $avgDailySales = ($daysInPeriod > 0) ? $totalEggsSold / $daysInPeriod : 0;
-
-        $data['advanced_metrics'] = [
-            'economic_fcr' => ($totalIncome > 0) ? round(($totalFeedCost / $totalIncome) * 100, 2) : 0,
-            'production_gap' => ($totalBirds > 0) ? round(((($totalBirds * 0.85 * $daysInPeriod) / 30) - $eggTotal) / (($totalBirds * 0.85 * $daysInPeriod) / 30) * 100, 1) : 0,
-            'dead_money' => $impliedStock * $avgCratePrice,
-            'labor_efficiency' => ($totalPayroll > 0) ? round($totalIncome / $totalPayroll, 2) : 0,
-            'shrinkage_rate' => ($eggTotal > 0) ? round(($impliedStock / $eggTotal) * 100, 1) : 0,
-            'stock_aging_days' => ($avgDailySales > 0) ? round($impliedStock / $avgDailySales, 1) : ($impliedStock > 0 ? 99 : 0),
-            'spoilage_risk' => ($avgDailySales > 0 && ($impliedStock / $avgDailySales) > 6) ? 'High' : 'Low',
-            'implied_stock' => $impliedStock
-        ];
-
-        // --- 5. Comparison Logic ---
-        if ($compareFlag) {
-            try {
-                [$prevS, $prevE] = $this->computePreviousPeriod($start, $end);
-                $data['prev_period'] = ['start' => $prevS->toDateString(), 'end' => $prevE->toDateString()];
-                $data['prev_weekly'] = Egg::select(DB::raw('YEAR(date_laid) as year'), DB::raw('WEEK(date_laid, 1) as week'), DB::raw('SUM(crates) as total'))
-                    ->whereBetween('date_laid', [$prevS, $prevE])->withoutTrashed()->groupBy('year', 'week')->get();
-                $data['prev_monthly'] = Egg::select(DB::raw('YEAR(date_laid) as year'), DB::raw('MONTH(date_laid) as month_num'), DB::raw('SUM(crates) as total'))
-                    ->whereBetween('date_laid', [$prevS, $prevE])->withoutTrashed()->groupBy('year', 'month_num')->get();
-            } catch (\Exception $e) { Log::warning('Comparison failed: ' . $e->getMessage()); }
-        }
-
-        // --- 6. Final Return Merge ---
-        return array_merge([
-            'eggProduction' => $trends['eggProduction'],
-            'incomeData' => $trends['incomeData'],
-            'expenseData' => $trends['expenseData'],
-            'salesComparison' => $trends['salesComparison'],
-            'weekly' => collect(),
-            'monthly' => collect(),
-        ], $data);
-    });
-}
 
     /**
      * Index: server-rendered page
@@ -277,7 +284,7 @@ class ReportController extends Controller
                 return redirect()->route('login')->with('error', 'Please log in to access reports.');
             }
 
-            $reportType = $request->query('type', 'weekly');
+            $reportType = $request->query('type', 'trends');
             $data = $this->getReportData($request, $reportType);
 
             if ($request->wantsJson() || $request->expectsJson()) {
@@ -306,13 +313,10 @@ class ReportController extends Controller
     public function data(Request $request)
     {
         try {
-            $type = $request->query('type', 'weekly');
+            $type = $request->query('type', 'trends');
             $payload = $this->getReportData($request, $type);
             return response()->json(['success' => true, 'reportType' => $type, 'data' => $payload]);
-        } catch (ValidationException $ve) {
-            return response()->json(['success' => false, 'errors' => $ve->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('Report data endpoint failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json(['success' => false, 'error' => 'Failed to fetch report data.'], 500);
         }
     }
@@ -643,4 +647,7 @@ class ReportController extends Controller
     {
         return $this->index($request);
     }
+
+
+    
 }

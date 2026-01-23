@@ -13,6 +13,7 @@ use App\Models\Alert;
 use App\Models\Transaction;
 use App\Models\UserActivityLog;
 use App\Models\Income;
+use App\Models\SaleItem;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -184,393 +185,100 @@ class SalesController extends Controller
         return view('sales.create', compact('birds', 'eggs', 'birdOptions', 'eggOptions', 'customers', 'birdsData', 'eggsData'));
     }
 
+    // --- In SalesController.php ---
+
     public function store(StoreSaleRequest $request)
     {
         DB::beginTransaction();
         try {
-            if (!Auth::check()) {
-                return back()->withErrors(['auth' => 'User must be authenticated to record a sale.']);
-            }
-
             $validated = $request->validated();
-
-            // normalize saleable_type to class name to be safe
-            $saleableType = ltrim($validated['saleable_type'], '\\');
-
-            // Validate stock BEFORE creating anything
-            if ($saleableType === Bird::class || $saleableType === 'App\\Models\\Bird') {
-                $bird = Bird::lockForUpdate()->find($validated['saleable_id']);
-                if (!$bird || $bird->quantity < $validated['quantity']) {
-                    DB::rollBack();
-                    return back()->withErrors(['quantity' => 'Insufficient bird stock available.']);
-                }
-                // Validate product_variant matches bird's stage or type
-                $product_variant = $validated['product_variant'] ?? '';
-                if ($product_variant && $product_variant !== $bird->stage && $product_variant !== $bird->type) {
-                    throw ValidationException::withMessages(['product_variant' => 'Selected variant does not match the bird\'s stage or type.']);
-                }
-            } else {
-                $egg = Egg::lockForUpdate()->find($validated['saleable_id']);
-                if (!$egg || $egg->crates < $validated['quantity']) {
-                    DB::rollBack();
-                    return back()->withErrors(['quantity' => 'Insufficient egg crates available.']);
-                }
-                // Validate product_variant matches egg's is_cracked
-                $product_variant = $validated['product_variant'] ?? '';
-                $expected_variant = $egg->is_cracked ? 'cracked' : 'regular';
-                if ($product_variant && $product_variant !== $expected_variant) {
-                    throw ValidationException::withMessages(['product_variant' => 'Selected variant does not match if the eggs are cracked or not.']);
-                }
-            }
-
-            // create or resolve customer
-            $customer = Customer::firstOrCreate(
+            
+            $customer = \App\Models\Customer::firstOrCreate(
                 ['name' => $validated['customer_name']],
                 ['phone' => $validated['customer_phone'] ?? '', 'email' => $validated['customer_email'] ?? '']
             );
 
-            $validated['customer_id'] = $customer->id;
-            $validated['total_amount'] = $validated['quantity'] * $validated['unit_price'];
-            $validated['due_date'] = $validated['due_date'] ?? Carbon::parse($validated['sale_date'])->addDays(7);
-            $validated['paid_amount'] = 0;
-            $validated['status'] = 'pending';
-            $validated['created_by'] = Auth::id();
-            $validated['cashier_id'] = Auth::id(); // <-- set cashier on sale
-
-            $sale = Sale::create($validated);
-
-
-            // decrement stock
-            if (isset($bird) && ($saleableType === Bird::class || $saleableType === 'App\\Models\\Bird')) {
-                $bird->decrement('quantity', $validated['quantity']);
-                if ($bird->fresh()->quantity < 0) {
-                    $bird->update(['quantity' => 0]);
-                }
-            } elseif (isset($egg)) {
-                $egg->decrement('crates', $validated['quantity']);
-                if ($egg->fresh()->crates <= 0) {
-                    $egg->update(['crates' => 0]);
-                    // optional: $egg->delete();
-                }
-            }
-
-            Transaction::create([
-                'type' => 'sale',
-                'amount' => $validated['total_amount'],
-                'status' => 'pending',
-                'date' => $validated['sale_date'],
-                'source_type' => Sale::class,
-                'source_id' => $sale->id,
-                'user_id' => Auth::id(),
-                'description' => "Sale of {$validated['quantity']} to {$customer->name}",
+            $sale = \App\Models\Sale::create([
+                'customer_id'     => $customer->id,
+                'saleable_type'   => $validated['saleable_type'],
+                'saleable_id'     => $validated['saleable_id'], // Primary reference
+                'quantity'        => $validated['quantity'],
+                'unit_price'      => $validated['unit_price'],
+                'total_amount'    => $validated['quantity'] * $validated['unit_price'],
+                'sale_date'       => $validated['sale_date'],
+                'due_date'        => $validated['due_date'] ?? now()->addDays(7),
+                'product_variant' => $validated['product_variant'],
+                'status'          => 'pending',
+                'created_by'      => Auth::id(),
             ]);
 
-            Income::create([
-                'source' => "Sale #{$sale->id}",
-                'description' => "Sale of {$validated['quantity']} to {$customer->name}",
-                'amount' => $validated['total_amount'],
-                'date' => $validated['sale_date'],
-                'created_by' => Auth::id(),
-            ]);
+            // Inventory Deduction
+            $this->handleInventoryDeduction($sale, $validated);
 
-            UserActivityLog::create([
-                'user_id' => Auth::id(),
-                'action' => 'created_sale',
-                'details' => "Created sale #{$sale->id} for {$customer->name} (Total: ₵ {$validated['total_amount']})",
-            ]);
-
-            Alert::create([
-                'message' => "New sale #{$sale->id} for customer {$customer->name}",
-                'type' => 'sale',
-                'user_id' => Auth::id(),
-            ]);
-
-            // Record initial payment if provided
+            // One-step Payment
             if ($request->filled('payment_amount') && $request->payment_amount > 0) {
-                $paymentValidated = $request->validate([
-                    'payment_amount' => 'required|numeric|min:0.01|max:' . $validated['total_amount'],
-                    'payment_date' => 'required|date',
-                    'payment_method' => 'nullable|string|in:cash,bank_transfer,mobile_money|max:255',
-                ]);
-
-                $paymentRequest = new Request($paymentValidated);
-                $paymentRequest->merge(['amount' => $paymentValidated['payment_amount']]);
-                $this->recordPayment($paymentRequest, $sale);
+                $this->executePaymentLogic($sale, $request->payment_amount, $request->payment_date ?? now(), $request->payment_method ?? 'cash');
             }
+
+            $this->logSaleFinancials($sale, $customer);
 
             DB::commit();
             return redirect()->route('sales.index')->with('success', 'Sale recorded successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to store sale', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to record sale.');
+            Log::error('Store Sale Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return back()->withInput()->with('error', 'Critical Error: ' . $e->getMessage());
         }
     }
 
-    public function edit(Sale $sale)
+    /**
+     * Updated AJAX method for the Index page
+     */
+    public function recordPayment(Request $request, Sale $sale)
     {
-        $birds = Bird::available()->orderBy('breed')->get()
-        ->pushIf(! Bird::available()->pluck('id')->contains($sale->saleable_id) && ($sale->saleable_type === Bird::class || $sale->saleable_type === 'App\\Models\\Bird'),
-                 Bird::find($sale->saleable_id))
-        ->filter();
-
-    $eggs = Egg::available()->orderBy('date_laid', 'desc')->get()
-        ->pushIf(! Egg::available()->pluck('id')->contains($sale->saleable_id) && ($sale->saleable_type === Egg::class || $sale->saleable_type === 'App\\Models\\Egg'),
-                 Egg::find($sale->saleable_id))
-        ->filter();
-
-    // normalize collections (filter nulls)
-    $birds = $birds->filter();
-    $eggs = $eggs->filter();
-
-    // JS-friendly arrays
-    $birdsData = $birds->map(function ($b) {
-        return [
-            'id' => $b->id,
-            'breed' => $b->breed,
-            'type' => $b->type,
-            'quantity' => (int) $b->quantity,
-            'stage' => $b->stage ?? null,
-            'display' => $b->displayName(),
-        ];
-    })->values()->toArray();
-
-    $eggsData = $eggs->map(function ($e) {
-        return [
-            'id' => $e->id,
-            'crates' => (int) $e->crates,
-            'additional_eggs' => (int) ($e->additional_eggs ?? 0),
-            'date_laid' => optional($e->date_laid)->format('Y-m-d'),
-            'pen_name' => optional($e->pen)->name,
-            'is_cracked' => (bool) ($e->is_cracked ?? false),
-            'egg_size' => $e->egg_size ?? null,
-            'display' => $e->displayName(),
-        ];
-    })->values()->toArray();
-
-    $customers = Customer::whereNull('deleted_at')->orderBy('name')->get();
-
-    return view('sales.edit', compact('sale', 'birds', 'eggs', 'customers', 'birdsData', 'eggsData'));
-
-    }
-
-    public function update(UpdateSaleRequest $request, Sale $sale)
-    {
-        DB::beginTransaction();
-        try {
-            if (!Auth::check()) {
-                return back()->withErrors(['auth' => 'User must be authenticated to update a sale.']);
-            }
-
-            $validated = $request->validated();
-
-            $newType = ltrim($validated['saleable_type'], '\\');
-            $quantityDiff = $validated['quantity'] - $sale->quantity;
-
-            if ($quantityDiff > 0) {
-                if ($newType === Bird::class || $newType === 'App\\Models\\Bird') {
-                    $newBird = Bird::lockForUpdate()->find($validated['saleable_id']);
-                    if (!$newBird || $newBird->quantity < $quantityDiff) {
-                        DB::rollBack();
-                        return back()->withErrors(['quantity' => 'Insufficient bird stock available.']);
-                    }
-                    // Validate product_variant matches newBird's stage or type
-                    $product_variant = $validated['product_variant'] ?? '';
-                    if ($product_variant && $product_variant !== $newBird->stage && $product_variant !== $newBird->type) {
-                        throw ValidationException::withMessages(['product_variant' => 'Selected variant does not match the bird\'s stage or type.']);
-                    }
-                } else {
-                    $newEgg = Egg::lockForUpdate()->find($validated['saleable_id']);
-                    if (!$newEgg || $newEgg->crates < $quantityDiff) {
-                        DB::rollBack();
-                        return back()->withErrors(['quantity' => 'Insufficient egg crates available.']);
-                    }
-                    // Validate product_variant matches newEgg's is_cracked
-                    $product_variant = $validated['product_variant'] ?? '';
-                    $expected_variant = $newEgg->is_cracked ? 'cracked' : 'regular';
-                    if ($product_variant && $product_variant !== $expected_variant) {
-                        throw ValidationException::withMessages(['product_variant' => 'Selected variant does not match if the eggs are cracked or not.']);
-                    }
-                }
-            }
-
-            if ($sale->saleable_type === Bird::class || $sale->saleable_type === 'App\\Models\\Bird') {
-                $originalBird = Bird::lockForUpdate()->find($sale->saleable_id);
-                if ($originalBird) {
-                    $originalBird->increment('quantity', $sale->quantity);
-                }
-            } else {
-                $originalEgg = Egg::lockForUpdate()->find($sale->saleable_id);
-                if ($originalEgg) {
-                    $originalEgg->increment('crates', $sale->quantity);
-                }
-            }
-
-            if ($newType === Bird::class || $newType === 'App\\Models\\Bird') {
-                $bird = Bird::lockForUpdate()->find($validated['saleable_id']);
-                if ($bird) {
-                    if ($bird->quantity < $validated['quantity']) {
-                        DB::rollBack();
-                        return back()->withErrors(['quantity' => 'Insufficient bird stock available for requested update.']);
-                    }
-                    $bird->decrement('quantity', $validated['quantity']);
-                    if ($bird->fresh()->quantity < 0) {
-                        $bird->update(['quantity' => 0]);
-                    }
-                }
-            } else {
-                $egg = Egg::lockForUpdate()->find($validated['saleable_id']);
-                if ($egg) {
-                    if ($egg->crates < $validated['quantity']) {
-                        DB::rollBack();
-                        return back()->withErrors(['quantity' => 'Insufficient egg crates available for requested update.']);
-                    }
-                    $egg->decrement('crates', $validated['quantity']);
-                    if ($egg->fresh()->crates <= 0) {
-                        $egg->update(['crates' => 0]);
-                    }
-                }
-            }
-
-            $customer = Customer::firstOrCreate(
-                ['name' => $validated['customer_name']],
-                ['phone' => $validated['customer_phone'] ?? '', 'email' => $validated['customer_email'] ?? '']
-            );
-
-            $validated['customer_id'] = $customer->id;
-            $validated['total_amount'] = $validated['quantity'] * $validated['unit_price'];
-            $validated['due_date'] = $validated['due_date'] ?? ($sale->due_date ?? Carbon::parse($validated['sale_date'])->addDays(7));
-            $validated['created_by'] = Auth::id();
-
-            $sale->update($validated);
-            $sale->updatePaymentStatus();
-
-            $itemType = $validated['saleable_type'] === Bird::class || $validated['saleable_type'] === 'App\\Models\\Bird' ? 'birds' : 'egg crates';
-            Transaction::updateOrCreate(
-                [
-                    'source_type' => Sale::class,
-                    'source_id' => $sale->id,
-                ],
-                [
-                    'type' => 'sale',
-                    'amount' => $validated['total_amount'],
-                    'status' => $sale->status,
-                    'date' => $validated['sale_date'],
-                    'user_id' => Auth::id(),
-                    'description' => "Updated sale of {$validated['quantity']} {$itemType} to {$customer->name}",
-                ]
-            );
-
-            Income::updateOrCreate(
-                [
-                    'source' => "Sale #{$sale->id}",
-                ],
-                [
-                    'description' => "Sale of {$validated['quantity']} {$itemType} to {$customer->name}",
-                    'amount' => $validated['total_amount'],
-                    'date' => $validated['sale_date'],
-                    'created_by' => Auth::id(),
-                ]
-            );
-
-            UserActivityLog::create([
-                'user_id' => Auth::id(),
-                'action' => 'updated_sale',
-                'details' => "Updated sale #{$sale->id} for {$customer->name} (Total: ₵ {$validated['total_amount']})",
-            ]);
-
-            DB::commit();
-            return redirect()->route('sales.index')->with('success', 'Sale updated successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to update sale', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to update sale.');
-        }
-    }
-
-    public function destroy(Request $request, Sale $sale)
-{
-    try {
-        if (!Auth::check()) {
-            return $request->ajax()
-                ? response()->json(['success' => false, 'message' => 'Authentication required'], 401)
-                : back()->withErrors(['auth' => 'User must be authenticated to delete a sale.']);
-        }
-
-        // Prevent deleting sales that already have payments
-        if ($sale->payments()->exists()) {
-            $message = 'Cannot delete sale with associated payments.';
-            return $request->ajax()
-                ? response()->json(['success' => false, 'message' => $message], 422)
-                : redirect()->route('sales.index')->with('error', $message);
-        }
-
-        DB::beginTransaction();
-
-        // Restore stock with row-level lock to avoid races
-        if ($sale->saleable_type === Bird::class || $sale->saleable_type === 'App\\Models\\Bird') {
-            $bird = Bird::lockForUpdate()->find($sale->saleable_id);
-            if ($bird) {
-                $bird->increment('quantity', $sale->quantity);
-            }
-        } else {
-            $egg = Egg::lockForUpdate()->find($sale->saleable_id);
-            if ($egg) {
-                $egg->increment('crates', $sale->quantity);
-            }
-        }
-
-        // Remove related transaction/income records
-        Transaction::where('source_type', Sale::class)
-            ->where('source_id', $sale->id)
-            ->delete();
-
-        Income::where('source', "Sale #{$sale->id}")->delete();
-
-        // Activity log
-        $customerName = $sale->customer ? $sale->customer->name : 'Unknown';
-        $saleDate = $sale->sale_date ? \Carbon\Carbon::parse($sale->sale_date)->format('Y-m-d') : 'N/A';
-
-        UserActivityLog::create([
-            'user_id' => Auth::id() ?? 1,
-            'action' => 'deleted_sale',
-            'details' => "Deleted sale ID {$sale->id} for customer {$customerName} on {$saleDate} with total amount ₵{$sale->total_amount}",
+        // Force validation
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'payment_date' => 'required|date',
+            'payment_method' => 'required|string',
         ]);
 
-        // Soft-delete the sale
-        $sale->delete();
+        try {
+            DB::beginTransaction();
+            
+            // Use the shared logic we created earlier
+            $this->executePaymentLogic(
+                $sale, 
+                $validated['amount'], 
+                $validated['payment_date'], 
+                $validated['payment_method']
+            );
+            
+            DB::commit();
 
-        DB::commit();
-
-        if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Sale record deleted successfully.',
-                'sale_id' => $sale->id,
-            ], 200);
-        }
+                'message' => 'Payment recorded successfully!'
+            ])
+            // UX FIX: Force browser to bypass any local or middleware cache
+            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
 
-        return redirect()->route('sales.index')->with('success', 'Sale record deleted successfully.');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Failed to delete sale: ' . $e->getMessage(), ['trace' => $e->getTraceAsString(), 'sale_id' => $sale->id ?? null]);
-
-        if ($request->ajax()) {
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Payment AJAX Error: " . $e->getMessage());
             return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete sale. ' . ($e->getCode() == 23000 ? 'This sale is linked to other data.' : 'Please try again.')
+                'success' => false, 
+                'error' => 'Server Error: ' . $e->getMessage()
             ], 500);
         }
-
-        return redirect()->route('sales.index')->with('error', 'Failed to delete sale.');
     }
-}
-
 
     public function invoice(Sale $sale, Request $request)
     {
         try {
-            $sale->load('customer', 'saleable', 'payments');
+            $sale->load(['customer', 'saleable', 'payments', 'items.saleable']);
 
             if (!$sale->customer || !$sale->saleable) {
                 return redirect()->back()->with('error', 'Customer or product not found for this sale.');
@@ -611,76 +319,108 @@ class SalesController extends Controller
         }
     }
 
-    public function updateStatus(Request $request, Sale $sale)
-    {
-        try {
-            if (!Auth::check()) {
-                return back()->withErrors(['auth' => 'User must be authenticated to update invoice status.']);
-            }
 
-            $validated = $request->validate([
-                'status' => 'required|in:pending,paid,partially_paid,overdue',
+            /**
+         * UX Logic: Fulfills the order by depleting stock from multiple batches (FIFO)
+         */
+        private function handleInventoryDeduction($sale, $validated)
+        {
+            $saleableType = ltrim($validated['saleable_type'], '\\');
+            $remaining = (int)$validated['quantity'];
+
+            if ($saleableType === Egg::class || $saleableType === 'App\\Models\\Egg') {
+                $isCracked = ($validated['product_variant'] === 'cracked');
+
+                // Find batches of this variant, oldest first (FIFO)
+                $batches = Egg::where('is_cracked', $isCracked)
+                    ->where('crates', '>', 0)
+                    ->orderBy('date_laid', 'asc')
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($batches as $batch) {
+                    if ($remaining <= 0) break;
+                    $take = min($batch->crates, $remaining);
+
+                    // Create the tracking record for this specific batch
+                    SaleItem::create([
+                        'sale_id' => $sale->id,
+                        'saleable_type' => Egg::class,
+                        'saleable_id' => $batch->id,
+                        'quantity' => $take,
+                        'unit_price' => $validated['unit_price'],
+                        'subtotal' => $take * $validated['unit_price'],
+                    ]);
+
+                    $batch->decrement('crates', $take);
+                    $remaining -= $take;
+                }
+            } else {
+                // Handle Birds (Standard Single-Batch logic)
+                $bird = Bird::lockForUpdate()->find($validated['saleable_id']);
+                $bird->decrement('quantity', $remaining);
+                
+                SaleItem::create([
+                    'sale_id' => $sale->id,
+                    'saleable_type' => Bird::class,
+                    'saleable_id' => $bird->id,
+                    'quantity' => $remaining,
+                    'unit_price' => $validated['unit_price'],
+                    'subtotal' => $sale->total_amount,
+                ]);
+            }
+        }
+
+        /**
+         * Shared logic to handle financial records and logging
+         */
+        private function logSaleFinancials($sale, $customer)
+        {
+            Transaction::create([
+                'type' => 'sale',
+                'amount' => $sale->total_amount,
+                'status' => 'pending',
+                'date' => $sale->sale_date,
+                'source_type' => Sale::class,
+                'source_id' => $sale->id,
+                'user_id' => Auth::id(),
+                'description' => "Sale of {$sale->quantity} to {$customer->name}",
             ]);
 
-            $oldStatus = $sale->status;
-            $sale->update(['status' => $validated['status']]);
-
-            Transaction::where('source_type', Sale::class)
-                ->where('source_id', $sale->id)
-                ->update(['status' => $validated['status']]);
-
-            Income::where('source', "Sale #{$sale->id}")
-                ->update(['synced_at' => $validated['status'] === 'paid' ? now() : null]);
+            Income::create([
+                'source' => "Sale #{$sale->id}",
+                'description' => "Sale of {$sale->quantity} to {$customer->name}",
+                'amount' => $sale->total_amount,
+                'date' => $sale->sale_date,
+                'created_by' => Auth::id(),
+            ]);
 
             UserActivityLog::create([
                 'user_id' => Auth::id(),
-                'action' => 'updated_invoice_status',
-                'details' => "Changed status of invoice #{$sale->id} for {$sale->customer->name} from {$oldStatus} to {$validated['status']}",
+                'action' => 'created_sale',
+                'details' => "Created sale #{$sale->id} for {$customer->name} (Total: ₵ {$sale->total_amount})",
             ]);
 
             Alert::create([
-                'message' => "Invoice #{$sale->id} status changed to {$validated['status']} for {$sale->customer->name}",
-                'type' => 'payment',
+                'message' => "New sale #{$sale->id} for customer {$customer->name}",
+                'type' => 'sale',
                 'user_id' => Auth::id(),
             ]);
-
-            return redirect()->route('sales.index')->with('success', 'Invoice status updated successfully.');
-        } catch (\Exception $e) {
-            Log::error('Failed to update invoice status', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Failed to update invoice status.');
         }
-    }
 
-    /**
- * Record payment (supports AJAX JSON responses)
- */
-    public function recordPayment(Request $request, Sale $sale)
-{
-    // Force JSON response even for validation errors
-    if ($request->ajax() || $request->wantsJson()) {
-        try {
-            $validated = $request->validate([
-                'amount' => 'required|numeric|min:0.01',
-                'payment_date' => 'required|date',
-                'payment_method' => 'required|string|in:cash,mobile_money,bank_transfer',
-            ]);
-
-            $amount = round((float)$validated['amount'], 2);
-            $sale->refresh();
-            $balance = round((float)$sale->total_amount - (float)$sale->paid_amount, 2);
-
-            if ($amount > $balance) {
-                return response()->json(['success' => false, 'error' => "Amount (₵$amount) exceeds balance (₵$balance)"], 422);
-            }
-
-            DB::beginTransaction();
+        /**
+         * Shared Private Logic to actually write the payment to DB
+         */
+        private function executePaymentLogic(Sale $sale, $amount, $date, $method)
+        {
+            $amount = round((float)$amount, 2);
 
             Payment::create([
                 'sale_id' => $sale->id,
                 'customer_id' => $sale->customer_id,
                 'amount' => $amount,
-                'payment_date' => $validated['payment_date'],
-                'payment_method' => $validated['payment_method'],
+                'payment_date' => $date,
+                'payment_method' => $method,
                 'created_by' => Auth::id(),
             ]);
 
@@ -688,40 +428,15 @@ class SalesController extends Controller
                 'type' => 'payment',
                 'amount' => $amount,
                 'status' => 'approved',
-                'date' => $validated['payment_date'],
+                'date' => $date,
                 'source_type' => Sale::class,
                 'source_id' => $sale->id,
                 'user_id' => Auth::id(),
                 'description' => "Payment for Sale #{$sale->id}",
             ]);
 
-            // Sync math and status
             $sale->refresh();
-            $totalPaid = (float)$sale->payments()->sum('amount');
-            $sale->paid_amount = $totalPaid;
-
-            if ($totalPaid >= (float)$sale->total_amount) {
-                $sale->status = 'paid';
-            } elseif ($totalPaid > 0) {
-                $sale->status = 'partially_paid';
-            }
-            
-            $sale->save();
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment recorded! Total Paid: ₵' . number_format($totalPaid, 2),
-                'redirect' => route('sales.index')
-            ], 200);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("Payment Error: " . $e->getMessage());
-            return response()->json(['success' => false, 'error' => 'Database Error: ' . $e->getMessage()], 500);
+            $sale->updatePaymentStatus(); 
         }
-    }
-    return back()->with('error', 'Invalid Request Type');
-}
 
 }

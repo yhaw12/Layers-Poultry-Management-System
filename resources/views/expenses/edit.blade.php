@@ -11,7 +11,7 @@
             <select name="category" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white @error('category') border-red-500 @enderror">
                 <option value="Structure" {{ old('category', $expense->category) === 'Structure' ? 'selected' : '' }}>Structure</option>
                 <option value="Feed" {{ old('category', $expense->category) === 'Feed' ? 'selected' : '' }}>Feed</option>
-                <option value="Veterinary" {{ old('category', $expense->category) === 'Veterinary' ? 'selected' : '' }}>Veterinary</option>
+                <option value="MedicineLog" {{ old('category', $expense->category) === 'MedicineLog' ? 'selected' : '' }}>MedicineLog</option>
                 <option value="Utilities" {{ old('category', $expense->category) === 'Utilities' ? 'selected' : '' }}>Utilities</option>
                 <option value="Labor" {{ old('category', $expense->category) === 'Labor' ? 'selected' : '' }}>Labor</option>
             </select>

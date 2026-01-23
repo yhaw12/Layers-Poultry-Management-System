@@ -30,6 +30,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\VaccinationLogController;
 use App\Http\Controllers\WeatherController;
+use Spatie\ResponseCache\Middlewares\DoNotCacheResponse;
 
 /*
 |--------------------------------------------------------------------------
@@ -200,8 +201,7 @@ Route::middleware(['auth'])->prefix('sales')->name('sales.')->group(function () 
     Route::get('/{sale}/invoice/preview', [SalesController::class, 'invoicePreview'])->name('invoice.preview');
     Route::get('/pending-json', [SalesController::class, 'pendingJson'])->name('pendingJson');
     Route::post('/{sale}/record-payment', [SalesController::class, 'recordPayment'])->name('recordPayment');
-    Route::post('/sales/{sale}/record-payment', [SalesController::class, 'recordPayment'])
-    ->name('sales.recordPayment');
+    Route::post('/sales/{sale}/record-payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment')->middleware(DoNotCacheResponse::class);
 
    
 });

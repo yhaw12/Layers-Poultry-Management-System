@@ -154,15 +154,105 @@
 </head>
 <body>
     <div class="invoice-container">
-
-        <!-- Actions -->
         <div class="actions no-print">
-            <a href="javascript:history.back()" class="btn btn-back">← Close Invoice</a>
-            <a href="javascript:window.print()" class="btn btn-print">🖨 Print Invoice</a>
+            <a href="javascript:history.back()" class="btn btn-back">← Back</a>
+            <button onclick="window.print()" class="btn btn-print">🖨 Print Invoice</button>
         </div>
 
-        @include('sales.invoice_fragment')
+        <div class="header">
+            <div>
+                <h1>INVOICE</h1>
+                <div style="font-size: 0.9em; color: #666; margin-top: 5px;">{{ $company['name'] }}</div>
+                <div style="font-size: 0.8em; color: #888;">{{ $company['address'] }}</div>
+                <div style="font-size: 0.8em; color: #888;">{{ $company['phone'] }}</div>
+            </div>
+            <div class="invoice-info">
+                <div><strong>Invoice #:</strong> {{ str_pad($sale->id, 5, '0', STR_PAD_LEFT) }}</div>
+                <div><strong>Date:</strong> {{ $sale->sale_date->format('M d, Y') }}</div>
+                <div><strong>Status:</strong> 
+                    <span style="color: {{ $sale->isPaid() ? 'green' : 'red' }}; font-weight: bold; text-transform: uppercase;">
+                        {{ str_replace('_', ' ', $sale->status) }}
+                    </span>
+                </div>
+            </div>
+        </div>
 
+        <div class="customer-info">
+            <div>
+                <h3>Bill To:</h3>
+                <div>{{ $sale->customer->name }}</div>
+                <div>{{ $sale->customer->phone ?? 'No Phone' }}</div>
+            </div>
+        </div>
+
+        <h3>Order Details</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Description</th>
+                    <th style="text-align: center;">Qty</th>
+                    <th style="text-align: right;">Unit Price</th>
+                    <th style="text-align: right;">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if($sale->items->count() > 0)
+                    @foreach($sale->items as $item)
+                        <tr>
+                            <td>
+                                {{ $item->saleable_type === 'App\Models\Egg' ? 'Egg Crate' : 'Bird' }}
+                                {{-- <span style="font-size: 0.85em; color: #666; margin-left: 5px;">
+                                    (Batch: {{ $item->saleable->displayName() ?? '#'.$item->saleable_id }})
+                                </span> --}}
+                            </td>
+                            <td style="text-align: center;">{{ $item->quantity }}</td>
+                            <td style="text-align: right;">₵ {{ number_format($item->unit_price, 2) }}</td>
+                            <td style="text-align: right;">₵ {{ number_format($item->subtotal, 2) }}</td>
+                        </tr>
+                    @endforeach
+                @else
+                    {{-- Fallback for legacy data --}}
+                    <tr>
+                        <td>{{ class_basename($sale->saleable_type) }} ({{ $sale->product_variant }})</td>
+                        <td style="text-align: center;">{{ $sale->quantity }}</td>
+                        <td style="text-align: right;">₵ {{ number_format($sale->unit_price, 2) }}</td>
+                        <td style="text-align: right;">₵ {{ number_format($sale->total_amount, 2) }}</td>
+                    </tr>
+                @endif
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <div>Total: <strong>₵ {{ number_format($sale->total_amount, 2) }}</strong></div>
+            <div style="color: #28a745;">Paid: <strong>(-) ₵ {{ number_format($sale->paid_amount, 2) }}</strong></div>
+            <div class="totals-box">
+                <strong>Due: ₵ {{ number_format($sale->balance(), 2) }}</strong>
+            </div>
+        </div>
+
+        {{-- @if($sale->payments->count() > 0)
+            <div style="margin-top: 40px;">
+                <h3>Payment History</h3>
+                <table style="width: 60%; font-size: 13px;">
+                    <thead>
+                        <tr><th style="background:#eee;">Date</th><th style="background:#eee;">Method</th><th style="background:#eee; text-align:right;">Amount</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach($sale->payments as $payment)
+                            <tr>
+                                <td>{{ $payment->payment_date->format('M d, Y') }}</td>
+                                <td style="text-transform: capitalize;">{{ str_replace('_', ' ', $payment->payment_method) }}</td>
+                                <td style="text-align: right;">₵ {{ number_format($payment->amount, 2) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif --}}
+
+        <div class="company-info">
+            <p>Thank you for your business!</p>
+        </div>
     </div>
 </body>
 </html>

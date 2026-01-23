@@ -98,9 +98,14 @@ return [
 
      // config/responsecache.php
 
-'do_not_cache_routes' => [
-    'users/*/permissions', // <--- ADD THIS LINE
-    'users/*/permissions/*',
-    'api/*',
-],
+    'do_not_cache_routes' => [
+        'users/*/permissions', // <--- ADD THIS LINE
+        'users/*/permissions/*',
+        'api/*',
+    ],
+
+    'except' => [
+        'sales/*',           // Excludes index, create, edit
+        'sales/*/record-payment', // Excludes the AJAX payment route
+    ],
 ];

@@ -167,25 +167,32 @@
                         <span class="text-sm text-gray-700 dark:text-gray-200 font-medium">Take payment now (one-step)</span>
                     </label>
 
-                    <div id="payNowFields" class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 items-end hidden">
+                    <div id="payNowFields" class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3 items-end hidden">
                         <div>
-                            <label for="payment_amount" class="block text-xs text-gray-500 dark:text-gray-400">Payment Amount (₵)</label>
-                            <input type="number" id="payment_amount" name="payment_amount" step="0.01" min="0.01" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white" placeholder="0.00">
-                            <p id="paymentError" class="text-xs text-red-600 mt-1 hidden"></p>
+                            <label for="payment_amount" class="block text-xs text-gray-500 dark:text-gray-400">Amount (₵)</label>
+                            <input type="number" id="payment_amount" name="payment_amount" step="0.01" min="0.01" 
+                                class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white" 
+                                placeholder="0.00">
+                        </div>
+
+                        <div>
+                            <label for="payment_date" class="block text-xs text-gray-500 dark:text-gray-400">Date</label>
+                            <input type="date" id="payment_date" name="payment_date" 
+                                value="{{ now()->format('Y-m-d') }}"
+                                class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white">
                         </div>
 
                         <div>
                             <label for="payment_method" class="block text-xs text-gray-500 dark:text-gray-400">Method</label>
                             <select id="payment_method" name="payment_method" class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white">
-                                <option value="">Select method</option>
-                                <option value="cash">Cash</option>
+                                <option value="cash" selected>Cash</option>
                                 <option value="mobile_money">Mobile Money</option>
                                 <option value="bank_transfer">Bank Transfer</option>
                             </select>
                         </div>
 
                         <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Balance after payment</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Balance due</p>
                             <p id="paymentBalance" class="text-sm font-medium text-gray-800 dark:text-gray-100 mt-1">₵ 0.00</p>
                         </div>
                     </div>
@@ -263,7 +270,18 @@ document.addEventListener('DOMContentLoaded', function () {
     function formatCurrency(num) {
         return '₵ ' + (Number(num) || 0).toFixed(2);
     }
-
+    
+    function getTotalVariantStock(type, variant) {
+        // We usually only apply spill-over to Eggs
+        if (type !== 'App\\Models\\Egg' || !variant) return null;
+        
+        return eggsData
+            .filter(e => {
+                const eggVariant = e.is_cracked ? 'cracked' : 'regular';
+                return eggVariant === variant;
+            })
+            .reduce((sum, e) => sum + Number(e.crates), 0);
+    }
     // Populate product lists depending on type
     function populateProductLists() {
         clearSelect(saleableId);
@@ -349,21 +367,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateAvailabilityUI() {
-        const { available, meta } = findAvailability();
+        const { available } = findAvailability();
+        const type = saleableType.value;
+        const variant = productVariant.value;
+
         if (available === null) {
-            availabilityInfo.textContent = 'Select a product to see availability';
-            availabilityInfo.className = 'text-sm font-medium text-gray-700 dark:text-gray-200';
+            availabilityInfo.innerHTML = '<span class="text-gray-400 italic">Select product...</span>';
             return;
         }
-        const parts = [`${available} ${unitHint.textContent}`];
-        if (meta) {
-            if (meta.stage) parts.push(meta.stage);
-            if (meta.type) parts.push(meta.type);
-            if (meta.egg_size) parts.push('Size: ' + meta.egg_size);
-            if (meta.pen_name) parts.push(meta.pen_name);
+
+        let html = `<span class="text-gray-600">This Batch:</span> <strong>${available}</strong>`;
+        
+        if (type === 'App\\Models\\Egg' && variant) {
+            const total = getTotalVariantStock(type, variant);
+            html = `
+                <div class="flex flex-col">
+                    <span class="text-blue-600 font-bold">Total ${variant} Available: ${total}</span>
+                    <span class="text-xs text-gray-500">From this batch: ${available}</span>
+                </div>
+            `;
         }
-        availabilityInfo.textContent = parts.join(' • ');
-        availabilityInfo.className = 'text-sm font-medium text-gray-800 dark:text-gray-100';
+        
+        availabilityInfo.innerHTML = html;
     }
 
     function setVariantFromMeta(meta, t) {
@@ -394,44 +419,58 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function validateForm() {
-        // basic validations: required fields must be present and quantity must be within available stock
-        let ok = true;
-        let messages = [];
+    let ok = true;
+    let messages = [];
 
-        // required checks
-        if (!saleableType.value) { ok = false; messages.push('Product type is required'); }
-        if (!saleableId.value) { ok = false; messages.push('Product selection is required'); }
-        if (!productVariant.value) { ok = false; messages.push('Product variant is required'); }
-        const q = Number(quantity.value) || 0;
-        if (!q || q <= 0) { ok = false; messages.push('Enter a quantity'); }
+    const type = saleableType.value;
+    const variant = productVariant.value;
+    const q = Number(quantity.value) || 0;
 
+    // FIND STOCK: If it's eggs, check the whole variant. Otherwise, check the batch.
+    let totalAvailable = 0;
+    if (type === 'App\\Models\\Egg' && variant) {
+        totalAvailable = getTotalVariantStock(type, variant);
+    } else {
         const { available } = findAvailability();
-        if (available !== null && q > available) {
-            ok = false;
-            messages.push(`Insufficient stock: only ${available} ${unitHint.textContent} available.`);
-            quantityError.textContent = `Insufficient stock: only ${available} ${unitHint.textContent} available.`;
-            quantityError.classList.remove('hidden');
-        } else {
-            quantityError.classList.add('hidden');
-            quantityError.textContent = '';
-        }
-
-        // update validation summary
-        if (!ok) {
-            validationSummary.textContent = messages.join(' • ');
-            validationSummary.className = 'text-sm text-red-600 dark:text-red-400';
-        } else {
-            validationSummary.textContent = 'Looks good';
-            validationSummary.className = 'text-sm text-green-600 dark:text-green-400';
-        }
-
-        // enable save button only when form is ok and required numeric fields present
-        const p = Number(unitPrice.value) || 0;
-        saveBtn.disabled = !(ok && p >= 0);
-
-        return { ok, shouldConfirm: (available !== null && q > 0 && (q / available) >= LARGE_DECREASE_THRESHOLD), q, available };
+        totalAvailable = available;
     }
 
+    // Required checks
+    if (!saleableType.value) { ok = false; messages.push('Product type is required'); }
+    if (!saleableId.value) { ok = false; messages.push('Product selection is required'); }
+    if (!productVariant.value) { ok = false; messages.push('Product variant is required'); }
+    if (!q || q <= 0) { ok = false; messages.push('Enter a quantity'); }
+
+    // STOCK CHECK
+    if (totalAvailable !== null && q > totalAvailable) {
+        ok = false;
+        const unit = unitHint.textContent;
+        messages.push(`Insufficient total stock: only ${totalAvailable} ${unit} available.`);
+        quantityError.textContent = `Insufficient stock across all batches (${totalAvailable} total).`;
+        quantityError.classList.remove('hidden');
+    } else {
+        quantityError.classList.add('hidden');
+    }
+
+    // Update UI
+    if (!ok) {
+        validationSummary.textContent = messages.join(' • ');
+        validationSummary.className = 'text-sm text-red-600 dark:text-red-400';
+    } else {
+        validationSummary.textContent = 'Looks good';
+        validationSummary.className = 'text-sm text-green-600 dark:text-green-400';
+    }
+
+    const p = Number(unitPrice.value) || 0;
+    saveBtn.disabled = !(ok && p >= 0);
+
+    return { 
+        ok, 
+        shouldConfirm: (totalAvailable !== null && q > 0 && (q / totalAvailable) >= LARGE_DECREASE_THRESHOLD), 
+        q, 
+        available: totalAvailable 
+    };
+    }
     // Event wiring
     saleableType.addEventListener('change', function() {
         populateProductLists();
@@ -450,6 +489,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     productVariant.addEventListener('change', function() {
+    updateAvailabilityUI();
         validateForm();
     });
 
@@ -504,6 +544,51 @@ document.addEventListener('DOMContentLoaded', function () {
             confirmModal.classList.add('hidden');
         }
     });
+
+    // --- NEW: Pay Now Toggle Logic ---
+    const payNowCheckbox = document.getElementById('pay_now');
+    const payNowFields = document.getElementById('payNowFields');
+    const paymentAmountInput = document.getElementById('payment_amount');
+    const paymentBalanceDisplay = document.getElementById('paymentBalance');
+
+    payNowCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            // Show fields
+            payNowFields.classList.remove('hidden');
+            
+            // Auto-fill amount from the estimated total
+            // Remove non-numeric characters (like '₵ ') to get the raw number
+            const currentTotal = parseFloat(estimatedTotal.textContent.replace(/[^\d.-]/g, ''));
+            
+            if (!isNaN(currentTotal) && currentTotal > 0) {
+                paymentAmountInput.value = currentTotal.toFixed(2);
+                paymentBalanceDisplay.textContent = '₵ 0.00'; // Fully paid
+            }
+        } else {
+            // Hide fields and clear value so controller ignores it
+            payNowFields.classList.add('hidden');
+            paymentAmountInput.value = ''; 
+        }
+    });
+
+    // Update Balance Display when typing custom payment amount
+        paymentAmountInput.addEventListener('input', function() {
+        const total = parseFloat(estimatedTotal.textContent.replace(/[^\d.-]/g, '')) || 0;
+        const paid = parseFloat(this.value) || 0;
+        const balance = total - paid;
+        
+        if (balance < 0) {
+            paymentBalanceDisplay.innerHTML = `<span class="text-blue-500">Overpayment: ₵${Math.abs(balance).toFixed(2)}</span>`;
+        } else {
+            paymentBalanceDisplay.textContent = formatCurrency(balance);
+        }
+    });
+
+    // Add this to the end of your DOMContentLoaded block
+    if (payNowCheckbox.checked || "{{ old('pay_now') }}" === "on") {
+        payNowCheckbox.checked = true;
+        payNowFields.classList.remove('hidden');
+    }
 });
 </script>
 @endpush

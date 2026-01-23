@@ -20,6 +20,7 @@ class Payroll extends Model
         'net_pay',
         'status',
         'notes',
+        'expense_id'
     ];
     protected $dates = ['deleted_at'];
 
