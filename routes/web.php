@@ -101,12 +101,17 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:admin');
 
     // Reports (✅ fixed, no duplicates)
+   // Reports
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
+        
+        // These specific ones are fine if you use them elsewhere
         Route::get('/export/csv', [ReportController::class, 'exportCsv'])->name('export.csv');
         Route::get('/export/pdf', [ReportController::class, 'exportPdf'])->name('export.pdf');
         Route::get('/export/excel', [ReportController::class, 'exportExcel'])->name('export.excel');
-        Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+
+        
+        Route::get('/export', [ReportController::class, 'export'])->name('export'); 
         Route::get('/data', [ReportController::class, 'data'])->name('data');
     });
 

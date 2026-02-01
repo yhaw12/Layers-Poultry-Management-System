@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Database\Factories\AlertFactory;
 use Database\Factories\BirdFactory;
-// use Database\Factories\ChickFactory;
+//  use Database\Factories\ChickFactory;
 use Database\Factories\CustomerFactory;
 use Database\Factories\EggFactory;
 use Database\Factories\EmployeeFactory;
@@ -47,7 +47,7 @@ class DatabaseSeeder extends Seeder
     //     $reminders = ReminderFactory::new()->count(20)->create();
 
     //     // Create Birds
-    //     $birds = BirdFactory::new()->count(5000)->create();
+        $birds = BirdFactory::new()->count(5000)->create();
 
     //     // Create Chicks
     //     // ChickFactory::new()->count(5024)->create();
@@ -58,7 +58,7 @@ class DatabaseSeeder extends Seeder
     //     $eggs = EggFactory::new()->count(2000)->create();
 
     //     // Create Feed
-    //     $feeds = FeedFactory::new()->count(50)->create();
+        $feeds = FeedFactory::new()->count(50)->create();
 
     //     // Create Feed Consumption
     //     foreach ($feeds->random(20) as $feed) {
@@ -76,13 +76,13 @@ class DatabaseSeeder extends Seeder
     //     InventoryFactory::new()->count(20)->create();
 
     //     // Create Expenses
-    //     ExpenseFactory::new()->count(50)->create();
+        ExpenseFactory::new()->count(50)->create();
 
     //     // Create Income
     //     IncomeFactory::new()->count(100)->create();
 
     //     // Create Employees
-    //     $employees = EmployeeFactory::new()->count(15)->create();
+        $employees = EmployeeFactory::new()->count(15)->create();
 
     //     // Create Payroll
     //     foreach ($employees as $employee) {
@@ -93,17 +93,17 @@ class DatabaseSeeder extends Seeder
     //     $customers = CustomerFactory::new()->count(20)->create();
 
     //     // Create Sales
-    //     $saleables = $birds->merge($eggs);
-    //     foreach ($customers as $customer) {
-    //         for ($i = 0; $i < 3; $i++) {
-    //             $saleable = $saleables->random();
-    //             SaleFactory::new()->create([
-    //                 'customer_id' => $customer->id,
-    //                 'saleable_id' => $saleable->id,
-    //                 'saleable_type' => get_class($saleable),
-    //             ]);
-    //         }
-    //     }
+        // $saleables = $birds->merge($eggs);
+        // foreach ($customers as $customer) {
+        //     for ($i = 0; $i < 3; $i++) {
+        //         $saleable = $saleables->random();
+        //         SaleFactory::new()->create([
+        //             'customer_id' => $customer->id,
+        //             'saleable_id' => $saleable->id,
+        //             'saleable_type' => get_class($saleable),
+        //         ]);
+        //     }
+        // }
 
     //     // Create Vaccination Logs
     //     VaccinationLogFactory::new()->count(40)->create();
@@ -120,7 +120,7 @@ class DatabaseSeeder extends Seeder
     //     UserActivityLogFactory::new()->count(50)->create();
 
     //     // Create Transactions
-    //     TransactionFactory::new()->count(100)->create();
+        TransactionFactory::new()->count(100)->create();
 
     }
 }

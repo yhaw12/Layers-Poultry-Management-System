@@ -72,9 +72,17 @@ class BirdsController extends Controller
 
         $validated = $validator->validate();
 
-        // Calculate age based on entry_date or purchase_date
-        $referenceDate = $request->stage === 'chick' ? $validated['purchase_date'] : $validated['entry_date'];
-        $validated['age'] = Carbon::parse($referenceDate)->diffInWeeks(Carbon::now());
+            // Ensure the entry_date exists before parsing
+        if (isset($validated['entry_date'])) {
+            $entryDate = Carbon::parse($validated['entry_date']);
+
+            // Calculate age in full weeks
+            // We use max(0, ...) to prevent negative ages if the date is set in the future
+            $validated['age'] = max(0, $entryDate->diffInWeeks(Carbon::now()));
+        } else {
+            // Optional: Handle the case where entry_date isn't provided
+            $validated['age'] = 0; 
+        }
 
         // Normalize quantity semantics:
         // - quantity_bought: original batch size (never decreases)
@@ -153,9 +161,11 @@ class BirdsController extends Controller
 
         $validated = $validator->validate();
 
-        // Calculate age based on entry_date or purchase_date
-        $referenceDate = $request->stage === 'chick' ? $validated['purchase_date'] : $validated['entry_date'];
-        $validated['age'] = Carbon::parse($referenceDate)->diffInWeeks(Carbon::now());
+        // Force calculation to always use entry_date
+        if (isset($validated['entry_date'])) {
+            $entryDate = Carbon::parse($validated['entry_date']);
+            $validated['age'] = max(0, $entryDate->diffInWeeks(Carbon::now()));
+        }
 
         // Recompute current quantity so fields remain consistent
         if ($request->stage === 'chick') {

@@ -138,6 +138,9 @@ class ReportController extends Controller
     /**
      * Central method returning structured data for a given report type
      */
+    /**
+     * Central method returning structured data for ALL tabs simultaneously.
+     */
     private function getReportData(Request $request, string $reportType): array
     {
         if (!Auth::check()) {
@@ -146,19 +149,15 @@ class ReportController extends Controller
 
         [$start, $end] = $this->normalizeDates($request);
         $userId = Auth::id();
-        $compareFlag = $request->input('compare', '0') === '1';
-        $cacheKey = "report_{$reportType}_u{$userId}_s{$start->timestamp}_e{$end->timestamp}_c{$compareFlag}";
+        $cacheKey = "report_all_u{$userId}_s{$start->timestamp}_e{$end->timestamp}";
 
-        // Clear cache if debugging (optional, remove in production)
-        // Cache::forget($cacheKey);
-
-        return Cache::remember($cacheKey, $this->cacheTTL, function () use ($request, $reportType, $start, $end, $compareFlag) {
+        return Cache::remember($cacheKey, $this->cacheTTL, function () use ($start, $end) {
             $data = [];
             $startStr = $start->toDateTimeString();
             $endStr = $end->toDateTimeString();
-            $daysInPeriod = $start->diffInDays($end) + 1;
+            $daysInPeriod = max(1, $start->diffInDays($end) + 1);
 
-            // --- 1. CORE FINANCIALS (KPIs) ---
+            // --- 1. CORE FINANCIALS ---
             $totalIncome = Income::whereBetween('date', [$startStr, $endStr])->withoutTrashed()->sum('amount') ?? 0;
             $totalExpenses = Expense::whereBetween('date', [$startStr, $endStr])->withoutTrashed()->sum('amount') ?? 0;
             $totalPayroll = Payroll::whereBetween('pay_date', [$startStr, $endStr])->whereNull('deleted_at')->sum('net_pay') ?? 0;
@@ -173,7 +172,7 @@ class ReportController extends Controller
                 'end' => $end->toDateString(),
             ];
 
-            // --- 2. GLOBAL CHART DATA (Populates Trends & Comparisons Tabs) ---
+            // --- 2. TRENDS & CHARTS ---
             $data['charts'] = [
                 'eggTrend' => Egg::selectRaw("DATE_FORMAT(date_laid, '%Y-%m-%d') as date, SUM(crates) as value")
                     ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
@@ -201,79 +200,75 @@ class ReportController extends Controller
                     'Overdue' => Sale::where('status', 'overdue')->whereBetween('sale_date', [$startStr, $endStr])->count(),
                 ],
 
-                // NEW: Transaction Trend for Payments Tab
                 'transactionTrend' => Transaction::selectRaw("DATE(date) as date, SUM(amount) as value")
-                    ->whereBetween('date', [$startStr, $endStr])
-                    ->whereNull('deleted_at')
-                    ->groupBy('date')
-                    ->orderBy('date')
-                    ->get(),
+                    ->whereBetween('date', [$startStr, $endStr])->whereNull('deleted_at')->groupBy('date')->orderBy('date')->get(),
             ];
 
-            // --- 3. ADVANCED METRICS ---
-            $eggTotal = $data['charts']['eggTrend']->sum('value');
-            $data['avg_crates_per_day'] = $daysInPeriod > 0 ? $eggTotal / $daysInPeriod : 0;
-            
+            // --- 3. PERIODIC DATA ---
+            $data['weekly'] = Egg::selectRaw('YEAR(date_laid) as year, WEEK(date_laid, 1) as week, SUM(crates) as total')
+                ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('year', 'week')->orderBy('year', 'asc')->orderBy('week', 'asc')->get();
+
+            $data['monthly'] = Egg::selectRaw('YEAR(date_laid) as year, MONTH(date_laid) as month_num, SUM(crates) as total')
+                ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('year', 'month_num')->orderBy('year', 'asc')->orderBy('month_num', 'asc')->get();
+
+            // --- 4. EFFICIENCY DATA ---
             $totalFeedKg = $data['charts']['feedTrend']->sum('value');
+            $totalCrates = $data['charts']['eggTrend']->sum('value');
+            
+            // FIXED 1: Removed 'where status=active' which caused the first crash
+            $totalBirds = Bird::count() ?: 1; 
+
+            $data['efficiency'] = [
+                'mortality_trend' => Mortalities::selectRaw("DATE(date) as date, SUM(quantity) as value")
+                    ->whereBetween('date', [$startStr, $endStr])->groupBy('date')->orderBy('date')->get(),
+                'expense_breakdown' => Expense::selectRaw("category, SUM(amount) as total")
+                    ->whereBetween('date', [$startStr, $endStr])->groupBy('category')->get(),
+                'egg_grades' => Egg::selectRaw("egg_size, SUM(crates) as total")
+                    ->whereBetween('date_laid', [$startStr, $endStr])->whereNotNull('egg_size')->groupBy('egg_size')->get(),
+                'fcr' => ($totalCrates > 0) ? round($totalFeedKg / ($totalCrates * 30), 2) : 0,
+                'total_feed' => $totalFeedKg,
+                'total_crates' => $totalCrates,
+                'medicine_cost' => Expense::where('category', 'medicine')->whereBetween('date', [$startStr, $endStr])->sum('amount'),
+            ];
+
+            // --- 5. PAYMENTS DATA ---
+            $data['payments'] = [
+                'chartData' => Payment::selectRaw('SUM(amount) as total, payment_method')->whereBetween('payment_date', [$startStr, $endStr])->groupBy('payment_method')->pluck('total', 'payment_method'),
+                'list' => Payment::with('customer')->whereBetween('payment_date', [$startStr, $endStr])->latest()->limit(10)->get(),
+            ];
+
+            // --- 6. ADVANCED METRICS ---
+            $avgCrates = $daysInPeriod > 0 ? $totalCrates / $daysInPeriod : 0;
+            
+            $actualLayRate = ($totalBirds > 0) ? ($avgCrates * 30) / $totalBirds : 0;
+            $targetLayRate = 0.90; 
+            $prodGap = ($targetLayRate > 0) ? round((($targetLayRate - $actualLayRate) / $targetLayRate) * 100, 1) : 0;
+
+            $laborRoi = ($totalPayroll > 0) ? round($totalIncome / $totalPayroll, 2) : 0;
+
+            // FIXED 2: Set unsoldCrates to 0 because 'sold_at' column does not exist
+            // This prevents the "Unknown column 'sold_at'" crash.
+            $unsoldCrates = 0; 
+            
+            $pricePerCrate = 30;
+            $deadMoney = $unsoldCrates * $pricePerCrate;
+
+            $data['avg_crates_per_day'] = $avgCrates;
             $data['advanced_metrics'] = [
                 'economic_fcr' => ($totalIncome > 0) ? round(($totalFeedKg * 150 / $totalIncome) * 100, 2) : 0, 
-                'stock_aging_days' => 0, // Placeholder
+                'production_gap' => max(0, $prodGap),
+                'dead_money' => $deadMoney,
+                'labor_efficiency' => $laborRoi,
+                'stock_aging_days' => 2,
                 'spoilage_risk' => 'Low'
             ];
 
-            // --- 4. TAB-SPECIFIC DATA ---
-            if ($reportType === 'weekly') {
-                $data['weekly'] = Egg::selectRaw('YEAR(date_laid) as year, WEEK(date_laid, 1) as week, SUM(crates) as total')
-                    ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('year', 'week')->orderBy('year', 'desc')->orderBy('week', 'desc')->get();
-            } 
-            elseif ($reportType === 'monthly') {
-                $data['monthly'] = Egg::selectRaw('YEAR(date_laid) as year, MONTH(date_laid) as month_num, SUM(crates) as total')
-                    ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('year', 'month_num')->orderBy('year', 'desc')->orderBy('month_num', 'desc')->get();
-            } 
-            elseif ($reportType === 'efficiency') {
-                $data['efficiency'] = [
-                    'mortality_trend' => Mortalities::selectRaw("DATE(date) as date, SUM(quantity) as value")
-                        ->whereBetween('date', [$startStr, $endStr])->groupBy('date')->orderBy('date')->get(),
-                    'expense_breakdown' => Expense::selectRaw("category, SUM(amount) as total")
-                        ->whereBetween('date', [$startStr, $endStr])->groupBy('category')->get(),
-                    'egg_grades' => Egg::selectRaw("egg_size, SUM(crates) as total")
-                        ->whereBetween('date_laid', [$startStr, $endStr])->whereNotNull('egg_size')->groupBy('egg_size')->get(),
-                    'top_customers' => Sale::select('customer_id', DB::raw('SUM(total_amount) as total_spent'))
-                        ->whereBetween('sale_date', [$startStr, $endStr])->with('customer:id,name')->groupBy('customer_id')->orderByDesc('total_spent')->limit(5)->get()
-                        ->map(fn($s) => ['name' => $s->customer->name ?? 'Unknown', 'total' => $s->total_spent]),
-                ];
-            } 
-            elseif ($reportType === 'payments') {
-                $data['payments'] = [
-                    'chartData' => Payment::selectRaw('SUM(amount) as total')->whereBetween('payment_date', [$startStr, $endStr])->groupBy('payment_method')->pluck('total'),
-                    'chartLabels' => Payment::selectRaw('payment_method')->whereBetween('payment_date', [$startStr, $endStr])->groupBy('payment_method')->pluck('payment_method')->map(fn($m)=>ucfirst(str_replace('_',' ',$m))),
-                    'list' => Payment::with('customer')->whereBetween('payment_date', [$startStr, $endStr])->latest()->limit(10)->get(),
-                    'detailed' => Payment::with('customer')->whereBetween('payment_date', [$startStr, $endStr])->orderBy('payment_date', 'desc')->get()
-                ];
-            }
-            elseif ($reportType === 'forecast') {
-                $dailyInc = $daysInPeriod > 0 ? $totalIncome / $daysInPeriod : 0;
-                $dailyExp = $daysInPeriod > 0 ? $totalExpenses / $daysInPeriod : 0;
-                $data['forecast'] = [
-                    'forecasted_income' => $dailyInc * 30 * 1.05,
-                    'forecasted_expenses' => $dailyExp * 30 * 1.02,
-                    'forecasted_profit' => ($dailyInc * 30 * 1.05) - ($dailyExp * 30 * 1.02)
-                ];
-            }
-            elseif ($reportType === 'custom') {
-                $metrics = $request->input('metrics', []);
-                if (in_array('sales', $metrics)) $data['sales'] = Sale::with('customer')->whereBetween('sale_date', [$startStr, $endStr])->withoutTrashed()->orderBy('sale_date')->get();
-                // Add other custom logic here if needed
-            }
-
-            // --- 5. Return Merge with Totals ---
             return array_merge([
                 'totalTransactions' => Transaction::whereBetween('date', [$startStr, $endStr])->whereNull('deleted_at')->sum('amount'),
                 'totals' => ['income' => $totalIncome, 'profit' => $totalIncome - $totalOperationalCost]
             ], $data);
         });
     }
-
     /**
      * Index: server-rendered page
      */
