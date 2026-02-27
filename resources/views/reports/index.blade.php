@@ -131,6 +131,82 @@
         </div>
     </section>
 
+    {{-- EGG CRATES INTELLIGENCE --}}
+<section class="mt-12">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-amber-100 dark:bg-amber-900 rounded-2xl flex items-center justify-center text-3xl">🥚</div>
+        <div>
+            <h3 class="text-3xl font-bold text-gray-900 dark:text-white">Egg Crates Intelligence</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm">Smart analysis of your crate production over the selected period</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Crates -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+            <div class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Total Crates</div>
+            <div class="text-4xl font-black text-gray-900 dark:text-white mt-3">{{ number_format($data['egg_intelligence']['total_crates'] ?? 0) }}</div>
+            <div class="text-sm text-gray-500 mt-1">{{ number_format($data['egg_intelligence']['total_eggs'] ?? 0) }} eggs</div>
+        </div>
+
+        <!-- Avg Daily -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+            <div class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Avg Daily Crates</div>
+            <div class="text-4xl font-black text-gray-900 dark:text-white mt-3">{{ $data['egg_intelligence']['avg_daily_crates'] ?? 0 }}</div>
+            <div class="text-xs text-gray-500 mt-1">per active day</div>
+        </div>
+
+        <!-- Growth -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+            <div class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Growth vs Prev Period</div>
+            @php
+                $gr = $data['egg_intelligence']['growth_rate'] ?? 0;
+                $growthClass = $gr >= 0 ? 'text-emerald-600' : 'text-red-600';
+            @endphp
+            <div class="text-4xl font-black {{ $growthClass }} mt-3">
+                {{ $gr > 0 ? '+' : '' }}{{ $gr }}%
+            </div>
+            <div class="text-xs text-gray-500 mt-1">vs previous {{ $start->diffInDays($end) + 1 }} days</div>
+        </div>
+
+        <!-- Consistency -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700">
+            <div class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Consistency Score</div>
+            <div class="text-4xl font-black text-gray-900 dark:text-white mt-3">{{ $data['egg_intelligence']['consistency_score'] ?? 0 }}<span class="text-base font-normal">/100</span></div>
+            <div class="text-xs text-gray-500 mt-1">Lower variation = better</div>
+        </div>
+    </div>
+
+    <!-- Peak / Lowest -->
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-6">
+            <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 text-sm font-bold">
+                <span>🏆 Peak Day</span>
+            </div>
+            <div class="text-3xl font-black mt-2">{{ $data['egg_intelligence']['peak_day'] }}</div>
+            <div class="text-2xl text-emerald-600">{{ number_format($data['egg_intelligence']['peak_crates'] ?? 0) }} crates</div>
+        </div>
+        <div class="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-2xl p-6">
+            <div class="flex items-center gap-2 text-red-700 dark:text-red-300 text-sm font-bold">
+                <span>📉 Lowest Day</span>
+            </div>
+            <div class="text-3xl font-black mt-2">{{ $data['egg_intelligence']['lowest_day'] }}</div>
+            <div class="text-2xl text-red-600">{{ number_format($data['egg_intelligence']['lowest_crates'] ?? 0) }} crates</div>
+        </div>
+    </div>
+
+    <!-- AI Insight Box -->
+    <div class="mt-8 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950 dark:to-yellow-950 border border-amber-200 dark:border-amber-800 rounded-3xl p-8">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="text-3xl">🧠</span>
+            <h4 class="font-bold text-xl text-amber-800 dark:text-amber-200">AI Insight</h4>
+        </div>
+        <p class="text-lg leading-relaxed text-amber-700 dark:text-amber-300">
+            {!! $data['egg_intelligence']['insight'] ?? 'No data yet.' !!}
+        </p>
+    </div>
+</section>
+
     {{-- Main Report Body --}}
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         

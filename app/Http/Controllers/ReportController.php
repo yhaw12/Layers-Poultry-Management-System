@@ -231,6 +231,59 @@ class ReportController extends Controller
                 'medicine_cost' => Expense::where('category', 'medicine')->whereBetween('date', [$startStr, $endStr])->sum('amount'),
             ];
 
+
+            // ==================== EGG CRATES INTELLIGENCE ====================
+            $eggTrendData = Egg::selectRaw('DATE(date_laid) as date, SUM(crates) as crates, SUM(total_eggs) as total_eggs')
+                ->whereBetween('date_laid', [$startStr, $endStr])
+                ->withoutTrashed()
+                ->groupBy('date')
+                ->orderBy('date')
+                ->get();
+
+            $totalCrates = $eggTrendData->sum('crates');
+            $totalEggs = $eggTrendData->sum('total_eggs');
+            $activeDays = $eggTrendData->count();
+            $avgDailyCrates = $activeDays > 0 ? round($totalCrates / $activeDays, 1) : 0;
+
+            $peakDay = $eggTrendData->sortByDesc('crates')->first();
+            $lowestDay = $eggTrendData->sortBy('crates')->first();
+
+            [$prevStart, $prevEnd] = $this->computePreviousPeriod($start, $end);
+            $prevTotalCrates = Egg::whereBetween('date_laid', [$prevStart->toDateTimeString(), $prevEnd->toDateTimeString()])
+                ->withoutTrashed()
+                ->sum('crates');
+
+            $growthRate = $prevTotalCrates > 0 
+                ? round((($totalCrates - $prevTotalCrates) / $prevTotalCrates) * 100, 1) 
+                : 0;
+
+            $cratesArray = $eggTrendData->pluck('crates')->toArray();
+            $stdDev = $this->calculateStdDev($cratesArray);
+            $consistency = $avgDailyCrates > 0 
+                ? round(100 - ($stdDev / $avgDailyCrates * 100), 1) 
+                : 85;
+
+            $zeroDays = $daysInPeriod - $activeDays;
+
+            $data['egg_intelligence'] = [
+                'total_crates'       => $totalCrates,
+                'total_eggs'         => $totalEggs,
+                'avg_daily_crates'   => $avgDailyCrates,
+                'peak_day'           => $peakDay?->date ?? '—',
+                'peak_crates'        => $peakDay?->crates ?? 0,
+                'lowest_day'         => $lowestDay?->date ?? '—',
+                'lowest_crates'      => $lowestDay?->crates ?? 0,
+                'growth_rate'        => $growthRate,
+                'consistency_score'  => max(0, min(100, $consistency)),
+                'zero_production_days' => max(0, $zeroDays),
+                'trend'              => $growthRate > 5 ? 'rising' : ($growthRate < -5 ? 'declining' : 'stable'),
+                'insight'            => $this->generateEggInsight([
+                    'growth_rate' => $growthRate,
+                    'consistency_score' => $consistency,
+                    'zero_production_days' => $zeroDays,
+                ]),
+            ];
+
             // --- 5. PAYMENTS DATA ---
             $data['payments'] = [
                 'chartData' => Payment::selectRaw('SUM(amount) as total, payment_method')->whereBetween('payment_date', [$startStr, $endStr])->groupBy('payment_method')->pluck('total', 'payment_method'),
@@ -279,6 +332,9 @@ class ReportController extends Controller
                 return redirect()->route('login')->with('error', 'Please log in to access reports.');
             }
 
+            // ← NEW: Get the Carbon dates (same as inside getReportData)
+            [$start, $end] = $this->normalizeDates($request);
+
             $reportType = $request->query('type', 'trends');
             $data = $this->getReportData($request, $reportType);
 
@@ -290,7 +346,8 @@ class ReportController extends Controller
                 ]);
             }
 
-            return view('reports.index', compact('reportType', 'data'));
+            // ← UPDATED: Now passing $start and $end to the view
+            return view('reports.index', compact('reportType', 'data', 'start', 'end'));
         } catch (ValidationException $ve) {
             if ($request->wantsJson() || $request->expectsJson()) {
                 return response()->json(['success' => false, 'errors' => $ve->errors()], 422);
@@ -636,6 +693,39 @@ class ReportController extends Controller
             }
             return back()->with('error', 'Failed to export report.');
         }
+    }
+
+        protected function calculateStdDev(array $numbers): float
+    {
+        if (count($numbers) < 2) return 0;
+        $mean = array_sum($numbers) / count($numbers);
+        $variance = array_sum(array_map(fn($x) => pow($x - $mean, 2), $numbers)) / count($numbers);
+        return sqrt($variance);
+    }
+
+    protected function generateEggInsight(array $intel): string
+    {
+        $insight = [];
+
+        if ($intel['growth_rate'] > 10) {
+            $insight[] = "🚀 Production is surging! <strong>+{$intel['growth_rate']}%</strong> vs last period.";
+        } elseif ($intel['growth_rate'] < -5) {
+            $insight[] = "⚠️ Alert: Production dropped <strong>{$intel['growth_rate']}%</strong> — check health, feed or lighting.";
+        } else {
+            $insight[] = "📈 Production is stable.";
+        }
+
+        if ($intel['consistency_score'] > 85) {
+            $insight[] = "Excellent consistency across days — keep it up!";
+        } elseif ($intel['consistency_score'] < 65) {
+            $insight[] = "High daily variation detected. Standardize collection times or pen conditions.";
+        }
+
+        if ($intel['zero_production_days'] > 2) {
+            $insight[] = "There were <strong>{$intel['zero_production_days']}</strong> zero-production days in the period.";
+        }
+
+        return implode(' ', $insight);
     }
 
     public function custom(Request $request)
