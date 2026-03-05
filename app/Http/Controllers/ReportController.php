@@ -10,7 +10,7 @@ use App\Models\Expense;
 use App\Models\Feed;
 use App\Models\Income;
 use App\Models\Payroll;
-use App\Models\Mortalities; // Ensure this model exists
+use App\Models\Mortalities;
 use App\Models\Payment;
 use App\Models\Transaction;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -23,12 +23,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Validation\ValidationException;
-
 use GuzzleHttp\Client;
 
 class ReportController extends Controller
 {
     protected int $cacheTTL;
+
+    // --- System Constants ---
+    const EGGS_PER_CRATE = 30;
+    const TARGET_LAY_RATE = 0.90; // 90%
+    const ECONOMIC_FCR_MULTIPLIER = 150;
+    const PRICE_PER_CRATE = 30;
 
     public function __construct()
     {
@@ -37,291 +42,6 @@ class ReportController extends Controller
         $this->cacheTTL = config('reports.cache_ttl', 300);
     }
 
-    /**
-     * Normalize dates and return Carbon objects (startOfDay, endOfDay)
-     */
-    protected function normalizeDates(Request $request): array
-    {
-        $startInput = $request->input('start_date');
-        $endInput = $request->input('end_date');
-
-        $defaultStart = now()->subMonths(6)->startOfMonth();
-        $defaultEnd = now()->endOfMonth()->endOfDay();
-
-        try {
-            $s = $startInput ? Carbon::parse($startInput)->startOfDay() : $defaultStart;
-            $e = $endInput ? Carbon::parse($endInput)->endOfDay() : $defaultEnd;
-        } catch (\Exception $eParse) {
-            Log::warning('ReportController: invalid date parse, falling back to defaults', ['start' => $startInput, 'end' => $endInput, 'error' => $eParse->getMessage()]);
-            $s = $defaultStart;
-            $e = $defaultEnd;
-        }
-
-        return [$s, $e];
-    }
-
-    protected function getCommonTrends(Carbon $start, Carbon $end): array
-    {
-        $startStr = $start->toDateTimeString();
-        $endStr = $end->toDateTimeString();
-
-        $eggProduction = Egg::select(DB::raw('DATE(date_laid) as date'), DB::raw('SUM(crates) as value'))
-            ->whereBetween('date_laid', [$startStr, $endStr])
-            ->withoutTrashed()
-            ->groupBy(DB::raw('DATE(date_laid)'))
-            ->orderBy('date', 'asc')
-            ->limit(500)
-            ->get();
-
-        $feedConsumption = Feed::select(DB::raw('DATE(purchase_date) as date'), DB::raw('SUM(quantity) as value'))
-            ->whereBetween('purchase_date', [$startStr, $endStr])
-            ->withoutTrashed()
-            ->groupBy(DB::raw('DATE(purchase_date)'))
-            ->orderBy('date', 'asc')
-            ->limit(500)
-            ->get();
-
-        $incomeData = Income::select(DB::raw('DATE(date) as date'), DB::raw('SUM(amount) as value'))
-            ->whereBetween('date', [$startStr, $endStr])
-            ->withoutTrashed()
-            ->groupBy(DB::raw('DATE(date)'))
-            ->orderBy('date', 'asc')
-            ->limit(500)
-            ->get();
-
-        $expenseData = Expense::select(DB::raw('DATE(date) as date'), DB::raw('SUM(amount) as value'))
-            ->whereBetween('date', [$startStr, $endStr])
-            ->withoutTrashed()
-            ->groupBy(DB::raw('DATE(date)'))
-            ->orderBy('date', 'asc')
-            ->limit(500)
-            ->get();
-
-        $salesData = Sale::select(DB::raw('DATE(sale_date) as date'), DB::raw('SUM(total_amount) as value'))
-            ->whereBetween('sale_date', [$startStr, $endStr])
-            ->withoutTrashed()
-            ->groupBy(DB::raw('DATE(sale_date)'))
-            ->orderBy('date', 'asc')
-            ->limit(500)
-            ->get();
-
-        $salesComparison = Sale::select(
-                DB::raw('DATE(sale_date) as date'),
-                DB::raw("SUM(CASE WHEN saleable_type = '".addslashes(Egg::class)."' THEN total_amount ELSE 0 END) as egg_sales"),
-                DB::raw("SUM(CASE WHEN saleable_type = '".addslashes(Bird::class)."' THEN total_amount ELSE 0 END) as bird_sales")
-            )
-            ->whereBetween('sale_date', [$startStr, $endStr])
-            ->withoutTrashed()
-            ->groupBy(DB::raw('DATE(sale_date)'))
-            ->orderBy('date', 'asc')
-            ->limit(500)
-            ->get();
-
-        return [
-            'eggProduction' => $eggProduction,
-            'feedConsumption' => $feedConsumption,
-            'incomeData' => $incomeData,
-            'expenseData' => $expenseData,
-            'salesData' => $salesData,
-            'salesComparison' => $salesComparison,
-        ];
-    }
-
-    protected function computePreviousPeriod(Carbon $start, Carbon $end): array
-    {
-        $diffDays = $start->diffInDays($end) + 1;
-        $prevEnd = (clone $start)->subDay()->endOfDay();
-        $prevStart = (clone $prevEnd)->subDays($diffDays - 1)->startOfDay();
-        return [$prevStart, $prevEnd];
-    }
-
-    /**
-     * Central method returning structured data for a given report type
-     */
-    /**
-     * Central method returning structured data for ALL tabs simultaneously.
-     */
-    private function getReportData(Request $request, string $reportType): array
-    {
-        if (!Auth::check()) {
-            throw new \Exception('User must be authenticated.');
-        }
-
-        [$start, $end] = $this->normalizeDates($request);
-        $userId = Auth::id();
-        $cacheKey = "report_all_u{$userId}_s{$start->timestamp}_e{$end->timestamp}";
-
-        return Cache::remember($cacheKey, $this->cacheTTL, function () use ($start, $end) {
-            $data = [];
-            $startStr = $start->toDateTimeString();
-            $endStr = $end->toDateTimeString();
-            $daysInPeriod = max(1, $start->diffInDays($end) + 1);
-
-            // --- 1. CORE FINANCIALS ---
-            $totalIncome = Income::whereBetween('date', [$startStr, $endStr])->withoutTrashed()->sum('amount') ?? 0;
-            $totalExpenses = Expense::whereBetween('date', [$startStr, $endStr])->withoutTrashed()->sum('amount') ?? 0;
-            $totalPayroll = Payroll::whereBetween('pay_date', [$startStr, $endStr])->whereNull('deleted_at')->sum('net_pay') ?? 0;
-            $totalOperationalCost = $totalExpenses + $totalPayroll;
-
-            $data['profit_loss'] = [
-                'total_income' => $totalIncome,
-                'total_expenses' => $totalExpenses,
-                'total_payroll' => $totalPayroll,
-                'profit_loss' => $totalIncome - $totalOperationalCost,
-                'start' => $start->toDateString(),
-                'end' => $end->toDateString(),
-            ];
-
-            // --- 2. TRENDS & CHARTS ---
-            $data['charts'] = [
-                'eggTrend' => Egg::selectRaw("DATE_FORMAT(date_laid, '%Y-%m-%d') as date, SUM(crates) as value")
-                    ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
-                
-                'feedTrend' => Feed::selectRaw("DATE(purchase_date) as date, SUM(quantity) as value")
-                    ->whereBetween('purchase_date', [$startStr, $endStr])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
-                
-                'salesTrend' => Sale::selectRaw("DATE(sale_date) as date, SUM(total_amount) as value")
-                    ->whereBetween('sale_date', [$startStr, $endStr])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
-                
-                'incomeTrend' => Income::selectRaw("DATE(date) as date, SUM(amount) as value")
-                    ->whereBetween('date', [$startStr, $endStr])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
-                
-                'salesComparison' => Sale::select(
-                        DB::raw('DATE(sale_date) as date'),
-                        DB::raw("SUM(CASE WHEN saleable_type LIKE '%Egg%' THEN total_amount ELSE 0 END) as egg_sales"),
-                        DB::raw("SUM(CASE WHEN saleable_type LIKE '%Bird%' THEN total_amount ELSE 0 END) as bird_sales")
-                    )
-                    ->whereBetween('sale_date', [$startStr, $endStr])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
-
-                'invoiceStatuses' => [
-                    'Pending' => Sale::where('status', 'pending')->whereBetween('sale_date', [$startStr, $endStr])->count(),
-                    'Paid' => Sale::where('status', 'paid')->whereBetween('sale_date', [$startStr, $endStr])->count(),
-                    'Partial' => Sale::where('status', 'partially_paid')->whereBetween('sale_date', [$startStr, $endStr])->count(),
-                    'Overdue' => Sale::where('status', 'overdue')->whereBetween('sale_date', [$startStr, $endStr])->count(),
-                ],
-
-                'transactionTrend' => Transaction::selectRaw("DATE(date) as date, SUM(amount) as value")
-                    ->whereBetween('date', [$startStr, $endStr])->whereNull('deleted_at')->groupBy('date')->orderBy('date')->get(),
-            ];
-
-            // --- 3. PERIODIC DATA ---
-            $data['weekly'] = Egg::selectRaw('YEAR(date_laid) as year, WEEK(date_laid, 1) as week, SUM(crates) as total')
-                ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('year', 'week')->orderBy('year', 'asc')->orderBy('week', 'asc')->get();
-
-            $data['monthly'] = Egg::selectRaw('YEAR(date_laid) as year, MONTH(date_laid) as month_num, SUM(crates) as total')
-                ->whereBetween('date_laid', [$startStr, $endStr])->withoutTrashed()->groupBy('year', 'month_num')->orderBy('year', 'asc')->orderBy('month_num', 'asc')->get();
-
-            // --- 4. EFFICIENCY DATA ---
-            $totalFeedKg = $data['charts']['feedTrend']->sum('value');
-            $totalCrates = $data['charts']['eggTrend']->sum('value');
-            
-            // FIXED 1: Removed 'where status=active' which caused the first crash
-            $totalBirds = Bird::count() ?: 1; 
-
-            $data['efficiency'] = [
-                'mortality_trend' => Mortalities::selectRaw("DATE(date) as date, SUM(quantity) as value")
-                    ->whereBetween('date', [$startStr, $endStr])->groupBy('date')->orderBy('date')->get(),
-                'expense_breakdown' => Expense::selectRaw("category, SUM(amount) as total")
-                    ->whereBetween('date', [$startStr, $endStr])->groupBy('category')->get(),
-                'egg_grades' => Egg::selectRaw("egg_size, SUM(crates) as total")
-                    ->whereBetween('date_laid', [$startStr, $endStr])->whereNotNull('egg_size')->groupBy('egg_size')->get(),
-                'fcr' => ($totalCrates > 0) ? round($totalFeedKg / ($totalCrates * 30), 2) : 0,
-                'total_feed' => $totalFeedKg,
-                'total_crates' => $totalCrates,
-                'medicine_cost' => Expense::where('category', 'medicine')->whereBetween('date', [$startStr, $endStr])->sum('amount'),
-            ];
-
-
-            // ==================== EGG CRATES INTELLIGENCE ====================
-            $eggTrendData = Egg::selectRaw('DATE(date_laid) as date, SUM(crates) as crates, SUM(total_eggs) as total_eggs')
-                ->whereBetween('date_laid', [$startStr, $endStr])
-                ->withoutTrashed()
-                ->groupBy('date')
-                ->orderBy('date')
-                ->get();
-
-            $totalCrates = $eggTrendData->sum('crates');
-            $totalEggs = $eggTrendData->sum('total_eggs');
-            $activeDays = $eggTrendData->count();
-            $avgDailyCrates = $activeDays > 0 ? round($totalCrates / $activeDays, 1) : 0;
-
-            $peakDay = $eggTrendData->sortByDesc('crates')->first();
-            $lowestDay = $eggTrendData->sortBy('crates')->first();
-
-            [$prevStart, $prevEnd] = $this->computePreviousPeriod($start, $end);
-            $prevTotalCrates = Egg::whereBetween('date_laid', [$prevStart->toDateTimeString(), $prevEnd->toDateTimeString()])
-                ->withoutTrashed()
-                ->sum('crates');
-
-            $growthRate = $prevTotalCrates > 0 
-                ? round((($totalCrates - $prevTotalCrates) / $prevTotalCrates) * 100, 1) 
-                : 0;
-
-            $cratesArray = $eggTrendData->pluck('crates')->toArray();
-            $stdDev = $this->calculateStdDev($cratesArray);
-            $consistency = $avgDailyCrates > 0 
-                ? round(100 - ($stdDev / $avgDailyCrates * 100), 1) 
-                : 85;
-
-            $zeroDays = $daysInPeriod - $activeDays;
-
-            $data['egg_intelligence'] = [
-                'total_crates'       => $totalCrates,
-                'total_eggs'         => $totalEggs,
-                'avg_daily_crates'   => $avgDailyCrates,
-                'peak_day'           => $peakDay?->date ?? '—',
-                'peak_crates'        => $peakDay?->crates ?? 0,
-                'lowest_day'         => $lowestDay?->date ?? '—',
-                'lowest_crates'      => $lowestDay?->crates ?? 0,
-                'growth_rate'        => $growthRate,
-                'consistency_score'  => max(0, min(100, $consistency)),
-                'zero_production_days' => max(0, $zeroDays),
-                'trend'              => $growthRate > 5 ? 'rising' : ($growthRate < -5 ? 'declining' : 'stable'),
-                'insight'            => $this->generateEggInsight([
-                    'growth_rate' => $growthRate,
-                    'consistency_score' => $consistency,
-                    'zero_production_days' => $zeroDays,
-                ]),
-            ];
-
-            // --- 5. PAYMENTS DATA ---
-            $data['payments'] = [
-                'chartData' => Payment::selectRaw('SUM(amount) as total, payment_method')->whereBetween('payment_date', [$startStr, $endStr])->groupBy('payment_method')->pluck('total', 'payment_method'),
-                'list' => Payment::with('customer')->whereBetween('payment_date', [$startStr, $endStr])->latest()->limit(10)->get(),
-            ];
-
-            // --- 6. ADVANCED METRICS ---
-            $avgCrates = $daysInPeriod > 0 ? $totalCrates / $daysInPeriod : 0;
-            
-            $actualLayRate = ($totalBirds > 0) ? ($avgCrates * 30) / $totalBirds : 0;
-            $targetLayRate = 0.90; 
-            $prodGap = ($targetLayRate > 0) ? round((($targetLayRate - $actualLayRate) / $targetLayRate) * 100, 1) : 0;
-
-            $laborRoi = ($totalPayroll > 0) ? round($totalIncome / $totalPayroll, 2) : 0;
-
-            // FIXED 2: Set unsoldCrates to 0 because 'sold_at' column does not exist
-            // This prevents the "Unknown column 'sold_at'" crash.
-            $unsoldCrates = 0; 
-            
-            $pricePerCrate = 30;
-            $deadMoney = $unsoldCrates * $pricePerCrate;
-
-            $data['avg_crates_per_day'] = $avgCrates;
-            $data['advanced_metrics'] = [
-                'economic_fcr' => ($totalIncome > 0) ? round(($totalFeedKg * 150 / $totalIncome) * 100, 2) : 0, 
-                'production_gap' => max(0, $prodGap),
-                'dead_money' => $deadMoney,
-                'labor_efficiency' => $laborRoi,
-                'stock_aging_days' => 2,
-                'spoilage_risk' => 'Low'
-            ];
-
-            return array_merge([
-                'totalTransactions' => Transaction::whereBetween('date', [$startStr, $endStr])->whereNull('deleted_at')->sum('amount'),
-                'totals' => ['income' => $totalIncome, 'profit' => $totalIncome - $totalOperationalCost]
-            ], $data);
-        });
-    }
     /**
      * Index: server-rendered page
      */
@@ -332,9 +52,7 @@ class ReportController extends Controller
                 return redirect()->route('login')->with('error', 'Please log in to access reports.');
             }
 
-            // ← NEW: Get the Carbon dates (same as inside getReportData)
             [$start, $end] = $this->normalizeDates($request);
-
             $reportType = $request->query('type', 'trends');
             $data = $this->getReportData($request, $reportType);
 
@@ -346,7 +64,6 @@ class ReportController extends Controller
                 ]);
             }
 
-            // ← UPDATED: Now passing $start and $end to the view
             return view('reports.index', compact('reportType', 'data', 'start', 'end'));
         } catch (ValidationException $ve) {
             if ($request->wantsJson() || $request->expectsJson()) {
@@ -360,6 +77,11 @@ class ReportController extends Controller
             }
             return back()->with('error', 'Failed to load report.');
         }
+    }
+
+    public function custom(Request $request)
+    {
+        return $this->index($request);
     }
 
     public function data(Request $request)
@@ -417,8 +139,410 @@ class ReportController extends Controller
     }
 
     /**
-     * Generate chart images (base64 data URIs) for the PDF using QuickChart.io
+     * Central method returning structured data for ALL tabs simultaneously.
      */
+    private function getReportData(Request $request, string $reportType): array
+    {
+        if (!Auth::check()) {
+            throw new \Exception('User must be authenticated.');
+        }
+
+        [$start, $end] = $this->normalizeDates($request);
+        $userId = Auth::id();
+        $cacheKey = "report_all_u{$userId}_s{$start->timestamp}_e{$end->timestamp}";
+
+        return Cache::remember($cacheKey, $this->cacheTTL, function () use ($start, $end) {
+            $startStr = $start->toDateTimeString();
+            $endStr = $end->toDateTimeString();
+            $daysInPeriod = max(1, (int) round($start->diffInDays($end) + 1));
+
+            $financials = $this->buildFinancialData($startStr, $endStr);
+            $charts = $this->buildChartData($startStr, $endStr);
+            $periodic = $this->buildPeriodicData($startStr, $endStr);
+            $efficiency = $this->buildEfficiencyData($startStr, $endStr, $charts, $daysInPeriod);
+            $eggIntel = $this->buildEggIntelligence($start, $end, $daysInPeriod);
+            $payments = $this->buildPaymentsData($startStr, $endStr);
+
+            return array_merge(
+                $financials,
+                ['charts' => $charts],
+                $periodic,
+                ['efficiency' => $efficiency['data']],
+                ['advanced_metrics' => $efficiency['advanced']],
+                ['egg_intelligence' => $eggIntel],
+                ['payments' => $payments],
+                ['avg_crates_per_day' => $efficiency['advanced']['avg_crates_per_day']],
+                
+                // Keep backward compatibility for export functions
+                [
+                    'eggProduction' => $charts['eggTrend'],
+                    'incomeData' => $charts['incomeTrend'],
+                    'expenseData' => $this->buildExpenseDataForExport($startStr, $endStr)
+                ]
+            );
+        });
+    }
+
+    // =========================================================================
+    // MODULAR DATA BUILDERS
+    // =========================================================================
+
+    private function buildFinancialData(string $start, string $end): array
+    {
+        $totalIncome = Income::whereBetween('date', [$start, $end])->withoutTrashed()->sum('amount') ?? 0.0;
+        $totalExpenses = Expense::whereBetween('date', [$start, $end])->withoutTrashed()->sum('amount') ?? 0.0;
+        $totalPayroll = Payroll::whereBetween('pay_date', [$start, $end])->whereNull('deleted_at')->sum('net_pay') ?? 0.0;
+        $totalTransactions = Transaction::whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('amount') ?? 0.0;
+
+        $totalOperationalCost = $totalExpenses + $totalPayroll;
+        $netProfit = $totalIncome - $totalOperationalCost;
+
+        return [
+            'profit_loss' => [
+                'total_income' => $totalIncome,
+                'total_expenses' => $totalExpenses,
+                'total_payroll' => $totalPayroll,
+                'profit_loss' => $netProfit,
+                'start' => explode(' ', $start)[0],
+                'end' => explode(' ', $end)[0],
+            ],
+            'totals' => ['income' => $totalIncome, 'profit' => $netProfit],
+            'totalTransactions' => $totalTransactions
+        ];
+    }
+
+    private function buildChartData(string $start, string $end): array
+    {
+        return [
+            'eggTrend' => Egg::selectRaw("DATE_FORMAT(date_laid, '%Y-%m-%d') as date, SUM(crates) as value")
+                ->whereBetween('date_laid', [$start, $end])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
+            'feedTrend' => Feed::selectRaw("DATE(purchase_date) as date, SUM(quantity) as value")
+                ->whereBetween('purchase_date', [$start, $end])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
+            'salesTrend' => Sale::selectRaw("DATE(sale_date) as date, SUM(total_amount) as value")
+                ->whereBetween('sale_date', [$start, $end])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
+            'incomeTrend' => Income::selectRaw("DATE(date) as date, SUM(amount) as value")
+                ->whereBetween('date', [$start, $end])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
+            'salesComparison' => Sale::selectRaw("
+                    DATE(sale_date) as date, 
+                    SUM(CASE WHEN saleable_type LIKE '%Egg%' THEN total_amount ELSE 0 END) as egg_sales,
+                    SUM(CASE WHEN saleable_type LIKE '%Bird%' THEN total_amount ELSE 0 END) as bird_sales
+                ")->whereBetween('sale_date', [$start, $end])->withoutTrashed()->groupBy('date')->orderBy('date')->get(),
+            'invoiceStatuses' => [
+                'Pending' => Sale::where('status', 'pending')->whereBetween('sale_date', [$start, $end])->count(),
+                'Paid' => Sale::where('status', 'paid')->whereBetween('sale_date', [$start, $end])->count(),
+                'Partial' => Sale::where('status', 'partially_paid')->whereBetween('sale_date', [$start, $end])->count(),
+                'Overdue' => Sale::where('status', 'overdue')->whereBetween('sale_date', [$start, $end])->count(),
+            ],
+            'transactionTrend' => Transaction::selectRaw("DATE(date) as date, SUM(amount) as value")
+                ->whereBetween('date', [$start, $end])->whereNull('deleted_at')->groupBy('date')->orderBy('date')->get(),
+        ];
+    }
+
+    private function buildPeriodicData(string $start, string $end): array
+    {
+        return [
+            'weekly' => Egg::selectRaw('YEAR(date_laid) as year, WEEK(date_laid, 1) as week, SUM(crates) as total')
+                ->whereBetween('date_laid', [$start, $end])->withoutTrashed()->groupBy('year', 'week')->orderBy('year')->orderBy('week')->get(),
+            'monthly' => Egg::selectRaw('YEAR(date_laid) as year, MONTH(date_laid) as month_num, SUM(crates) as total')
+                ->whereBetween('date_laid', [$start, $end])->withoutTrashed()->groupBy('year', 'month_num')->orderBy('year')->orderBy('month_num')->get(),
+        ];
+    }
+
+    private function buildEfficiencyData(string $start, string $end, array $charts, int $daysInPeriod): array
+    {
+        $totalFeedKg = $charts['feedTrend']->sum('value');
+        $totalCrates = $charts['eggTrend']->sum('value');
+        $totalBirds = max(1, Bird::count()); // Prevent division by zero
+        $totalIncome = Income::whereBetween('date', [$start, $end])->withoutTrashed()->sum('amount') ?? 0;
+        $totalPayroll = Payroll::whereBetween('pay_date', [$start, $end])->whereNull('deleted_at')->sum('net_pay') ?? 0;
+
+        $avgCrates = $daysInPeriod > 0 ? $totalCrates / $daysInPeriod : 0;
+        $actualLayRate = ($avgCrates * self::EGGS_PER_CRATE) / $totalBirds;
+        $prodGap = self::TARGET_LAY_RATE > 0 ? (($this::TARGET_LAY_RATE - $actualLayRate) / $this::TARGET_LAY_RATE) * 100 : 0;
+
+        // --- NEW DYNAMIC PRICE LOGIC ---
+        // Calculate the average price per crate from actual sales in this period
+        $averagePricePerCrate = Sale::where('saleable_type', 'App\Models\Egg') // Make sure this matches your DB exactly!
+            ->whereBetween('sale_date', [$start, $end])
+            ->withoutTrashed()
+            ->selectRaw('SUM(total_amount) / NULLIF(SUM(quantity), 0) as avg_price')
+            ->value('avg_price') ?? 30; // Fallback to 30 if no sales exist in this date range
+
+        $unsoldCrates = 0; // Keep this at 0 until we build your unsold inventory tracking
+        $deadMoney = $unsoldCrates * $averagePricePerCrate;
+        // -------------------------------
+
+        return [
+            'data' => [
+                'mortality_trend' => Mortalities::selectRaw("DATE(date) as date, SUM(quantity) as value")
+                    ->whereBetween('date', [$start, $end])->groupBy('date')->orderBy('date')->get(),
+                'expense_breakdown' => Expense::selectRaw("category, SUM(amount) as total")
+                    ->whereBetween('date', [$start, $end])->groupBy('category')->get(),
+                'egg_grades' => Egg::selectRaw("egg_size, SUM(crates) as total")
+                    ->whereBetween('date_laid', [$start, $end])->whereNotNull('egg_size')->groupBy('egg_size')->get(),
+                'fcr' => $totalCrates > 0 ? round($totalFeedKg / ($totalCrates * self::EGGS_PER_CRATE), 2) : 0,
+                'total_feed' => $totalFeedKg,
+                'total_crates' => $totalCrates,
+                'medicine_cost' => Expense::where('category', 'medicine')->whereBetween('date', [$start, $end])->sum('amount'),
+            ],
+            'advanced' => [
+                'avg_crates_per_day' => round($avgCrates, 1),
+                'economic_fcr' => $totalIncome > 0 ? round(($totalFeedKg * self::ECONOMIC_FCR_MULTIPLIER / $totalIncome) * 100, 2) : 0,
+                'production_gap' => round(max(0, $prodGap), 1),
+                'dead_money' => $deadMoney, // <--- Now using the dynamic calculation
+                'labor_efficiency' => $totalPayroll > 0 ? round($totalIncome / $totalPayroll, 2) : 0,
+                'stock_aging_days' => 2, // Static for now
+                'spoilage_risk' => 'Low'
+            ]
+        ];
+    }
+
+    private function buildEggIntelligence(Carbon $start, Carbon $end, int $daysInPeriod): array
+    {
+        $startStr = $start->toDateTimeString();
+        $endStr = $end->toDateTimeString();
+
+        $eggTrendData = Egg::selectRaw('DATE(date_laid) as date, SUM(crates) as crates, SUM(total_eggs) as total_eggs')
+            ->whereBetween('date_laid', [$startStr, $endStr])
+            ->withoutTrashed()
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        $totalCrates = $eggTrendData->sum('crates');
+        $activeDays = $eggTrendData->count();
+        $avgDailyCrates = $activeDays > 0 ? round($totalCrates / $activeDays, 1) : 0;
+
+        [$prevStart, $prevEnd] = $this->computePreviousPeriod($start, $end);
+        $prevTotalCrates = Egg::whereBetween('date_laid', [$prevStart->toDateTimeString(), $prevEnd->toDateTimeString()])
+            ->withoutTrashed()
+            ->sum('crates');
+
+        // Safe growth rate calculation
+        if ($prevTotalCrates == 0 && $totalCrates > 0) {
+            $growthRate = 100; // Going from 0 to something is effectively +100%
+        } elseif ($prevTotalCrates == 0 && $totalCrates == 0) {
+            $growthRate = 0;
+        } else {
+            $growthRate = round((($totalCrates - $prevTotalCrates) / $prevTotalCrates) * 100, 1);
+        }
+
+        $stdDev = $this->calculateStdDev($eggTrendData->pluck('crates')->toArray());
+        $consistency = $avgDailyCrates > 0 ? round(100 - ($stdDev / $avgDailyCrates * 100), 1) : 0;
+
+        return [
+            'total_crates'         => (int) $totalCrates,
+            'total_eggs'           => (int) $eggTrendData->sum('total_eggs'),
+            'avg_daily_crates'     => $avgDailyCrates,
+            'peak_day'             => $eggTrendData->sortByDesc('crates')->first()?->date ?? '—',
+            'peak_crates'          => (int) ($eggTrendData->sortByDesc('crates')->first()?->crates ?? 0),
+            'lowest_day'           => $eggTrendData->sortBy('crates')->first()?->date ?? '—',
+            'lowest_crates'        => (int) ($eggTrendData->sortBy('crates')->first()?->crates ?? 0),
+            'growth_rate'          => $growthRate,
+            'consistency_score'    => max(0, min(100, $consistency)),
+            'zero_production_days' => max(0, (int) round($daysInPeriod - $activeDays)),
+            'insight'              => $this->generateEggInsight($growthRate, $consistency, $daysInPeriod - $activeDays),
+        ];
+    }
+
+    private function buildPaymentsData(string $start, string $end): array
+    {
+        return [
+            'chartData' => Payment::selectRaw('SUM(amount) as total, payment_method')->whereBetween('payment_date', [$start, $end])->groupBy('payment_method')->pluck('total', 'payment_method'),
+            'list' => Payment::with('customer')->whereBetween('payment_date', [$start, $end])->latest()->limit(10)->get(),
+        ];
+    }
+
+    private function buildExpenseDataForExport(string $start, string $end)
+    {
+        return Expense::select(DB::raw('DATE(date) as date'), DB::raw('SUM(amount) as value'))
+            ->whereBetween('date', [$start, $end])
+            ->withoutTrashed()
+            ->groupBy(DB::raw('DATE(date)'))
+            ->orderBy('date', 'asc')
+            ->limit(500)
+            ->get();
+    }
+
+    // =========================================================================
+    // UTILITIES & HELPERS
+    // =========================================================================
+
+    protected function normalizeDates(Request $request): array
+    {
+        try {
+            $s = $request->filled('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : now()->subMonths(6)->startOfMonth();
+            $e = $request->filled('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : now()->endOfMonth()->endOfDay();
+        } catch (\Exception $e) {
+            $s = now()->subMonths(6)->startOfMonth();
+            $e = now()->endOfMonth()->endOfDay();
+        }
+        return [$s, $e];
+    }
+
+    protected function computePreviousPeriod(Carbon $start, Carbon $end): array
+    {
+        $diffDays = (int) round($start->diffInDays($end) + 1);
+        $prevEnd = (clone $start)->subDay()->endOfDay();
+        $prevStart = (clone $prevEnd)->subDays($diffDays - 1)->startOfDay();
+        return [$prevStart, $prevEnd];
+    }
+
+    protected function calculateStdDev(array $numbers): float
+    {
+        if (count($numbers) < 2) return 0.0;
+        $mean = array_sum($numbers) / count($numbers);
+        $variance = array_sum(array_map(fn($x) => pow($x - $mean, 2), $numbers)) / count($numbers);
+        return sqrt($variance);
+    }
+
+    protected function generateEggInsight(float $growthRate, float $consistency, int $zeroDays): string
+    {
+        $insights = [];
+
+        // Trend Analysis
+        if ($growthRate >= 10) {
+            $insights[] = "<span class='font-bold text-emerald-600'>🚀 Surging Production:</span> Output is up +{$growthRate}% compared to the previous period.";
+        } elseif ($growthRate <= -10) {
+            $insights[] = "<span class='font-bold text-red-600'>⚠️ Production Drop:</span> Output fell by {$growthRate}%. Verify feed quality, water supply, and flock health immediately.";
+        } else {
+            $insights[] = "<span class='font-bold text-blue-600'>📈 Stable Output:</span> Production volumes are holding steady.";
+        }
+
+        // Consistency Analysis
+        if ($consistency >= 85) {
+            $insights[] = "Daily collection rates are highly consistent, indicating an unstressed flock and solid farm routines.";
+        } elseif ($consistency <= 65) {
+            $insights[] = "High day-to-day variance detected. Consider standardizing your feeding times and egg collection schedules.";
+        }
+
+        // Zero Days Warning
+        if ($zeroDays > 0) {
+            $insights[] = "<span class='text-amber-600'>Note: There were {$zeroDays} days with zero recorded production.</span> If this wasn't a record-keeping gap, investigate potential flock disturbances.";
+        }
+
+        if (empty($insights)) {
+            return "Sufficient data is being gathered. Maintain current routines.";
+        }
+
+        return "<ul class='list-disc pl-5 space-y-2 mt-2 text-sm sm:text-base'><li>" . implode("</li><li>", $insights) . "</li></ul>";
+    }
+
+    // =========================================================================
+    // EXPORT & PDF GENERATION LOGIC
+    // =========================================================================
+
+    public function export(Request $request)
+    {
+        try {
+            if (!Auth::check()) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            $type = $request->input('type', $request->query('type', 'weekly'));
+            $format = $request->input('format', $request->query('format', 'pdf'));
+            $columns = $request->input('columns', []);
+            $includeChart = (bool) $request->input('include_chart', false);
+            $includeSummary = (bool) $request->input('include_summary', false);
+            $separateSheets = (bool) $request->input('separate_sheets', false);
+
+            $data = $this->getReportData($request, $type);
+
+            if ($includeChart) {
+                try {
+                    $chartImages = $this->generateChartImages($type, $data);
+                    if (!empty($chartImages)) $data['chart_images'] = $chartImages;
+                } catch (\Exception $e) {
+                    Log::warning('Failed to create chart images for export', ['err' => $e->getMessage()]);
+                }
+            }
+
+            if ($format === 'csv') {
+                $rows = [];
+                switch ($type) {
+                    case 'weekly':
+                        foreach ($data['weekly'] as $r) {
+                            $rows[] = ['year' => $r->year, 'week' => $r->week, 'total' => $r->total];
+                        }
+                        break;
+                    case 'monthly':
+                        foreach ($data['monthly'] as $r) {
+                            $rows[] = ['year' => $r->year, 'month' => $r->month_num, 'total' => $r->total];
+                        }
+                        break;
+                    case 'efficiency':
+                        if (isset($data['efficiency']['expense_breakdown'])) {
+                            foreach ($data['efficiency']['expense_breakdown'] as $ex) {
+                                $rows[] = ['Category' => $ex->category, 'Total' => $ex->total];
+                            }
+                        }
+                        break;
+                    case 'custom':
+                        $metrics = $request->input('metrics', []);
+                        if (!empty($metrics)) {
+                            $m = $metrics[0];
+                            if (isset($data[$m]) && $data[$m] instanceof Collection) {
+                                foreach ($data[$m] as $item) $rows[] = (array)$item;
+                            }
+                        }
+                        break;
+                }
+
+                if (!empty($rows)) {
+                    $fp = fopen('php://temp', 'w+');
+                    if (!empty($columns)) {
+                        fputcsv($fp, $columns);
+                        foreach ($rows as $r) {
+                            $row = array_map(fn($c) => $r[$c] ?? '', $columns);
+                            fputcsv($fp, $row);
+                        }
+                    } else {
+                        if (isset($rows[0])) {
+                            fputcsv($fp, array_keys((array)$rows[0]));
+                        }
+                        foreach ($rows as $r) fputcsv($fp, (array)$r);
+                    }
+                    rewind($fp);
+                    $content = stream_get_contents($fp);
+                    fclose($fp);
+
+                    $filename = "report_{$type}_" . now()->format('Ymd') . '.csv';
+                    return response($content, 200, [
+                        'Content-Type' => 'text/csv',
+                        'Content-Disposition' => "attachment; filename={$filename}",
+                    ]);
+                }
+            }
+
+            if ($format === 'pdf') {
+                $pdf = Pdf::loadView('reports.index_pdf', compact('type', 'data', 'columns', 'includeChart', 'includeSummary'));
+                return $pdf->download("report_{$type}_" . now()->format('Ymd') . '.pdf');
+            }
+
+            if ($format === 'excel') {
+                return Excel::download(new CustomReportExport($data, $columns, [
+                    'includeChart' => $includeChart,
+                    'includeSummary' => $includeSummary,
+                    'separateSheets' => $separateSheets,
+                ]), "report_{$type}_" . now()->format('Ymd') . '.xlsx');
+            }
+
+            return redirect()->back()->with('error', 'Invalid export format.');
+        } catch (ValidationException $ve) {
+            Log::warning('Export validation failed', ['errors' => $ve->errors()]);
+            if ($request->wantsJson() || $request->expectsJson()) {
+                return response()->json(['errors' => $ve->errors()], 422);
+            }
+            return back()->withErrors($ve->errors());
+        } catch (\Exception $e) {
+            Log::error('Failed to export report', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            if ($request->wantsJson() || $request->expectsJson()) {
+                return response()->json(['error' => 'Failed to export report.'], 500);
+            }
+            return back()->with('error', 'Failed to export report.');
+        }
+    }
+
     protected function generateChartImages(string $type, array $data): array
     {
         $images = [];
@@ -546,9 +670,6 @@ class ReportController extends Controller
         return $images;
     }
 
-    /**
-     * Helper that given a Chart.js config array will attempt to fetch a PNG image from QuickChart
-     */
     protected function quickChartFetch(array $chartConfig, int $width = 800, int $height = 400): ?string
     {
         try {
@@ -580,159 +701,4 @@ class ReportController extends Controller
             return null;
         }
     }
-
-    /**
-     * Export handler (pdf/csv/excel)
-     */
-    public function export(Request $request)
-    {
-        try {
-            if (!Auth::check()) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
-
-            $type = $request->input('type', $request->query('type', 'weekly'));
-            $format = $request->input('format', $request->query('format', 'pdf'));
-            $columns = $request->input('columns', []);
-            $includeChart = (bool) $request->input('include_chart', false);
-            $includeSummary = (bool) $request->input('include_summary', false);
-            $separateSheets = (bool) $request->input('separate_sheets', false);
-
-            $data = $this->getReportData($request, $type);
-
-            if ($includeChart) {
-                try {
-                    $chartImages = $this->generateChartImages($type, $data);
-                    if (!empty($chartImages)) $data['chart_images'] = $chartImages;
-                } catch (\Exception $e) {
-                    Log::warning('Failed to create chart images for export', ['err' => $e->getMessage()]);
-                }
-            }
-
-            if ($format === 'csv') {
-                $rows = [];
-                switch ($type) {
-                    case 'weekly':
-                        foreach ($data['weekly'] as $r) {
-                            $rows[] = ['year' => $r->year, 'week' => $r->week, 'total' => $r->total];
-                        }
-                        break;
-                    case 'monthly':
-                        foreach ($data['monthly'] as $r) {
-                            $rows[] = ['year' => $r->year, 'month' => $r->month_num, 'total' => $r->total];
-                        }
-                        break;
-                    case 'efficiency':
-                        if (isset($data['efficiency']['expense_breakdown'])) {
-                            foreach ($data['efficiency']['expense_breakdown'] as $ex) {
-                                $rows[] = ['Category' => $ex->category, 'Total' => $ex->total];
-                            }
-                        }
-                        break;
-                    case 'custom':
-                        $metrics = $request->input('metrics', []);
-                        if (!empty($metrics)) {
-                            $m = $metrics[0];
-                            if (isset($data[$m]) && $data[$m] instanceof Collection) {
-                                foreach ($data[$m] as $item) $rows[] = (array)$item;
-                            }
-                        }
-                        break;
-                }
-
-                if (!empty($rows)) {
-                    $fp = fopen('php://temp', 'w+');
-                    if (!empty($columns)) {
-                        fputcsv($fp, $columns);
-                        foreach ($rows as $r) {
-                            $row = array_map(fn($c) => $r[$c] ?? '', $columns);
-                            fputcsv($fp, $row);
-                        }
-                    } else {
-                        if (isset($rows[0])) {
-                            fputcsv($fp, array_keys((array)$rows[0]));
-                        }
-                        foreach ($rows as $r) fputcsv($fp, (array)$r);
-                    }
-                    rewind($fp);
-                    $content = stream_get_contents($fp);
-                    fclose($fp);
-
-                    $filename = "report_{$type}_" . now()->format('Ymd') . '.csv';
-                    return response($content, 200, [
-                        'Content-Type' => 'text/csv',
-                        'Content-Disposition' => "attachment; filename={$filename}",
-                    ]);
-                }
-            }
-
-            if ($format === 'pdf') {
-                $pdf = Pdf::loadView('reports.index_pdf', compact('type', 'data', 'columns', 'includeChart', 'includeSummary'));
-                return $pdf->download("report_{$type}_" . now()->format('Ymd') . '.pdf');
-            }
-
-            if ($format === 'excel') {
-                return Excel::download(new CustomReportExport($data, $columns, [
-                    'includeChart' => $includeChart,
-                    'includeSummary' => $includeSummary,
-                    'separateSheets' => $separateSheets,
-                ]), "report_{$type}_" . now()->format('Ymd') . '.xlsx');
-            }
-
-            return redirect()->back()->with('error', 'Invalid export format.');
-        } catch (ValidationException $ve) {
-            Log::warning('Export validation failed', ['errors' => $ve->errors()]);
-            if ($request->wantsJson() || $request->expectsJson()) {
-                return response()->json(['errors' => $ve->errors()], 422);
-            }
-            return back()->withErrors($ve->errors());
-        } catch (\Exception $e) {
-            Log::error('Failed to export report', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            if ($request->wantsJson() || $request->expectsJson()) {
-                return response()->json(['error' => 'Failed to export report.'], 500);
-            }
-            return back()->with('error', 'Failed to export report.');
-        }
-    }
-
-        protected function calculateStdDev(array $numbers): float
-    {
-        if (count($numbers) < 2) return 0;
-        $mean = array_sum($numbers) / count($numbers);
-        $variance = array_sum(array_map(fn($x) => pow($x - $mean, 2), $numbers)) / count($numbers);
-        return sqrt($variance);
-    }
-
-    protected function generateEggInsight(array $intel): string
-    {
-        $insight = [];
-
-        if ($intel['growth_rate'] > 10) {
-            $insight[] = "🚀 Production is surging! <strong>+{$intel['growth_rate']}%</strong> vs last period.";
-        } elseif ($intel['growth_rate'] < -5) {
-            $insight[] = "⚠️ Alert: Production dropped <strong>{$intel['growth_rate']}%</strong> — check health, feed or lighting.";
-        } else {
-            $insight[] = "📈 Production is stable.";
-        }
-
-        if ($intel['consistency_score'] > 85) {
-            $insight[] = "Excellent consistency across days — keep it up!";
-        } elseif ($intel['consistency_score'] < 65) {
-            $insight[] = "High daily variation detected. Standardize collection times or pen conditions.";
-        }
-
-        if ($intel['zero_production_days'] > 2) {
-            $insight[] = "There were <strong>{$intel['zero_production_days']}</strong> zero-production days in the period.";
-        }
-
-        return implode(' ', $insight);
-    }
-
-    public function custom(Request $request)
-    {
-        return $this->index($request);
-    }
-
-
-    
 }
