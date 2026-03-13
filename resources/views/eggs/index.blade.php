@@ -29,58 +29,40 @@
 
     <!-- Summary Cards -->
     <section>
-        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center">
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Produced Crates</span>
-                <div class="flex items-center gap-3">
-                    <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 7l-10 6-10-6m0 0l10-6 10 6m-10 6v8"></path></svg>
-                    <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ number_format($totalProducedCrates, 0) }}</p>
-                </div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center">
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Additional Eggs</span>
-                <div class="flex items-center gap-3">
-                    <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.21 0 4 3.58 4 8s-1.79 8-4 8-4-3.58-4-8 1.79-8 4-8m0 0v18"></path></svg>
-                    <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ number_format($totalAdditionalEggs, 0) }}</p>
-                </div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center">
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Produced Eggs</span>
-                <div class="flex items-center gap-3">
-                    <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.21 0 4 3.58 4 8s-1.79 8-4 8-4-3.58-4-8 1.79-8 4-8m0 0v18"></path></svg>
-                    <p class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{{ number_format($totalProducedEggs, 0) }}</p>
-                </div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center">
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Cracked Eggs</span>
-                <div class="flex items-center gap-3">
-                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.21 0 4 3.58 4 8s-1.79 8-4 8-4-3.58-4-8 1.79-8 4-8m0 0v18"></path></svg>
-                    <p class="text-3xl font-bold text-red-600 dark:text-red-400">{{ number_format($totalCracked, 0) }}</p>
-                </div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center">
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Sold Crates</span>
-                <div class="flex items-center gap-3">
-                    <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 7l-10 6-10-6m0 0l10-6 10 6m-10 6v8"></path></svg>
-                    <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{{ number_format($totalSoldCrates, 0) }}</p>
-                </div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center">
-                <span class="text-sm text-gray-500 dark:text-gray-400">Remaining Crates</span>
-                <div class="flex items-center gap-3">
-                    <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 7l-10 6-10-6m0 0l10-6 10 6m-10 6v8"></path></svg>
-                    <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ number_format($remainingCrates, 0) }}</p>
-                </div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center">
-                <span class="text-sm text-gray-500 dark:text-gray-400">Remaining Eggs</span>
-                <div class="flex items-center gap-3">
-                    <svg class="w-6 h-6 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.21 0 4 3.58 4 8s-1.79 8-4 8-4-3.58-4-8 1.79-8 4-8m0 0v18"></path></svg>
-                    <p class="text-3xl font-bold text-teal-600 dark:text-teal-400">{{ number_format($remainingEggs, 0) }}</p>
-                </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center">
+            <span class="text-sm text-gray-500 dark:text-gray-400">Total Produced Crates</span>
+            <div class="flex items-center gap-3">
+                <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 7l-10 6-10-6m0 0l10-6 10 6m-10 6v8"></path></svg>
+                <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ number_format($calculatedTotalCrates, 0) }}</p>
             </div>
         </div>
-    </section>
+
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center">
+            <span class="text-sm text-gray-500 dark:text-gray-400">Leftover Eggs (Loose)</span>
+            <div class="flex items-center gap-3">
+                <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.21 0 4 3.58 4 8s-1.79 8-4 8-4-3.58-4-8 1.79-8 4-8m0 0v18"></path></svg>
+                <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ number_format($calculatedAdditionalEggs, 0) }}</p>
+            </div>
+        </div>
+
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center">
+            <span class="text-sm text-gray-500 dark:text-gray-400">Inventory Crates</span>
+            <div class="flex items-center gap-3">
+                <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 7l-10 6-10-6m0 0l10-6 10 6m-10 6v8"></path></svg>
+                <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ number_format($remainingCrates, 0) }}</p>
+            </div>
+        </div>
+
+        <div class="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow flex flex-col items-center">
+            <span class="text-sm text-gray-500 dark:text-gray-400">Inventory Loose Eggs</span>
+            <div class="flex items-center gap-3">
+                <svg class="w-6 h-6 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.21 0 4 3.58 4 8s-1.79 8-4 8-4-3.58-4-8 1.79-8 4-8m0 0v18"></path></svg>
+                <p class="text-3xl font-bold text-teal-600 dark:text-teal-400">{{ number_format($remainingAdditionalEggs, 0) }}</p>
+            </div>
+        </div>
+    </div>
+</section>
 
     
 

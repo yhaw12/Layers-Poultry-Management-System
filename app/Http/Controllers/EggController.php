@@ -40,13 +40,32 @@ class EggController extends Controller
 
         $eggs = $query->orderBy('date_laid', 'desc')->paginate(10);
 
-        $totalProducedCrates = (int) Egg::whereBetween('date_laid', [$start, $end])->sum('crates');
-        $totalAdditionalEggs = (int) Egg::whereBetween('date_laid', [$start, $end])->sum('additional_eggs');
+        // --- NEW CONSOLIDATED LOGIC ---
+        
+        // 1. Total Eggs Produced
         $totalProducedEggs = (int) Egg::whereBetween('date_laid', [$start, $end])->sum('total_eggs');
+        
+        // 2. Convert total eggs to crates and leftover loose eggs
+        $calculatedTotalCrates = floor($totalProducedEggs / 30);
+        $calculatedAdditionalEggs = $totalProducedEggs % 30;
+
+        // 3. Cracked Eggs
         $totalCracked = (int) Egg::whereBetween('date_laid', [$start, $end])->where('is_cracked', true)->count();
-        $totalSoldCrates = (int) Sale::where('saleable_type', Egg::class)->whereBetween('sale_date', [$start, $end])->sum('quantity');
-        $remainingCrates = max(0, $totalProducedCrates - $totalSoldCrates);
-        $remainingEggs = ($remainingCrates * 30) + $totalAdditionalEggs;
+
+        // 4. Handle Sales and Remaining Stock
+        $totalSoldCrates = (int) Sale::where('saleable_type', Egg::class)
+            ->whereBetween('sale_date', [$start, $end])
+            ->sum('quantity');
+
+        // Convert sold crates back to individual eggs for subtraction
+        $totalSoldEggs = $totalSoldCrates * 30;
+        $remainingTotalEggs = max(0, $totalProducedEggs - $totalSoldEggs);
+
+        // 5. Calculate remaining crates and leftover eggs from the balance
+        $remainingCrates = floor($remainingTotalEggs / 30);
+        $remainingAdditionalEggs = $remainingTotalEggs % 30;
+
+        // --- END NEW LOGIC ---
 
         $eggChart = Cache::remember('egg_trends', 3, function () {
             $data = [];
@@ -54,9 +73,10 @@ class EggController extends Controller
             for ($i = 0; $i < 6; $i++) {
                 $month = now()->subMonths($i);
                 $labels[] = $month->format('M Y');
-                $data[] = (int) Egg::whereMonth('date_laid', $month->month)
+                $totalEggs = (int) Egg::whereMonth('date_laid', $month->month)
                     ->whereYear('date_laid', $month->year)
-                    ->sum('crates');
+                    ->sum('total_eggs');
+                $data[] = floor($totalEggs / 30);
             }
             return ['data' => array_reverse($data), 'labels' => array_reverse($labels)];
         });
@@ -64,15 +84,16 @@ class EggController extends Controller
         $eggLabels = $eggChart['labels'];
         $eggData = $eggChart['data'];
 
+        // Notice the updated variable names here to match the view
         return view('eggs.index', compact(
             'eggs',
-            'totalProducedCrates',
-            'totalAdditionalEggs',
             'totalProducedEggs',
+            'calculatedTotalCrates',
+            'calculatedAdditionalEggs',
             'totalCracked',
             'totalSoldCrates',
             'remainingCrates',
-            'remainingEggs',
+            'remainingAdditionalEggs',
             'eggLabels',
             'eggData',
             'start',
