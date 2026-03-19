@@ -27,7 +27,7 @@ use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SupplierController;
-use App\Http\Controllers\TransactionsController;
+// use App\Http\Controllers\TransactionsController;
 use App\Http\Controllers\VaccinationLogController;
 use App\Http\Controllers\WeatherController;
 use Spatie\ResponseCache\Middlewares\DoNotCacheResponse;
@@ -146,13 +146,13 @@ Route::middleware('auth')->group(function () {
 
     // Inventory & Transactions
     Route::get('/inventory/low-stock', [InventoryController::class, 'lowStock'])->name('inventory.low-stock');
-    Route::prefix('transactions')->name('transactions.')->group(function () {
-        Route::get('/', [TransactionsController::class, 'index'])->name('index');
-        Route::get('/{transaction}', [TransactionsController::class, 'show'])->name('show');
-        Route::post('/{transaction}/approve', [TransactionsController::class, 'approve'])->name('approve');
-        Route::post('/{transaction}/reject', [TransactionsController::class, 'reject'])->name('reject');
-        Route::delete('/{transaction}', [TransactionsController::class, 'destroy'])->name('destroy');
-    });
+    // Route::prefix('transactions')->name('transactions.')->group(function () {
+    //     Route::get('/', [TransactionsController::class, 'index'])->name('index');
+    //     Route::get('/{transaction}', [TransactionsController::class, 'show'])->name('show');
+    //     Route::post('/{transaction}/approve', [TransactionsController::class, 'approve'])->name('approve');
+    //     Route::post('/{transaction}/reject', [TransactionsController::class, 'reject'])->name('reject');
+    //     Route::delete('/{transaction}', [TransactionsController::class, 'destroy'])->name('destroy');
+    // });
 
     // Activity Logs (admin only)
     Route::middleware('role:admin')->group(function () {
@@ -194,7 +194,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 | Sales Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth'])->prefix('sales')->name('sales.')->group(function () {
+Route::middleware(['auth', DoNotCacheResponse::class])->prefix('sales')->name('sales.')->group(function () {
     Route::get('/', [SalesController::class, 'index'])->name('index');
     Route::get('/create', [SalesController::class, 'create'])->name('create');
     Route::post('/', [SalesController::class, 'store'])->name('store');
@@ -206,7 +206,7 @@ Route::middleware(['auth'])->prefix('sales')->name('sales.')->group(function () 
     Route::get('/{sale}/invoice/preview', [SalesController::class, 'invoicePreview'])->name('invoice.preview');
     Route::get('/pending-json', [SalesController::class, 'pendingJson'])->name('pendingJson');
     Route::post('/{sale}/record-payment', [SalesController::class, 'recordPayment'])->name('recordPayment');
-    Route::post('/sales/{sale}/record-payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment')->middleware(DoNotCacheResponse::class);
+    Route::post('/sales/{sale}/record-payment', [SalesController::class, 'recordPayment'])->name('sales.recordPayment');
 
    
 });

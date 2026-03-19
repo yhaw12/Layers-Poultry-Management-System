@@ -4,100 +4,198 @@
     <meta charset="utf-8">
     <title>Executive Report - {{ ucfirst($type) }}</title>
     <style>
-        @page { margin: 0px; }
+        /* PDF System Settings */
+        @page { 
+            margin: 140px 50px 80px 50px; 
+        }
+        
         body {
-            font-family: 'DejaVu Sans', sans-serif; /* Best for currency symbols like ₵ */
-            font-size: 12px;
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 11px;
             color: #333;
-            line-height: 1.4;
-            margin: 40px;
+            line-height: 1.5;
+            margin: 0;
         }
-        /* Header Section */
-        .header-bg {
-            position: absolute; top: 0; left: 0; right: 0; height: 120px;
-            background-color: #2c3e50; z-index: -1;
-        }
-        .header-content { color: white; padding-top: 30px; margin-bottom: 50px; }
-        .company-name { font-size: 24px; font-weight: bold; text-transform: uppercase; }
-        .report-title { font-size: 16px; margin-top: 5px; opacity: 0.9; }
-        
-        /* Meta Data */
-        .meta-table { width: 100%; margin-bottom: 20px; border: none; }
-        .meta-table td { padding: 5px; border: none; vertical-align: top; }
-        .meta-label { font-weight: bold; color: #555; width: 100px; }
 
-        /* KPI Cards (Simulated in PDF) */
+        /* Fixed Header (Appears on every page) */
+        header {
+            position: fixed;
+            top: -140px;
+            left: -50px;
+            right: -50px;
+            height: 120px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 30px 50px;
+            z-index: -1000;
+        }
+        
+        .company-name { font-size: 22px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+        .report-title { font-size: 14px; opacity: 0.8; }
+
+        /* Fixed Footer (Appears on every page) */
+        footer {
+            position: fixed;
+            bottom: -60px;
+            left: 0;
+            right: 0;
+            height: 40px;
+            text-align: center;
+            font-size: 9px;
+            color: #7f8c8d;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+        
+        /* CSS Page Numbering Logic */
+        .page-number:before { content: counter(page); }
+
+        /* Metadata Table */
+        .meta-table { width: 100%; margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .meta-label { font-weight: bold; color: #7f8c8d; width: 100px; text-transform: uppercase; font-size: 9px; }
+
+        /* KPI / Summary Box */
         .summary-box {
-            background-color: #f8f9fa; border: 1px solid #e9ecef;
-            padding: 10px; margin-bottom: 20px; border-radius: 4px;
+            background-color: #f8f9fa; 
+            border: 1px solid #e9ecef;
+            padding: 15px; 
+            margin-bottom: 30px; 
+            border-radius: 8px;
+            page-break-inside: avoid;
         }
-        .summary-header { font-size: 14px; font-weight: bold; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-bottom: 10px; color: #2c3e50; }
-        .kpi-row { display: table; width: 100%; }
-        .kpi-item { display: table-cell; width: 33%; }
-        .kpi-val { font-size: 14px; font-weight: bold; color: #2c3e50; }
-        .kpi-label { font-size: 10px; text-transform: uppercase; color: #777; }
-
-        /* Data Tables */
-        table.data { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        table.data th { background-color: #2c3e50; color: white; padding: 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
-        table.data td { border-bottom: 1px solid #eee; padding: 8px; font-size: 11px; }
-        table.data tr:nth-child(even) { background-color: #f9f9f9; }
-        .text-right { text-align: right; }
-        .text-center { text-align: center; }
+        .summary-header { 
+            font-size: 12px; 
+            font-weight: bold; 
+            border-bottom: 2px solid #3498db; 
+            padding-bottom: 5px; 
+            margin-bottom: 15px; 
+            color: #2c3e50;
+            text-transform: uppercase;
+        }
         
-        /* Charts */
-        .chart-container { text-align: center; margin: 20px 0; page-break-inside: avoid; }
-        .chart-container img { max-width: 100%; border: 1px solid #ddd; padding: 5px; }
+        /* Use table for KPIs as it's more stable in PDFs than floats */
+        .kpi-table { width: 100%; border: none; }
+        .kpi-label { font-size: 9px; color: #7f8c8d; text-transform: uppercase; margin-bottom: 4px; }
+        .kpi-val { font-size: 16px; font-weight: bold; color: #2c3e50; }
 
-        /* Footer */
-        footer { position: fixed; bottom: -30px; left: 0px; right: 0px; height: 50px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+        /* Main Data Tables */
+        table.data { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        table.data th { 
+            background-color: #f1f3f5; 
+            color: #2c3e50; 
+            padding: 10px 8px; 
+            text-align: left; 
+            font-size: 10px; 
+            text-transform: uppercase;
+            border-bottom: 2px solid #dee2e6;
+        }
+        table.data td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 10px; }
+        table.data tr:nth-child(even) { background-color: #fafafa; }
+        
+        .text-right { text-align: right; }
+        .text-green { color: #27ae60; }
+        .text-red { color: #e74c3c; }
+        .bold { font-weight: bold; }
+
+        /* Charts Section */
+        .chart-container { 
+            text-align: center; 
+            margin: 20px 0; 
+            page-break-inside: avoid; 
+            border: 1px solid #eee; 
+            padding: 15px; 
+            border-radius: 8px;
+        }
+        .chart-container h4 { margin: 0 0 15px 0; color: #2c3e50; font-size: 13px; }
+        .chart-container img { width: 100%; height: auto; max-height: 280px; }
+
+        .section-title {
+            color: #2c3e50;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+        }
     </style>
 </head>
 <body>
-    <div class="header-bg"></div>
-    <div class="header-content">
+    <header>
         <div class="company-name">{{ config('app.name', 'POULTRY TRACKER') }}</div>
-        <div class="report-title">{{ ucfirst($type) }} Performance Report</div>
-    </div>
+        <div class="report-title">{{ ucfirst($type) }} Analysis Report</div>
+    </header>
+
+    <footer>
+        Confidential Farm Document | Generated by Poultry Tracker System | Page <span class="page-number"></span>
+    </footer>
 
     <table class="meta-table">
         <tr>
             <td>
-                <div class="meta-label">Generated:</div> {{ now()->format('d M Y, h:i A') }}<br>
-                <div class="meta-label">Generated By:</div> {{ auth()->user()->name ?? 'System' }}
+                <span class="meta-label">Generated:</span> {{ now()->format('d M Y, h:i A') }}<br>
+                <span class="meta-label">Admin:</span> {{ auth()->user()->name ?? 'System' }}
             </td>
             <td class="text-right">
                 @if(isset($data['profit_loss']['start']))
-                    <div class="meta-label">Period Start:</div> {{ \Carbon\Carbon::parse($data['profit_loss']['start'])->format('d M Y') }}<br>
-                    <div class="meta-label">Period End:</div> {{ \Carbon\Carbon::parse($data['profit_loss']['end'])->format('d M Y') }}
+                    <span class="meta-label">Start Date:</span> {{ \Carbon\Carbon::parse($data['profit_loss']['start'])->format('d M Y') }}<br>
+                    <span class="meta-label">End Date:</span> {{ \Carbon\Carbon::parse($data['profit_loss']['end'])->format('d M Y') }}
                 @endif
             </td>
         </tr>
     </table>
 
     {{-- Executive Summary --}}
-    @if(!empty($includeSummary) || !empty($data['profit_loss']))
+    @if(!empty($data['profit_loss']))
         <div class="summary-box">
-            <div class="summary-header">Financial Summary</div>
-            <div class="kpi-row">
-                <div class="kpi-item">
-                    <div class="kpi-label">Total Revenue</div>
-                    <div class="kpi-val" style="color: green;">₵ {{ number_format($data['profit_loss']['total_income'] ?? 0, 2) }}</div>
-                </div>
-                <div class="kpi-item">
-                    <div class="kpi-label">Total Expenses</div>
-                    <div class="kpi-val" style="color: #c0392b;">₵ {{ number_format(($data['profit_loss']['total_expenses'] ?? 0) + ($data['profit_loss']['total_payroll'] ?? 0), 2) }}</div>
-                </div>
-                <div class="kpi-item text-right">
-                    <div class="kpi-label">Net Profit</div>
-                    <div class="kpi-val">₵ {{ number_format($data['profit_loss']['profit_loss'] ?? 0, 2) }}</div>
-                </div>
-            </div>
+            <div class="summary-header">Profit & Loss Overview</div>
+            <table class="kpi-table">
+                <tr>
+                    <td width="33%">
+                        <div class="kpi-label">Total Revenue</div>
+                        <div class="kpi-val text-green">₵ {{ number_format($data['profit_loss']['total_income'] ?? 0, 2) }}</div>
+                    </td>
+                    <td width="33%" class="text-center">
+                        <div class="kpi-label">Total Expenses</div>
+                        <div class="kpi-val text-red">₵ {{ number_format(($data['profit_loss']['total_expenses'] ?? 0) + ($data['profit_loss']['total_payroll'] ?? 0), 2) }}</div>
+                    </td>
+                    <td width="33%" class="text-right">
+                        <div class="kpi-label">Net Profit</div>
+                        <div class="kpi-val {{ ($data['profit_loss']['profit_loss'] ?? 0) >= 0 ? 'text-green' : 'text-red' }}">
+                            ₵ {{ number_format($data['profit_loss']['profit_loss'] ?? 0, 2) }}
+                        </div>
+                    </td>
+                </tr>
+            </table>
         </div>
     @endif
 
+    <h3>Monthly Crates & Sales Summary</h3>
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+    <thead>
+        <tr style="background-color: #2c3e50; color: #ffffff;">
+            <th style="padding: 8px; border: 1px solid #ddd;">Year</th>
+            <th style="padding: 8px; border: 1px solid #ddd;">Month</th>
+            <th style="padding: 8px; border: 1px solid #ddd;">Crates Produced</th>
+            <th style="padding: 8px; border: 1px solid #ddd;">Crates Sold</th>
+            <th style="padding: 8px; border: 1px solid #ddd;">Revenue (₵)</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($data['monthly_summary'] ?? [] as $row)
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{{ $row->year }}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{{ \Carbon\Carbon::create()->month($row->month_num)->format('F') }}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{{ $row->crates_produced }}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">{{ $row->crates_sold }}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{{ number_format($row->revenue, 2) }}</td>
+        </tr>
+        @endforeach
+    </tbody>
+</table>
+
     {{-- Charts Section --}}
     @if(!empty($includeChart) && !empty($data['chart_images']))
+        <div class="section-title">Visual Analytics</div>
         @foreach($data['chart_images'] as $ci)
             <div class="chart-container">
                 <h4>{{ $ci['title'] }}</h4>
@@ -108,47 +206,52 @@
 
     {{-- Data Sections --}}
     
-    {{-- Weekly --}}
+    {{-- Weekly Production (Updated for production logic) --}}
     @if($type === 'weekly' && !empty($data['weekly']))
-        <h3>Weekly Production Data</h3>
+        <div class="section-title">Weekly Production History</div>
         <table class="data">
-            <thead><tr><th>Year</th><th>Week Number</th><th class="text-right">Total Crates</th><th class="text-right">Daily Avg</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Year</th>
+                    <th>Period</th>
+                    <th class="text-right">Crates Produced</th>
+                    <th class="text-right">Daily Average</th>
+                </tr>
+            </thead>
             <tbody>
                 @foreach($data['weekly'] as $r)
                     <tr>
                         <td>{{ $r->year }}</td>
                         <td>Week {{ $r->week }}</td>
-                        <td class="text-right">{{ number_format($r->total, 2) }}</td>
-                        <td class="text-right">{{ number_format($r->total / 7, 2) }}</td>
+                        <td class="text-right bold">{{ number_format($r->total, 1) }}</td>
+                        <td class="text-right">{{ number_format($r->total / 7, 1) }}</td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
     @endif
 
-    {{-- Profitability --}}
-    @if($type === 'profitability' && !empty($data['profitability']))
-        <h3>Bird Batch Profitability</h3>
+    {{-- Profitability Analysis --}}
+    @if(($type === 'efficiency' || $type === 'profitability') && !empty($data['profitability']))
+        <div class="section-title">Batch Profitability</div>
         <table class="data">
             <thead>
                 <tr>
                     <th>Breed/Batch</th>
                     <th>Type</th>
                     <th class="text-right">Sales</th>
-                    <th class="text-right">Feed Cost</th>
-                    <th class="text-right">Ops Cost</th>
+                    <th class="text-right">Expenses</th>
                     <th class="text-right">Net Profit</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($data['profitability'] as $r)
                     <tr>
-                        <td>{{ $r->breed }}</td>
+                        <td class="bold">{{ $r->breed }}</td>
                         <td>{{ ucfirst($r->type) }}</td>
                         <td class="text-right">₵ {{ number_format($r->sales, 2) }}</td>
-                        <td class="text-right">₵ {{ number_format($r->feed_cost, 2) }}</td>
-                        <td class="text-right">₵ {{ number_format($r->operational_cost ?? 0, 2) }}</td>
-                        <td class="text-right" style="font-weight:bold; color: {{ $r->profit >= 0 ? 'green' : 'red' }}">
+                        <td class="text-right">₵ {{ number_format($r->feed_cost + ($r->operational_cost ?? 0), 2) }}</td>
+                        <td class="text-right bold {{ $r->profit >= 0 ? 'text-green' : 'text-red' }}">
                             ₵ {{ number_format($r->profit, 2) }}
                         </td>
                     </tr>
@@ -157,29 +260,32 @@
         </table>
     @endif
 
-    {{-- Custom Analytics --}}
-    @if($type === 'custom')
-        @if(!empty($data['sales']) && count($data['sales']) > 0)
-            <h3>Sales History</h3>
-            <table class="data">
-                <thead><tr><th>Date</th><th>Customer</th><th>Product</th><th class="text-right">Qty</th><th class="text-right">Total</th></tr></thead>
-                <tbody>
-                    @foreach($data['sales'] as $s)
-                        <tr>
-                            <td>{{ \Carbon\Carbon::parse($s->sale_date)->format('d/m/Y') }}</td>
-                            <td>{{ optional($s->customer)->name ?? 'Unknown' }}</td>
-                            <td>{{ $s->saleable_type === \App\Models\Bird::class ? 'Bird' : 'Egg' }}</td>
-                            <td class="text-right">{{ $s->quantity }}</td>
-                            <td class="text-right">₵ {{ number_format($s->total_amount, 2) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
+    {{-- Sales Analytics --}}
+    @if($type === 'custom' && !empty($data['sales']))
+        <div class="section-title">Detailed Sales Audit</div>
+        <table class="data">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th class="text-right">Quantity</th>
+                    <th class="text-right">Total Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($data['sales'] as $s)
+                    <tr>
+                        <td>{{ \Carbon\Carbon::parse($s->sale_date)->format('d/m/Y') }}</td>
+                        <td>{{ optional($s->customer)->name ?? 'Walk-in Customer' }}</td>
+                        <td>{{ str_contains($s->saleable_type, 'Bird') ? 'Birds' : 'Eggs' }}</td>
+                        <td class="text-right">{{ number_format($s->quantity, 0) }}</td>
+                        <td class="text-right bold">₵ {{ number_format($s->total_amount, 2) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
     @endif
 
-    <footer>
-        Confidential Report | Generated by Poultry Tracker System | Page <span class="page-number"></span>
-    </footer>
 </body>
 </html>

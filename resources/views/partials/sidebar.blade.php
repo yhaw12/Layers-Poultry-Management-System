@@ -198,11 +198,11 @@
                    aria-current="{{ Route::is('payroll.*') ? 'page' : 'false' }}">
                     Payroll
                 </a>
-                <a href="{{ route('transactions.index') }}"
+                {{-- <a href="{{ route('transactions.index') }}"
                    class="block px-4 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 {{ Route::is('transactions.*') ? 'bg-gray-50 dark:bg-gray-700 text-blue-600 dark:text-blue-300' : '' }}"
                    aria-current="{{ Route::is('transactions.*') ? 'page' : 'false' }}">
                     Transactions
-                </a>
+                </a> --}}
             </div>
         </div>
 

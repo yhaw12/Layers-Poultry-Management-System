@@ -42,11 +42,11 @@
             </div>
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg flex flex-col items-center transform transition-all hover:scale-105 duration-200">
                 <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Amount</span>
-                <p class="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">₵ {{ number_format($sales->sum('total_amount'), 2) }}</p>
+                <p class="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">₵ {{ number_format($totalAmount, 2) }}</p>
             </div>
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg flex flex-col items-center transform transition-all hover:scale-105 duration-200">
                 <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Paid</span>
-                <p class="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">₵ {{ number_format($sales->sum('paid_amount'), 2) }}</p>
+                <p class="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">₵ {{ number_format($totalPaid, 2) }}</p>
             </div>
         </div>
     </section>
@@ -160,7 +160,7 @@
                                         </button>
                                     @endif
                                     
-                                    <a href="{{ route('sales.invoice', $sale->id) }}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition p-1" title="View Invoice">
+                                    <a href="{{ route('sales.invoice', $sale->id) }}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition p-1" title="View Invoice" target="_blank">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                     </a>
 
@@ -173,7 +173,9 @@
                     </tbody>
                 </table>
             </div>
-            <div class="mt-6">{{ $sales->links() }}</div>
+            <div class="mt-6 flex justify-center">
+    {{ $sales->links('pagination::tailwind') }}
+</div>
         </div>
     </section>
 

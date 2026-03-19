@@ -10,7 +10,7 @@ use App\Models\Customer;
 use App\Models\Bird;
 use App\Models\Egg;
 use App\Models\Alert;
-use App\Models\Transaction;
+// use App\Models\Transaction;
 use App\Models\UserActivityLog;
 use App\Models\Income;
 use App\Models\SaleItem;
@@ -59,11 +59,11 @@ class SalesController extends Controller
             }
 
             $sales = $query->orderBy('sale_date', 'desc')->paginate(10)->withQueryString();
-            
+            $totalPaid = (float) $query->get()->sum('paid_amount');
             // Calculate total from the filtered query
             $totalAmount = (float) $query->sum('total_amount');
 
-            return view('sales.index', compact('sales', 'start', 'end', 'totalAmount'));
+           return view('sales.index', compact('sales', 'start', 'end', 'totalAmount', 'totalPaid'));
         } catch (\Exception $e) {
             Log::error('Failed to load sales', ['error' => $e->getMessage()]);
             return back()->with('error', 'Failed to load sales.');
@@ -81,11 +81,12 @@ class SalesController extends Controller
             $start = $request->input('start_date', now()->subMonths(6)->startOfMonth()->toDateString());
             $end = $request->input('end_date', now()->endOfMonth()->toDateString());
 
-            $sales = Sale::with('customer', 'saleable')
+            $sales = SaleItem::with(['sale.customer', 'sale'])
                 ->where('saleable_type', Egg::class)
-                ->whereBetween('sale_date', [$start, $end])
-                ->whereNull('deleted_at')
-                ->orderBy('sale_date', 'desc')
+                ->whereHas('sale', function ($q) use ($start, $end) {
+                    $q->whereBetween('sale_date', [$start, $end]);
+                })
+                ->latest()
                 ->paginate(10);
 
             $totalSales = (float) Sale::where('saleable_type', Egg::class)
@@ -93,9 +94,10 @@ class SalesController extends Controller
                 ->whereNull('deleted_at')
                 ->sum('total_amount');
 
-            $totalCratesSold = (float) Sale::where('saleable_type', Egg::class)
-                ->whereBetween('sale_date', [$start, $end])
-                ->whereNull('deleted_at')
+            $totalCratesSold = (int) SaleItem::where('saleable_type', Egg::class)
+                ->whereHas('sale', function ($q) use ($start, $end) {
+                    $q->whereBetween('sale_date', [$start, $end]);
+                })
                 ->sum('quantity');
 
             return view('eggs.sales', compact('sales', 'totalSales', 'totalCratesSold', 'start', 'end'));
@@ -236,41 +238,50 @@ class SalesController extends Controller
      */
     public function recordPayment(Request $request, Sale $sale)
     {
-        // Force validation
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:0.01',
-            'payment_date' => 'required|date',
-            'payment_method' => 'required|string',
-        ]);
-
         try {
+            if (!$request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid request type'
+                ], 400);
+            }
+
+            $validated = validator($request->all(), [
+                'amount' => 'required|numeric|min:0.01',
+                'payment_date' => 'required|date',
+                'payment_method' => 'required|string',
+            ])->validate();
+
             DB::beginTransaction();
-            
-            // Use the shared logic we created earlier
+
             $this->executePaymentLogic(
-                $sale, 
-                $validated['amount'], 
-                $validated['payment_date'], 
+                $sale,
+                $validated['amount'],
+                $validated['payment_date'],
                 $validated['payment_method']
             );
-            
+
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Payment recorded successfully!'
-            ])
-            // UX FIX: Force browser to bypass any local or middleware cache
-            ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-            ->header('Pragma', 'no-cache')
-            ->header('Expires', '0');
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->errors()
+            ], 422);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             Log::error("Payment AJAX Error: " . $e->getMessage());
+
             return response()->json([
-                'success' => false, 
-                'error' => 'Server Error: ' . $e->getMessage()
+                'success' => false,
+                'error' => 'Server error occurred'
             ], 500);
         }
     }
@@ -302,7 +313,7 @@ class SalesController extends Controller
                 return view('sales.invoice_fragment', compact('sale', 'company'));
             }
 
-            return view('sales.invoice', compact('sale', 'company'));
+            // return view('sales.invoice', compact('sale', 'company'));
 
             
 
@@ -312,7 +323,7 @@ class SalesController extends Controller
                 'details' => "Generated invoice for sale #{$sale->id} for {$sale->customer->name}",
             ]);
 
-            return $pdf->download($filename);
+            return $pdf->stream($filename);
         } catch (\Exception $e) {
             Log::error('Failed to generate invoice', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return back()->with('error', 'Failed to generate invoice.');
@@ -332,29 +343,34 @@ class SalesController extends Controller
                 $isCracked = ($validated['product_variant'] === 'cracked');
 
                 // Find batches of this variant, oldest first (FIFO)
+                // Inside SalesController.php -> handleInventoryDeduction()
                 $batches = Egg::where('is_cracked', $isCracked)
-                    ->where('crates', '>', 0)
+                    ->withSum('saleItems as sold_crates', 'quantity') 
                     ->orderBy('date_laid', 'asc')
                     ->lockForUpdate()
-                    ->get();
+                    ->get()
+                    ->filter(function ($batch) {
+                        return ($batch->crates - ($batch->sold_crates ?? 0)) > 0;
+                    });
 
                 foreach ($batches as $batch) {
-                    if ($remaining <= 0) break;
-                    $take = min($batch->crates, $remaining);
 
-                    // Create the tracking record for this specific batch
-                    SaleItem::create([
-                        'sale_id' => $sale->id,
-                        'saleable_type' => Egg::class,
-                        'saleable_id' => $batch->id,
-                        'quantity' => $take,
-                        'unit_price' => $validated['unit_price'],
-                        'subtotal' => $take * $validated['unit_price'],
-                    ]);
+                        if ($remaining <= 0) break;
 
-                    $batch->decrement('crates', $take);
-                    $remaining -= $take;
-                }
+                        $available = $batch->crates - ($batch->sold_crates ?? 0);
+                        $take = min($available, $remaining);
+
+                        SaleItem::create([
+                            'sale_id' => $sale->id,
+                            'saleable_type' => Egg::class,
+                            'saleable_id' => $batch->id,
+                            'quantity' => $take,
+                            'unit_price' => $validated['unit_price'],
+                            'subtotal' => $take * $validated['unit_price'],
+                        ]);
+
+                        $remaining -= $take;
+                    }
             } else {
                 // Handle Birds (Standard Single-Batch logic)
                 $bird = Bird::lockForUpdate()->find($validated['saleable_id']);
@@ -376,16 +392,16 @@ class SalesController extends Controller
          */
         private function logSaleFinancials($sale, $customer)
         {
-            Transaction::create([
-                'type' => 'sale',
-                'amount' => $sale->total_amount,
-                'status' => 'pending',
-                'date' => $sale->sale_date,
-                'source_type' => Sale::class,
-                'source_id' => $sale->id,
-                'user_id' => Auth::id(),
-                'description' => "Sale of {$sale->quantity} to {$customer->name}",
-            ]);
+            // Transaction::create([
+            //     'type' => 'sale',
+            //     'amount' => $sale->total_amount,
+            //     'status' => 'pending',
+            //     'date' => $sale->sale_date,
+            //     'source_type' => Sale::class,
+            //     'source_id' => $sale->id,
+            //     'user_id' => Auth::id(),
+            //     'description' => "Sale of {$sale->quantity} to {$customer->name}",
+            // ]);
 
             Income::create([
                 'source' => "Sale #{$sale->id}",
@@ -424,16 +440,16 @@ class SalesController extends Controller
                 'created_by' => Auth::id(),
             ]);
 
-            Transaction::create([
-                'type' => 'payment',
-                'amount' => $amount,
-                'status' => 'approved',
-                'date' => $date,
-                'source_type' => Sale::class,
-                'source_id' => $sale->id,
-                'user_id' => Auth::id(),
-                'description' => "Payment for Sale #{$sale->id}",
-            ]);
+            // Transaction::create([
+            //     'type' => 'payment',
+            //     'amount' => $amount,
+            //     'status' => 'approved',
+            //     'date' => $date,
+            //     'source_type' => Sale::class,
+            //     'source_id' => $sale->id,
+            //     'user_id' => Auth::id(),
+            //     'description' => "Payment for Sale #{$sale->id}",
+            // ]);
 
             $sale->refresh();
             $sale->updatePaymentStatus(); 

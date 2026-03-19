@@ -109,9 +109,14 @@
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-blue-300 transition-colors cursor-default" title="Current value of unsold inventory">
-                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-between">Dead Money <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg></div>
-                <div class="text-2xl font-black text-orange-600 mt-2 truncate">₵{{ number_format($data['advanced_metrics']['dead_money'] ?? 0, 0) }}</div>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-blue-300 transition-colors cursor-default" title="Value of unsold crates based on average market price this period">
+                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-between">
+                    Dead Money 
+                    <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+                </div>
+                <div class="text-2xl font-black text-orange-600 mt-2 truncate">
+                    ₵ {{ number_format($data['advanced_metrics']['dead_money'] ?? 0, 2) }}
+                </div>
             </div>
 
             <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-blue-300 transition-colors cursor-default" title="Revenue generated per ₵1.00 paid in wages">
@@ -415,7 +420,7 @@
         eggTrend: @json($data['charts']['eggTrend'] ?? []),
         feedTrend: @json($data['charts']['feedTrend'] ?? []),
         salesTrend: @json($data['charts']['salesTrend'] ?? []),
-        incomeTrend: @json($data['charts']['incomeTrend'] ?? []),
+        incomeTrend: @json($data['charts']['incomeData'] ?? []),
         salesComparison: @json($data['charts']['salesComparison'] ?? []),
         invoiceStatuses: @json($data['charts']['invoiceStatuses'] ?? []),
         transactionTrend: @json($data['charts']['transactionTrend'] ?? []),
@@ -587,26 +592,34 @@
             document.querySelectorAll('.export-option').forEach(option => {
                 option.addEventListener('click', function(e) {
                     e.preventDefault();
+                    
                     const format = this.dataset.format;
                     const form = document.getElementById('report-filter-form');
                     
-                    // Create temporary hidden input for format
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'format';
-                    input.value = format;
-                    form.appendChild(input);
-
-                    // Create temporary hidden input to request export endpoint (if handled by standard form)
-                    // Alternative: Modify form action
+                    // Force the form to submit to the export route instead of reloading the page
                     const originalAction = form.action;
-                    form.action = "{{ route('reports.export') ?? '#' }}"; // Ensure you have this named route
+                    form.action = "{{ route('reports.export') }}"; 
+                    
+                    // Create or update a hidden input for the format type (pdf or excel)
+                    let formatInput = document.getElementById('hidden-format-input');
+                    if (!formatInput) {
+                        formatInput = document.createElement('input');
+                        formatInput.type = 'hidden';
+                        formatInput.id = 'hidden-format-input';
+                        formatInput.name = 'format';
+                        form.appendChild(formatInput);
+                    }
+                    formatInput.value = format;
+
+                    // Submit form
                     form.submit();
                     
-                    // Cleanup
-                    form.action = originalAction;
-                    input.remove();
+                    // Hide the dropdown immediately, but wait 1 second before cleaning up 
+                    // the form action so the download request has time to reach the server.
                     exportDropdown.classList.add('hidden');
+                    setTimeout(() => {
+                        form.action = originalAction;
+                    }, 1000); 
                 });
             });
         }

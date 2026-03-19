@@ -1,4 +1,3 @@
-<!-- responsecache -->
 <?php
 
 return [
@@ -9,19 +8,18 @@ return [
 
      'add_cache_hit_header' => true,
 
-
     /*
-     *  The given class will determinate if a request should be cached. The
-     *  default class will cache all successful GET-requests.
+     * The given class will determinate if a request should be cached. The
+     * default class will cache all successful GET-requests.
      *
-     *  You can provide your own class given that it implements the
-     *  CacheProfile interface.
+     * You can provide your own class given that it implements the
+     * CacheProfile interface.
      */
      'cache_profile' => Spatie\ResponseCache\CacheProfiles\CacheAllSuccessfulGetRequests::class,
 
     /*
-     *  Optionally, you can specify a header that will force a cache bypass.
-     *  This can be useful to monitor the performance of your application.
+     * Optionally, you can specify a header that will force a cache bypass.
+     * This can be useful to monitor the performance of your application.
      */
     'cache_bypass_header' => [
         'name' => env('CACHE_BYPASS_HEADER_NAME', null),
@@ -94,18 +92,6 @@ return [
     /*
      * This class is responsible for serializing responses.
      */
-     'serializer' => \Spatie\ResponseCache\Serializers\DefaultSerializer::class,
+    'serializer' => \Spatie\ResponseCache\Serializers\DefaultSerializer::class,
 
-     // config/responsecache.php
-
-    'do_not_cache_routes' => [
-        'users/*/permissions', // <--- ADD THIS LINE
-        'users/*/permissions/*',
-        'api/*',
-    ],
-
-    'except' => [
-        'sales/*',           // Excludes index, create, edit
-        'sales/*/record-payment', // Excludes the AJAX payment route
-    ],
 ];

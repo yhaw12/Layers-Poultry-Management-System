@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice #{{ $sale->id }}</title>
     <style>
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
+            /* FIX 2: DejaVu Sans is bundled with DomPDF and supports the Cedi (₵) symbol */
+            font-family: 'DejaVu Sans', sans-serif; 
             background-color: #f4f6f9;
             color: #333;
             margin: 0;
@@ -154,10 +155,10 @@
 </head>
 <body>
     <div class="invoice-container">
-        <div class="actions no-print">
+        {{-- <div class="actions no-print">
             <a href="javascript:history.back()" class="btn btn-back">← Back</a>
             <button onclick="window.print()" class="btn btn-print">🖨 Print Invoice</button>
-        </div>
+        </div> --}}
 
         <div class="header">
             <div>

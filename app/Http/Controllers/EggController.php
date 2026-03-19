@@ -6,6 +6,7 @@ use App\Models\Egg;
 use App\Models\Pen;
 use App\Models\UserActivityLog;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -29,43 +30,53 @@ class EggController extends Controller
 
         if ($search = $request->input('search')) {
             $query->where('date_laid', 'like', "%{$search}%")
-                  ->orWhere('crates', 'like', "%{$search}%")
-                  ->orWhereHas('pen', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('createdBy', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
-                  });
+                ->orWhere('crates', 'like', "%{$search}%")
+                ->orWhereHas('pen', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                })
+                ->orWhereHas('createdBy', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
         }
 
         $eggs = $query->orderBy('date_laid', 'desc')->paginate(10);
 
-        // --- NEW CONSOLIDATED LOGIC ---
+        // --- CONSOLIDATED LOGIC (Renamed to match Blade) ---
         
-        // 1. Total Eggs Produced
+        // 1. Total Eggs Produced (Within Date Filter for Reports)
         $totalProducedEggs = (int) Egg::whereBetween('date_laid', [$start, $end])->sum('total_eggs');
-        
-        // 2. Convert total eggs to crates and leftover loose eggs
-        $calculatedTotalCrates = floor($totalProducedEggs / 30);
-        $calculatedAdditionalEggs = $totalProducedEggs % 30;
+        $totalProducedCrates = floor($totalProducedEggs / 30);
+        $totalAdditionalEggs = $totalProducedEggs % 30;
 
-        // 3. Cracked Eggs
+        // 2. Cracked Eggs (Within Date Filter)
         $totalCracked = (int) Egg::whereBetween('date_laid', [$start, $end])->where('is_cracked', true)->count();
 
-        // 4. Handle Sales and Remaining Stock
-        $totalSoldCrates = (int) Sale::where('saleable_type', Egg::class)
-            ->whereBetween('sale_date', [$start, $end])
+        // 3. Total Sold Crates (Within Date Filter)
+        $totalSoldCrates = (int) SaleItem::where('saleable_type', Egg::class)
+            ->whereHas('sale', function ($q) use ($start, $end) {
+                $q->whereBetween('sale_date', [$start, $end]);
+            })
             ->sum('quantity');
 
-        // Convert sold crates back to individual eggs for subtraction
-        $totalSoldEggs = $totalSoldCrates * 30;
-        $remainingTotalEggs = max(0, $totalProducedEggs - $totalSoldEggs);
+        // 4. REAL-TIME REMAINING STOCK (Matches Sales Dropdown Exactly)
+        // We fetch ALL batches regardless of date, calculate their true remaining balance, and sum it up.
+        // $allBatches = Egg::withSum('saleItems as sold_crates', 'quantity')->get();
+        $availableBatches = Egg::available()->get();
+        
+        $remainingCrates = 0;
+        $totalLooseEggs = 0;
 
-        // 5. Calculate remaining crates and leftover eggs from the balance
-        $remainingCrates = floor($remainingTotalEggs / 30);
-        $remainingAdditionalEggs = $remainingTotalEggs % 30;
+        foreach ($availableBatches as $batch) {
+            // Add up the remaining crates from each batch
+            $remainingCrates += max(0, $batch->crates - ($batch->sold_crates ?? 0));
+            // Add up the loose eggs
+            $totalLooseEggs += $batch->additional_eggs;
+        }
 
-        // --- END NEW LOGIC ---
+        // Convert any accumulated loose eggs into full crates (e.g., 40 loose eggs = 1 crate + 10 eggs)
+        $remainingCrates += floor($totalLooseEggs / 30);
+        $remainingEggs = $totalLooseEggs % 30;
+
 
         $eggChart = Cache::remember('egg_trends', 3, function () {
             $data = [];
@@ -73,10 +84,9 @@ class EggController extends Controller
             for ($i = 0; $i < 6; $i++) {
                 $month = now()->subMonths($i);
                 $labels[] = $month->format('M Y');
-                $totalEggs = (int) Egg::whereMonth('date_laid', $month->month)
+                $data[] = (int) Egg::whereMonth('date_laid', $month->month)
                     ->whereYear('date_laid', $month->year)
-                    ->sum('total_eggs');
-                $data[] = floor($totalEggs / 30);
+                    ->sum('crates');
             }
             return ['data' => array_reverse($data), 'labels' => array_reverse($labels)];
         });
@@ -84,16 +94,15 @@ class EggController extends Controller
         $eggLabels = $eggChart['labels'];
         $eggData = $eggChart['data'];
 
-        // Notice the updated variable names here to match the view
         return view('eggs.index', compact(
             'eggs',
             'totalProducedEggs',
-            'calculatedTotalCrates',
-            'calculatedAdditionalEggs',
+            'totalProducedCrates',
+            'totalAdditionalEggs',
             'totalCracked',
             'totalSoldCrates',
             'remainingCrates',
-            'remainingAdditionalEggs',
+            'remainingEggs',
             'eggLabels',
             'eggData',
             'start',
@@ -109,53 +118,51 @@ class EggController extends Controller
 
     public function store(Request $request)
     {
-        $rules = [
-            'pen_id' => 'nullable|exists:pens,id',
-            'crates' => 'required|integer|min:0',
-            'additional_eggs' => 'required|integer|min:0|max:29',
-            'is_cracked' => 'nullable|boolean',
-            'egg_size' => 'nullable|in:small,medium,large',
-            'date_laid' => 'required|date|before_or_equal:today',
-        ];
+    $rules = [
+        'pen_id' => 'nullable|exists:pens,id',
+        'crates' => 'required|integer|min:0',
+        'additional_eggs' => 'required|integer|min:0|max:29',
+        'is_cracked' => 'nullable|boolean',
+        'egg_size' => 'nullable|in:small,medium,large',
+        'date_laid' => 'required|date|before_or_equal:today',
+    ];
 
-        $validated = $request->validate($rules);
+    $validated = $request->validate($rules);
 
-        $validated['crates'] = (int) $validated['crates'];
-        $validated['additional_eggs'] = (int) $validated['additional_eggs'];
-        $validated['is_cracked'] = $request->has('is_cracked');
-        $validated['total_eggs'] = ($validated['crates'] * 30) + $validated['additional_eggs'];
-        $validated['created_by'] = auth()->id();
+    // --- FIX: Explicit Assignment ---
+    // We pull directly from the request to ensure the integer values are captured
+    $crates = (int) $request->input('crates');
+    $additional = (int) $request->input('additional_eggs');
 
-        DB::beginTransaction();
-        try {
-            $egg = Egg::create($validated);
+    $validated['crates'] = $crates;
+    $validated['additional_eggs'] = $additional;
+    $validated['is_cracked'] = $request->has('is_cracked');
+    $validated['total_eggs'] = ($crates * 30) + $additional;
+    $validated['created_by'] = auth()->id();
 
-            UserActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'created_egg',
-                'details' => "Created egg record #{$egg->id} with {$validated['crates']} crates (Pen ID: " . ($validated['pen_id'] ?? 'null') . ") on {$validated['date_laid']}",
-            ]);
+    DB::beginTransaction();
+    try {
+        $egg = Egg::create($validated);
 
-            DB::commit();
+        UserActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'created_egg',
+            'details' => "Created egg record #{$egg->id} with {$crates} crates and {$additional} loose eggs (Pen ID: " . ($validated['pen_id'] ?? 'null') . ")",
+        ]);
 
-            return redirect()->route('eggs.index')->with('success', 'Egg record added successfully');
-        } catch (\Exception $e) {
-            DB::rollBack();
+        DB::commit();
 
-            Log::error('Failed to create egg record', [
-                'error' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'trace' => $e->getTraceAsString(),
-                'request' => $request->all(),
-                'validated' => $validated,
-            ]);
+        return redirect()->route('eggs.index')->with('success', 'Egg record added successfully');
+    } catch (\Exception $e) {
+        DB::rollBack();
 
-            if ($e instanceof ValidationException) {
-                throw $e;
-            }
+        Log::error('Failed to create egg record', [
+            'error' => $e->getMessage(),
+            'request' => $request->all(),
+        ]);
 
-            return back()->withInput()->with('error', 'Failed to add egg record: ' . $e->getMessage());
-        }
+        return back()->withInput()->with('error', 'Failed to add egg record: ' . $e->getMessage());
+    }
     }
 
     public function edit(Egg $egg)
@@ -177,11 +184,18 @@ class EggController extends Controller
 
         $validated = $request->validate($rules);
 
-        $validated['crates'] = (int) $validated['crates'];
-        $validated['additional_eggs'] = (int) $validated['additional_eggs'];
+        // --- FIX: Explicit Assignment ---
+        // Extracting specifically to ensure the "0 crates" bug is killed
+        $crates = (int) $request->input('crates');
+        $additional = (int) $request->input('additional_eggs');
+
+        $validated['crates'] = $crates;
+        $validated['additional_eggs'] = $additional;
         $validated['is_cracked'] = $request->has('is_cracked');
-        $validated['total_eggs'] = ($validated['crates'] * 30) + $validated['additional_eggs'];
-        $validated['created_by'] = auth()->id();
+        $validated['total_eggs'] = ($crates * 30) + $additional;
+        
+        // Tracking who last modified the record
+        $validated['created_by'] = auth()->id(); 
 
         DB::beginTransaction();
         try {
@@ -190,7 +204,7 @@ class EggController extends Controller
             UserActivityLog::create([
                 'user_id' => auth()->id(),
                 'action' => 'updated_egg',
-                'details' => "Updated egg record #{$egg->id} with {$validated['crates']} crates (Pen ID: " . ($validated['pen_id'] ?? 'null') . ") on {$validated['date_laid']}",
+                'details' => "Updated egg record #{$egg->id}: Set to {$crates} crates and {$additional} loose eggs (Size: " . ($validated['egg_size'] ?? 'N/A') . ")",
             ]);
 
             DB::commit();
@@ -201,11 +215,8 @@ class EggController extends Controller
 
             Log::error('Failed to update egg record', [
                 'error' => $e->getMessage(),
-                'code' => $e->getCode(),
-                'trace' => $e->getTraceAsString(),
                 'egg_id' => $egg->id,
                 'request' => $request->all(),
-                'validated' => $validated,
             ]);
 
             return back()->withInput()->with('error', 'Failed to update egg record: ' . $e->getMessage());

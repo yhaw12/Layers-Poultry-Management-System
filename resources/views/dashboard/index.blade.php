@@ -563,3 +563,405 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 @endsection
+
+
+
+{{-- @extends('layouts.app')
+
+@section('content')
+
+<style>
+    /* 1. Advanced Animations */
+    .animate-enter {
+        opacity: 0;
+        transform: translateY(30px) scale(0.98);
+        animation: flyIn 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    .delay-100 { animation-delay: 0.1s; }
+    .delay-200 { animation-delay: 0.2s; }
+    .delay-300 { animation-delay: 0.3s; }
+    .delay-400 { animation-delay: 0.4s; }
+
+    @keyframes flyIn {
+        from { opacity: 0; transform: translateY(30px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* 2. Glassmorphism Panels */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+    }
+    .dark .glass-panel {
+        background: rgba(17, 24, 39, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+    }
+
+    /* 3. Floating Elements */
+    .floating { animation: float 6s ease-in-out infinite; }
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-8px); }
+        100% { transform: translateY(0px); }
+    }
+
+    /* 4. Glowing Gradient Text */
+    .glow-text {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899, #3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-size: 300% 300%;
+        animation: gradient-shift 6s ease infinite;
+    }
+    @keyframes gradient-shift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* 5. 3D Hover Lifts */
+    .hover-lift { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .hover-lift:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.15);
+    }
+</style>
+
+<div class="container mx-auto px-4 py-8 max-w-screen-2xl overflow-hidden">
+
+    <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between animate-enter gap-4">
+        <div>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">
+                Farm <span class="glow-text">Intelligence</span>
+            </h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">Real-time Management Overview</p>
+        </div>
+
+        <div class="glass-panel rounded-2xl p-2 inline-flex">
+            <form method="GET" class="flex flex-wrap items-center gap-2">
+                <input type="date" name="start_date" value="{{ $start ?? now()->startOfMonth()->format('d-m-Y') }}" class="border-none bg-transparent text-sm font-bold text-gray-700 dark:text-gray-200 focus:ring-0 cursor-pointer w-32">
+                <span class="text-gray-400 font-bold px-1">→</span>
+                <input type="date" name="end_date" value="{{ $end ?? now()->endOfMonth()->format('d-m-Y') }}" class="border-none bg-transparent text-sm font-bold text-gray-700 dark:text-gray-200 focus:ring-0 cursor-pointer w-32">
+                <button type="submit" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl px-4 py-2 text-sm font-bold shadow-lg hover:shadow-blue-500/30 transition transform active:scale-95">Sync Data</button>
+            </form>
+        </div>
+    </header>
+
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        
+        @can('manage_finances')
+        <div class="lg:col-span-2 glass-panel rounded-3xl p-6 animate-enter delay-100 flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-800 dark:text-white">Cash Flow Dynamics</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Income vs Expenses tracking</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-bold {{ ($profit ?? 0) >= 0 ? 'text-green-500' : 'text-red-500' }}">
+                        Net: ₵ <span class="counter" data-target="{{ abs($profit ?? 0) }}">0</span>
+                    </p>
+                </div>
+            </div>
+            <div class="relative w-full flex-1 min-h-[250px]">
+                <canvas id="heroChart"></canvas>
+            </div>
+        </div>
+        @endcan
+
+        <div class="flex flex-col gap-6 animate-enter delay-200">
+            <div class="glass-panel bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-indigo-900/20 rounded-3xl p-6 relative overflow-hidden group hover-lift">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-400/20 blur-3xl rounded-full"></div>
+                
+                <div class="flex justify-between items-start relative z-10">
+                    <div>
+                        <h2 class="text-sm font-bold text-gray-600 dark:text-gray-300 tracking-wider uppercase mb-1">Local Condition</h2>
+                        <p id="weather-temp" class="text-4xl font-black text-gray-900 dark:text-white">
+                            {{ isset($weather) && $weather['ok'] ? $weather['temperature'] . '°' : '--°' }}
+                        </p>
+                        <p id="weather-location" class="text-xs font-medium text-gray-500 mt-1">
+                            <span class="inline-block w-2 h-2 rounded-full bg-green-400 mr-1 animate-pulse"></span>
+                            {{ isset($weather) && $weather['ok'] ? $weather['location'] : 'Offline' }}
+                        </p>
+                    </div>
+                    <div id="weather-icon" class="h-12 w-12 text-blue-500 floating">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-3xl p-6 flex-1 flex flex-col hover-lift">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-bold text-gray-600 dark:text-gray-300 tracking-wider uppercase">Active Alerts</h2>
+                    <span class="bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-xs font-bold">{{ isset($reminders) ? $reminders->count() : 0 }} Due</span>
+                </div>
+                
+                <div id="reminder-rotator" class="relative flex-1 min-h-[120px] overflow-hidden">
+                    @forelse($reminders as $i => $reminder)
+                        <div class="absolute inset-0 transition-all duration-500 ease-in-out transform {{ $i === 0 ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none' }}" data-reminder="{{ $i }}">
+                            <div class="flex gap-4 h-full items-center">
+                                <div class="bg-gray-100 dark:bg-gray-700/50 p-3 rounded-2xl text-center min-w-[70px]">
+                                    <span class="text-2xl font-black block">{{ \Carbon\Carbon::parse($reminder->due_date)->format('d') }}</span>
+                                    <span class="text-xs font-bold text-gray-500 uppercase">{{ \Carbon\Carbon::parse($reminder->due_date)->format('M') }}</span>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-bold text-gray-900 dark:text-white line-clamp-1">{{ $reminder->title }}</h3>
+                                    <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ $reminder->message }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="flex h-full items-center justify-center text-gray-400 italic text-sm">All caught up!</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mb-10 animate-enter delay-300">
+        <div class="glass-panel rounded-3xl p-4 sm:p-2 flex flex-wrap gap-2 justify-center sm:justify-start">
+            @php
+                $actions = [
+                    ['route' => 'birds.create', 'icon' => '🐓', 'label' => 'New Bird', 'can' => 'create_birds', 'color' => 'from-blue-500 to-cyan-500'],
+                    ['route' => 'eggs.create', 'icon' => '🥚', 'label' => 'Log Eggs', 'can' => 'create_eggs', 'color' => 'from-purple-500 to-pink-500'],
+                    ['route' => 'sales.create', 'icon' => '💰', 'label' => 'New Sale', 'can' => 'create_sales', 'color' => 'from-emerald-400 to-green-500'],
+                    ['route' => 'expenses.create', 'icon' => '📉', 'label' => 'Expense', 'can' => 'create_expenses', 'color' => 'from-red-500 to-rose-500'],
+                ];
+            @endphp
+            
+            @foreach($actions as $action)
+                @can($action['can'])
+                    <a href="{{ route($action['route']) }}" class="group relative overflow-hidden rounded-2xl px-6 py-3 flex items-center gap-3 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 border border-gray-100 dark:border-gray-700/50">
+                        <div class="absolute inset-0 bg-gradient-to-r {{ $action['color'] }} opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                        <span class="text-xl grayscale group-hover:grayscale-0 transition-all duration-300">{{ $action['icon'] }}</span>
+                        <span class="font-bold text-sm text-gray-700 dark:text-gray-200">{{ $action['label'] }}</span>
+                    </a>
+                @endcan
+            @endforeach
+        </div>
+    </section>
+
+    <section class="animate-enter delay-400">
+        @php
+            $kpiBlocks = [
+                ['title' => 'Livestock Health', 'items' => [
+                    ['label' => 'Total Birds', 'val' => $totalBirds ?? 0, 'sub' => 'Active Flock', 'icon' => 'feather'],
+                    ['label' => 'Mortality', 'val' => $mortalityRate ?? 0, 'sub' => 'Percentage', 'icon' => 'activity', 'dec' => 1]
+                ]],
+                ['title' => 'Production Metrics', 'items' => [
+                    ['label' => 'Egg Crates', 'val' => $metrics['egg_crates'] ?? 0, 'sub' => 'Harvested', 'icon' => 'box'],
+                    ['label' => 'Feed Conversion', 'val' => $fcr ?? 0, 'sub' => 'Ratio (FCR)', 'icon' => 'trending-down', 'dec' => 1]
+                ]],
+                ['title' => 'Operational Volume', 'items' => [
+                    ['label' => 'Total Sales', 'val' => $metrics['sales'] ?? 0, 'sub' => 'Revenue (₵)', 'icon' => 'dollar-sign', 'dec' => 1],
+                    ['label' => 'Meds Usage', 'val' => $metrics['medicine_use'] ?? 0, 'sub' => 'Units Consumed', 'icon' => 'shield']
+                ]],
+            ];
+        @endphp
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            @foreach($kpiBlocks as $block)
+                <div class="glass-panel rounded-3xl p-6">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">{{ $block['title'] }}</h3>
+                    <div class="space-y-6">
+                        @foreach($block['items'] as $item)
+                            <div class="flex items-center justify-between group">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center text-gray-400 group-hover:text-blue-500 group-hover:bg-blue-50 dark:group-hover:bg-blue-500/10 transition-colors">
+                                        <i data-lucide="{{ $item['icon'] }}" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ $item['label'] }}</p>
+                                        <p class="text-xs text-gray-500">{{ $item['sub'] }}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xl font-black text-gray-900 dark:text-white">
+                                        <span class="counter" data-target="{{ $item['val'] }}" data-decimal="{{ $item['dec'] ?? 0 }}">0</span>
+                                        @if(isset($item['dec'])) <span class="text-sm text-gray-400">@if($item['label'] == 'Mortality')%@endif</span> @endif
+                                    </p>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </section>
+
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. Initialize Icons
+    lucide.createIcons();
+
+    // 2. Animated Counters (Optimized)
+    const counters = document.querySelectorAll(".counter");
+    counters.forEach(counter => {
+        const target = parseFloat(counter.getAttribute("data-target")) || 0;
+        const isDecimal = counter.getAttribute("data-decimal") == '1';
+        let current = 0;
+        const increment = target / 40; // Frames
+        
+        const update = () => {
+            current += increment;
+            if (current < target) {
+                counter.innerText = isDecimal ? current.toFixed(2) : Math.ceil(current).toLocaleString();
+                requestAnimationFrame(update);
+            } else {
+                counter.innerText = isDecimal ? target.toFixed(2) : target.toLocaleString();
+            }
+        };
+        setTimeout(() => requestAnimationFrame(update), 500); // Slight delay for fly-in
+    });
+
+    // 3. Task Rotator Logic
+    const reminders = document.querySelectorAll('#reminder-rotator > div');
+    if (reminders.length > 1) {
+        let activeIdx = 0;
+        setInterval(() => {
+            reminders[activeIdx].classList.replace('translate-y-0', '-translate-y-4');
+            reminders[activeIdx].classList.replace('opacity-100', 'opacity-0');
+            
+            activeIdx = (activeIdx + 1) % reminders.length;
+            
+            reminders[activeIdx].classList.replace('translate-y-4', 'translate-y-0') || reminders[activeIdx].classList.replace('-translate-y-4', 'translate-y-0');
+            reminders[activeIdx].classList.replace('opacity-0', 'opacity-100');
+        }, 4000);
+    }
+
+    // 4. Hero Chart Initialization (Gradient Mixed Chart)
+    const RAW = {
+        expense: @json($expenseData ?? []),
+        income: @json($incomeData ?? [])
+    };
+
+    function extractData(dataObj) {
+        if(!Array.isArray(dataObj)) return { labels: [], values: [] };
+        return {
+            labels: dataObj.map(d => d.date ? d.date.substring(5) : ''), // MM-DD
+            values: dataObj.map(d => Number(d.value || d.amount || d.y || 0))
+        };
+    }
+
+    const incData = extractData(RAW.income);
+    const expData = extractData(RAW.expense);
+    
+    // Merge labels (Assuming they share the same timeline roughly)
+    const labels = incData.labels.length > expData.labels.length ? incData.labels : expData.labels;
+
+    const ctx = document.getElementById('heroChart');
+    if (ctx && typeof Chart !== 'undefined') {
+        const canvasCtx = ctx.getContext('2d');
+        
+        // Create Gradients
+        const incGradient = canvasCtx.createLinearGradient(0, 0, 0, 300);
+        incGradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)'); // Emerald
+        incGradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+        const expGradient = canvasCtx.createLinearGradient(0, 0, 0, 300);
+        expGradient.addColorStop(0, 'rgba(239, 68, 68, 0.4)'); // Red
+        expGradient.addColorStop(1, 'rgba(239, 68, 68, 0.0)');
+
+        new Chart(canvasCtx, {
+            type: 'line',
+            data: {
+                labels: labels.length ? labels : ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                datasets: [
+                    {
+                        label: 'Income',
+                        data: incData.values.length ? incData.values : [0,0,0,0],
+                        borderColor: '#10B981',
+                        backgroundColor: incGradient,
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#10B981',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: 'Expenses',
+                        data: expData.values.length ? expData.values : [0,0,0,0],
+                        borderColor: '#EF4444',
+                        backgroundColor: expGradient,
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#EF4444',
+                        pointBorderWidth: 2,
+                        pointRadius: 0, // Hide points unless hovered for cleaner look
+                        pointHoverRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'end',
+                        labels: { usePointStyle: true, boxWidth: 8, color: '#9CA3AF', font: { weight: 'bold' } }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                        titleColor: '#F3F4F6',
+                        bodyColor: '#F3F4F6',
+                        padding: 12,
+                        cornerRadius: 8,
+                        displayColors: true
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#9CA3AF', font: { size: 11 } },
+                        border: { display: false }
+                    },
+                    y: {
+                        grid: { color: 'rgba(156, 163, 175, 0.1)', drawBorder: false },
+                        ticks: { 
+                            color: '#9CA3AF', 
+                            font: { size: 11 },
+                            callback: (value) => '₵' + value 
+                        },
+                        border: { display: false }
+                    }
+                },
+                animation: {
+                    y: { duration: 2000, easing: 'easeOutElastic' }
+                }
+            }
+        });
+    }
+
+    // 5. Setup Weather Icon
+    const weatherCond = document.getElementById('weather-condition');
+    const weatherIcon = document.getElementById('weather-icon');
+    if (weatherIcon) {
+        // Simple logic based on temp to simulate weather since condition text isn't in this specific card design
+        const tempText = document.getElementById('weather-temp').innerText;
+        const temp = parseInt(tempText);
+        if(!isNaN(temp)) {
+            if(temp > 28) weatherIcon.innerHTML = '<i data-lucide="sun" class="w-12 h-12 text-yellow-500 animate-[spin_10s_linear_infinite]"></i>';
+            else if(temp < 22) weatherIcon.innerHTML = '<i data-lucide="cloud-rain" class="w-12 h-12 text-blue-400"></i>';
+            else weatherIcon.innerHTML = '<i data-lucide="cloud-sun" class="w-12 h-12 text-orange-400"></i>';
+            lucide.createIcons();
+        }
+    }
+});
+</script>
+
+@endsection --}}

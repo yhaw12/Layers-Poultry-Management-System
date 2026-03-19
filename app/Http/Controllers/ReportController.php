@@ -143,13 +143,8 @@ class ReportController extends Controller
      */
     private function getReportData(Request $request, string $reportType): array
     {
-        if (!Auth::check()) {
-            throw new \Exception('User must be authenticated.');
-        }
-
         [$start, $end] = $this->normalizeDates($request);
-        $userId = Auth::id();
-        $cacheKey = "report_all_u{$userId}_s{$start->timestamp}_e{$end->timestamp}";
+        $cacheKey = "report_all_u" . Auth::id() . "_s{$start->timestamp}_e{$end->timestamp}";
 
         return Cache::remember($cacheKey, $this->cacheTTL, function () use ($start, $end) {
             $startStr = $start->toDateTimeString();
@@ -161,7 +156,12 @@ class ReportController extends Controller
             $periodic = $this->buildPeriodicData($startStr, $endStr);
             $efficiency = $this->buildEfficiencyData($startStr, $endStr, $charts, $daysInPeriod);
             $eggIntel = $this->buildEggIntelligence($start, $end, $daysInPeriod);
-            $payments = $this->buildPaymentsData($startStr, $endStr);
+            
+            // Generate combined Monthly Summary (Crates vs Sales) specifically for EXCEL/PDF
+            $monthlySummary = $this->buildMonthlySummary($startStr, $endStr);
+            $expenseHistory = Expense::whereBetween('date', [$startStr, $endStr])->orderBy('date', 'desc')->get();
+            // Fetch raw sales history for export logs
+            $salesHistory = Sale::with('customer')->whereBetween('sale_date', [$startStr, $endStr])->orderBy('sale_date', 'desc')->get();
 
             return array_merge(
                 $financials,
@@ -170,17 +170,45 @@ class ReportController extends Controller
                 ['efficiency' => $efficiency['data']],
                 ['advanced_metrics' => $efficiency['advanced']],
                 ['egg_intelligence' => $eggIntel],
-                ['payments' => $payments],
                 ['avg_crates_per_day' => $efficiency['advanced']['avg_crates_per_day']],
-                
-                // Keep backward compatibility for export functions
                 [
-                    'eggProduction' => $charts['eggTrend'],
-                    'incomeData' => $charts['incomeTrend'],
+                    // Export specific data bundles
+                    'monthly_summary' => $monthlySummary,
+                    'sales_history' => $salesHistory,
+                    'expense_history' => $expenseHistory,
                     'expenseData' => $this->buildExpenseDataForExport($startStr, $endStr)
                 ]
             );
         });
+    }
+
+    private function buildMonthlySummary(string $start, string $end)
+    {
+        // Get Monthly Production
+        $crates = Egg::selectRaw('YEAR(date_laid) as year, MONTH(date_laid) as month_num, SUM(crates) as crates')
+            ->whereBetween('date_laid', [$start, $end])->withoutTrashed()->groupBy('year', 'month_num')->get()
+            ->keyBy(fn($i) => "{$i->year}-{$i->month_num}");
+
+        // Get Monthly Sales
+        $sales = Sale::selectRaw('YEAR(sale_date) as year, MONTH(sale_date) as month_num, SUM(quantity) as qty, SUM(total_amount) as rev')
+            ->where('saleable_type', 'LIKE', '%Egg%')
+            ->whereBetween('sale_date', [$start, $end])->withoutTrashed()->groupBy('year', 'month_num')->get()
+            ->keyBy(fn($i) => "{$i->year}-{$i->month_num}");
+
+        $keys = collect(array_keys($crates->toArray()))->merge(array_keys($sales->toArray()))->unique()->sort();
+
+        $summary = collect();
+        foreach ($keys as $k) {
+            [$y, $m] = explode('-', $k);
+            $summary->push((object)[
+                'year' => $y,
+                'month_num' => $m,
+                'crates_produced' => $crates[$k]->crates ?? 0,
+                'crates_sold' => $sales[$k]->qty ?? 0,
+                'revenue' => $sales[$k]->rev ?? 0,
+            ]);
+        }
+        return $summary->values();
     }
 
     // =========================================================================
@@ -435,110 +463,32 @@ class ReportController extends Controller
     public function export(Request $request)
     {
         try {
-            if (!Auth::check()) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
+            if (!Auth::check()) return response()->json(['error' => 'Unauthorized'], 403);
 
-            $type = $request->input('type', $request->query('type', 'weekly'));
-            $format = $request->input('format', $request->query('format', 'pdf'));
+            $type = $request->input('type', 'weekly');
+            $format = $request->input('format', 'pdf');
             $columns = $request->input('columns', []);
-            $includeChart = (bool) $request->input('include_chart', false);
-            $includeSummary = (bool) $request->input('include_summary', false);
-            $separateSheets = (bool) $request->input('separate_sheets', false);
-
+            
             $data = $this->getReportData($request, $type);
 
-            if ($includeChart) {
-                try {
-                    $chartImages = $this->generateChartImages($type, $data);
-                    if (!empty($chartImages)) $data['chart_images'] = $chartImages;
-                } catch (\Exception $e) {
-                    Log::warning('Failed to create chart images for export', ['err' => $e->getMessage()]);
-                }
-            }
-
             if ($format === 'csv') {
-                $rows = [];
-                switch ($type) {
-                    case 'weekly':
-                        foreach ($data['weekly'] as $r) {
-                            $rows[] = ['year' => $r->year, 'week' => $r->week, 'total' => $r->total];
-                        }
-                        break;
-                    case 'monthly':
-                        foreach ($data['monthly'] as $r) {
-                            $rows[] = ['year' => $r->year, 'month' => $r->month_num, 'total' => $r->total];
-                        }
-                        break;
-                    case 'efficiency':
-                        if (isset($data['efficiency']['expense_breakdown'])) {
-                            foreach ($data['efficiency']['expense_breakdown'] as $ex) {
-                                $rows[] = ['Category' => $ex->category, 'Total' => $ex->total];
-                            }
-                        }
-                        break;
-                    case 'custom':
-                        $metrics = $request->input('metrics', []);
-                        if (!empty($metrics)) {
-                            $m = $metrics[0];
-                            if (isset($data[$m]) && $data[$m] instanceof Collection) {
-                                foreach ($data[$m] as $item) $rows[] = (array)$item;
-                            }
-                        }
-                        break;
-                }
-
-                if (!empty($rows)) {
-                    $fp = fopen('php://temp', 'w+');
-                    if (!empty($columns)) {
-                        fputcsv($fp, $columns);
-                        foreach ($rows as $r) {
-                            $row = array_map(fn($c) => $r[$c] ?? '', $columns);
-                            fputcsv($fp, $row);
-                        }
-                    } else {
-                        if (isset($rows[0])) {
-                            fputcsv($fp, array_keys((array)$rows[0]));
-                        }
-                        foreach ($rows as $r) fputcsv($fp, (array)$r);
-                    }
-                    rewind($fp);
-                    $content = stream_get_contents($fp);
-                    fclose($fp);
-
-                    $filename = "report_{$type}_" . now()->format('Ymd') . '.csv';
-                    return response($content, 200, [
-                        'Content-Type' => 'text/csv',
-                        'Content-Disposition' => "attachment; filename={$filename}",
-                    ]);
-                }
+                // Keep existing CSV fallback logic if needed
+                return redirect()->back()->with('error', 'CSV export handled via separate route if configured.');
             }
 
             if ($format === 'pdf') {
-                $pdf = Pdf::loadView('reports.index_pdf', compact('type', 'data', 'columns', 'includeChart', 'includeSummary'));
-                return $pdf->download("report_{$type}_" . now()->format('Ymd') . '.pdf');
+                $pdf = Pdf::loadView('reports.index_pdf', compact('type', 'data', 'columns'))
+                          ->setPaper('a4', 'landscape');
+                return $pdf->download("farm_report_" . now()->format('Ymd') . '.pdf');
             }
 
             if ($format === 'excel') {
-                return Excel::download(new CustomReportExport($data, $columns, [
-                    'includeChart' => $includeChart,
-                    'includeSummary' => $includeSummary,
-                    'separateSheets' => $separateSheets,
-                ]), "report_{$type}_" . now()->format('Ymd') . '.xlsx');
+                return Excel::download(new CustomReportExport($data, $columns), "farm_data_export_" . now()->format('Y_m_d') . '.xlsx');
             }
 
             return redirect()->back()->with('error', 'Invalid export format.');
-        } catch (ValidationException $ve) {
-            Log::warning('Export validation failed', ['errors' => $ve->errors()]);
-            if ($request->wantsJson() || $request->expectsJson()) {
-                return response()->json(['errors' => $ve->errors()], 422);
-            }
-            return back()->withErrors($ve->errors());
         } catch (\Exception $e) {
-            Log::error('Failed to export report', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            if ($request->wantsJson() || $request->expectsJson()) {
-                return response()->json(['error' => 'Failed to export report.'], 500);
-            }
+            Log::error('Export failed', ['err' => $e->getMessage()]);
             return back()->with('error', 'Failed to export report.');
         }
     }

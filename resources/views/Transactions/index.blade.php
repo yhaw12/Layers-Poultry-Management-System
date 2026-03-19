@@ -1,14 +1,14 @@
-@extends('layouts.app')
+{{-- @extends('layouts.app')
 
-@section('title', 'Pending Transactions')
+@section('title', 'Pending Transactions') --}}
 
-@section('content')
-<div class="container mx-auto px-4 py-8 space-y-12 bg-gray-100 dark:bg-[#0a0a23] dark:text-white">
+{{-- @section('content')
+<div class="container mx-auto px-4 py-8 space-y-12 bg-gray-100 dark:bg-[#0a0a23] dark:text-white"> --}}
     <!-- Toast Container -->
-    <div id="toast-container" aria-live="polite" class="mb-4"></div>
+    {{-- <div id="toast-container" aria-live="polite" class="mb-4"></div> --}}
 
     <!-- Header -->
-    <section class="flex justify-between items-center">
+    {{-- <section class="flex justify-between items-center">
         <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Pending Transactions</h2>
         <div class="flex items-center gap-4">
             <a href="{{ route('transactions.index') }}" 
@@ -17,10 +17,10 @@
                 🔄 Reset Filters
             </a>
         </div>
-    </section>
+    </section> --}}
 
     <!-- Summary Cards -->
-    <section>
+    {{-- <section>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow flex flex-col items-center">
                 <span class="text-sm text-gray-500 dark:text-gray-400">Total Pending Transactions</span>
@@ -32,10 +32,10 @@
                 <p class="text-3xl font-bold text-green-600 dark:text-green-400">₵ {{ number_format($transactions->sum('amount'), 2) }}</p>
             </div>
         </div>
-    </section>
+    </section> --}}
 
     <!-- Transactions Table -->
-    <section>
+    {{-- <section>
         <div class="bg-white dark:bg-[#1a1a3a] p-6 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700">
             <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Transaction Records</h3>
             <div id="transactions-table-wrapper" aria-live="polite">
@@ -105,26 +105,26 @@
                                                 <span class="text-sm text-gray-500 dark:text-gray-400">N/A</span>
                                             @endif
                                         </td>
-                                        <td class="p-4 flex space-x-2">
+                                        <td class="p-4 flex space-x-2"> --}}
                                                 <!-- Approve (JS will attach) -->
-                                                <button type="button"
+                                                {{-- <button type="button"
                                                         class="approve-btn inline-flex items-center px-3 py-1 bg-green-500 text-white rounded-lg shadow hover:bg-green-600 text-xs focus:ring-2 focus:ring-green-500 transition"
                                                         data-id="{{ $transaction->id }}"
                                                         data-amount="{{ (float) ($transaction->amount ?? 0) }}"
                                                         aria-label="Approve transaction {{ $transaction->id }}">
                                                     <span class="mr-2" aria-hidden="true">✅</span> Approve
-                                                </button>
+                                                </button> --}}
 
                                                 <!-- Reject (JS will attach) -->
-                                                <button type="button"
+                                                {{-- <button type="button"
                                                         class="reject-btn inline-flex items-center px-3 py-1 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 text-xs focus:ring-2 focus:ring-red-500 transition"
                                                         data-id="{{ $transaction->id }}"
                                                         aria-label="Reject transaction {{ $transaction->id }}">
                                                     <span class="mr-2" aria-hidden="true">❌</span> Reject
-                                                </button>
+                                                </button> --}}
 
                                                 <!-- NEW: Payments toggle (only show when source is Sale) -->
-                                                @if($transaction->source_type === \App\Models\Sale::class && $transaction->source_id)
+                                                {{-- @if($transaction->source_type === \App\Models\Sale::class && $transaction->source_id)
                                                     <button type="button"
                                                             class="payments-toggle inline-flex items-center px-3 py-1 bg-indigo-500 text-white rounded-lg shadow hover:bg-indigo-600 text-xs focus:ring-2 focus:ring-indigo-500 transition"
                                                             data-sale-id="{{ $transaction->source_id }}"
@@ -134,10 +134,10 @@
                                                     </button>
                                                 @endif
                                         </td>
-                                    </tr>
+                                    </tr> --}}
 
                                     {{-- NEW: payment detail row (hidden by default). colspan must match table columns (7 in your table) --}}
-                                    @if($transaction->source_type === \App\Models\Sale::class && $transaction->source_id)
+                                    {{-- @if($transaction->source_type === \App\Models\Sale::class && $transaction->source_id)
                                         @php
                                             $paymentsForSale = $paymentsMap[$transaction->source_id] ?? collect();
                                             $totalPaid = $paymentsForSale->sum(fn($p) => $p->amount);
@@ -187,9 +187,9 @@
                                 @endforeach
                             </tbody>
                         </table>
-                    </div>
+                    </div> --}}
 
-                    @if ($transactions instanceof \Illuminate\Pagination\LengthAwarePaginator && $transactions->hasPages())
+                    {{-- @if ($transactions instanceof \Illuminate\Pagination\LengthAwarePaginator && $transactions->hasPages())
                         <div class="mt-6 flex justify-between items-center">
                             <div class="flex space-x-2">
                                 <a href="{{ $transactions->previousPageUrl() }}" 
@@ -217,10 +217,10 @@
                 @endif
             </div>
         </div>
-    </section>
+    </section> --}}
 
     <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-40" aria-modal="true" role="dialog">
+    {{-- <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-40" aria-modal="true" role="dialog">
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-lg w-full p-4">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Confirm Delete</h3>
             <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">Are you sure you want to delete this transaction? This action cannot be undone.</p>
@@ -234,10 +234,10 @@
                 </button>
             </div>
         </div>
-    </div>
+    </div> --}}
 
     <!-- Edit Confirmation Modal -->
-    <div id="edit-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-40" aria-modal="true" role="dialog">
+    {{-- <div id="edit-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-40" aria-modal="true" role="dialog">
         <div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-lg w-full p-4">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Confirm Edit</h3>
             <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">Are you sure you want to edit this transaction?</p>
@@ -283,10 +283,10 @@
                 </div>
             </form>
         </div>
-    </div>
+    </div> --}}
 
     <!-- Reject Modal -->
-    <div id="rejectModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50" role="dialog" aria-modal="true" aria-labelledby="rejectModalTitle">
+    {{-- <div id="rejectModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50" role="dialog" aria-modal="true" aria-labelledby="rejectModalTitle">
         <div class="bg-white dark:bg-[#1a1a3a] rounded-2xl p-6 w-full max-w-md shadow-lg border border-gray-200 dark:border-gray-700">
             <h3 id="rejectModalTitle" class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Reject Transaction</h3>
             <form id="rejectModalForm" method="POST" action="">
@@ -319,14 +319,14 @@
 </div>
 
 @push('scripts')
-<script>
-(function () {
+<script> --}}
+{{-- (function () { --}}
     // --- Config / Selectors ---
-    const wrapperSelector = '#transactions-table-wrapper';
-    const toastContainer = document.getElementById('toast-container');
+    {{-- const wrapperSelector = '#transactions-table-wrapper';
+    const toastContainer = document.getElementById('toast-container'); --}}
 
     // Modal elements
-    const deleteModal = document.getElementById('delete-modal');
+    {{-- const deleteModal = document.getElementById('delete-modal');
     const deleteCancel = document.getElementById('delete-cancel');
     const deleteConfirm = document.getElementById('delete-confirm');
     const deleteSpinner = document.getElementById('delete-spinner');
@@ -372,9 +372,9 @@
         `;
         const btn = wrapper.querySelector('button');
         btn.addEventListener('click', () => wrapper.remove());
-        toastContainer.appendChild(wrapper);
+        toastContainer.appendChild(wrapper); --}}
 
-        // fadeout
+        {{-- // fadeout
         setTimeout(() => {
             wrapper.classList.add('opacity-0', 'transition', 'duration-300');
             setTimeout(() => wrapper.remove(), 350);
@@ -835,8 +835,8 @@
         });
     });
 
-})();
-</script>
+})(); --}}
+{{-- </script>
 @endpush
 
-@endsection
+@endsection --}}
