@@ -51,7 +51,7 @@
         </div>
     </section>
 
-    {{-- Main KPI Cards (Added hover translate) --}}
+    {{-- Main KPI Cards --}}
     <section id="kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         @php
             $profit_loss = $data['profit_loss'] ?? [];
@@ -208,7 +208,7 @@
     {{-- Main Report Body --}}
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden mt-12">
         
-        {{-- Sticky Filter & Tab Form (UX Fix) --}}
+        {{-- Sticky Filter & Tab Form --}}
         <div class="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur sticky top-0 z-30 shadow-sm">
             <form id="report-filter-form" method="GET" action="{{ route('reports.index') }}">
                 @csrf
@@ -258,7 +258,6 @@
                     <div class="chart-container bg-white dark:bg-gray-700/30 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 w-full min-w-0 shadow-sm transition-shadow hover:shadow-md">
                         <div class="flex justify-between items-center mb-4">
                             <h4 class="font-bold text-sm sm:text-base text-gray-700 dark:text-gray-200">{{ $chart['title'] }}</h4>
-                            {{-- UX Fix: Data-target attribute maps to canvas id --}}
                             <select class="chart-type-selector text-xs font-medium rounded-lg border-gray-300 dark:bg-gray-800 dark:text-white dark:border-gray-600 focus:ring-blue-500 shadow-sm cursor-pointer" data-target="{{ $chart['id'] }}" data-color="{{ $chart['color'] }}">
                                 <option value="line">Line Chart</option>
                                 <option value="bar">Bar Chart</option>
@@ -279,7 +278,6 @@
                     <div class="bg-white dark:bg-gray-700/30 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 w-full min-w-0 shadow-sm">
                         <div class="flex justify-between items-center mb-4">
                             <h4 class="font-bold text-lg text-gray-700 dark:text-white">Sales: Eggs vs Birds</h4>
-                            {{-- Wait to render comparisons dynamically --}}
                         </div>
                         <div class="h-72 sm:h-96 relative w-full"><canvas id="salesComparison"></canvas></div>
                     </div>
@@ -288,27 +286,7 @@
 
             {{-- TAB: PAYMENTS --}}
             <div id="payments-panel" class="tab-panel {{ $reportType === 'payments' ? '' : 'hidden' }}">
-                <div class="mb-8 p-6 dark:bg-gray-700/30 bg-gradient-to-r from-indigo-50 to-white dark:from-indigo-950/50 dark:to-gray-800 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-                    <div>
-                        <h4 class="text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1 flex items-center"><svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg> Total Transaction Volume</h4>
-                        <div class="text-4xl font-black text-gray-900 dark:text-white mt-2 tracking-tight">
-                            ₵ {{ number_format($data['totalTransactions'] ?? 0, 2) }}
-                        </div>
-                    </div>
-                </div>
-
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-white dark:bg-gray-700/30 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 w-full min-w-0 shadow-sm transition-shadow hover:shadow-md">
-                        <div class="flex justify-between items-center mb-4">
-                            <h4 class="font-bold text-sm sm:text-base text-gray-800 dark:text-white">Transaction History</h4>
-                            <select class="chart-type-selector text-xs font-medium rounded-lg border-gray-300 dark:bg-gray-800 dark:text-white dark:border-gray-600 focus:ring-blue-500 cursor-pointer" data-target="transactionTrend" data-color="purple">
-                                <option value="line">Line</option>
-                                <option value="bar">Bar</option>
-                            </select>
-                        </div>
-                        <div class="h-64 sm:h-80 relative w-full"><canvas id="transactionTrend"></canvas></div>
-                    </div>
-
                     <div class="bg-white dark:bg-gray-700/30 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 w-full min-w-0 shadow-sm transition-shadow hover:shadow-md">
                         <div class="flex justify-between items-center mb-4">
                             <h4 class="font-bold text-sm sm:text-base text-gray-800 dark:text-white">Invoice Status</h4>
@@ -423,7 +401,6 @@
         incomeTrend: @json($data['charts']['incomeData'] ?? []),
         salesComparison: @json($data['charts']['salesComparison'] ?? []),
         invoiceStatuses: @json($data['charts']['invoiceStatuses'] ?? []),
-        transactionTrend: @json($data['charts']['transactionTrend'] ?? []),
         mortalityTrend: @json($data['efficiency']['mortality_trend'] ?? []),
         expenseBreakdown: @json($data['efficiency']['expense_breakdown'] ?? []),
         weekly: @json($data['weekly'] ?? []),
@@ -506,7 +483,6 @@
         buildChart('weekly-chart', 'bar', normalizeSeries(RAW_DATA.weekly), 'teal');
         buildChart('monthly-chart', 'bar', normalizeSeries(RAW_DATA.monthly), 'purple');
         buildChart('mortality-chart', 'line', normalizeSeries(RAW_DATA.mortalityTrend), 'red');
-        buildChart('transactionTrend', 'line', normalizeSeries(RAW_DATA.transactionTrend), 'purple');
 
         // Invoice Status (Bar by default)
         buildChart('invoiceStatus', 'bar', normalizeSeries(RAW_DATA.invoiceStatuses), 'yellow');

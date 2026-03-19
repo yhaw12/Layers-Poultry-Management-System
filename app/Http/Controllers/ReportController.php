@@ -12,7 +12,6 @@ use App\Models\Income;
 use App\Models\Payroll;
 use App\Models\Mortalities;
 use App\Models\Payment;
-use App\Models\Transaction;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -176,7 +175,8 @@ class ReportController extends Controller
                     'monthly_summary' => $monthlySummary,
                     'sales_history' => $salesHistory,
                     'expense_history' => $expenseHistory,
-                    'expenseData' => $this->buildExpenseDataForExport($startStr, $endStr)
+                    'expenseData' => $this->buildExpenseDataForExport($startStr, $endStr),
+                    'payments' => $this->buildPaymentsData($startStr, $endStr)
                 ]
             );
         });
@@ -220,7 +220,6 @@ class ReportController extends Controller
         $totalIncome = Income::whereBetween('date', [$start, $end])->withoutTrashed()->sum('amount') ?? 0.0;
         $totalExpenses = Expense::whereBetween('date', [$start, $end])->withoutTrashed()->sum('amount') ?? 0.0;
         $totalPayroll = Payroll::whereBetween('pay_date', [$start, $end])->whereNull('deleted_at')->sum('net_pay') ?? 0.0;
-        $totalTransactions = Transaction::whereBetween('date', [$start, $end])->whereNull('deleted_at')->sum('amount') ?? 0.0;
 
         $totalOperationalCost = $totalExpenses + $totalPayroll;
         $netProfit = $totalIncome - $totalOperationalCost;
@@ -234,8 +233,7 @@ class ReportController extends Controller
                 'start' => explode(' ', $start)[0],
                 'end' => explode(' ', $end)[0],
             ],
-            'totals' => ['income' => $totalIncome, 'profit' => $netProfit],
-            'totalTransactions' => $totalTransactions
+            'totals' => ['income' => $totalIncome, 'profit' => $netProfit]
         ];
     }
 
@@ -260,9 +258,7 @@ class ReportController extends Controller
                 'Paid' => Sale::where('status', 'paid')->whereBetween('sale_date', [$start, $end])->count(),
                 'Partial' => Sale::where('status', 'partially_paid')->whereBetween('sale_date', [$start, $end])->count(),
                 'Overdue' => Sale::where('status', 'overdue')->whereBetween('sale_date', [$start, $end])->count(),
-            ],
-            'transactionTrend' => Transaction::selectRaw("DATE(date) as date, SUM(amount) as value")
-                ->whereBetween('date', [$start, $end])->whereNull('deleted_at')->groupBy('date')->orderBy('date')->get(),
+            ]
         ];
     }
 
@@ -288,17 +284,15 @@ class ReportController extends Controller
         $actualLayRate = ($avgCrates * self::EGGS_PER_CRATE) / $totalBirds;
         $prodGap = self::TARGET_LAY_RATE > 0 ? (($this::TARGET_LAY_RATE - $actualLayRate) / $this::TARGET_LAY_RATE) * 100 : 0;
 
-        // --- NEW DYNAMIC PRICE LOGIC ---
-        // Calculate the average price per crate from actual sales in this period
-        $averagePricePerCrate = Sale::where('saleable_type', 'App\Models\Egg') // Make sure this matches your DB exactly!
+        // DYNAMIC PRICE LOGIC
+        $averagePricePerCrate = Sale::where('saleable_type', 'App\Models\Egg') 
             ->whereBetween('sale_date', [$start, $end])
             ->withoutTrashed()
             ->selectRaw('SUM(total_amount) / NULLIF(SUM(quantity), 0) as avg_price')
-            ->value('avg_price') ?? 30; // Fallback to 30 if no sales exist in this date range
+            ->value('avg_price') ?? 30; // Fallback
 
-        $unsoldCrates = 0; // Keep this at 0 until we build your unsold inventory tracking
+        $unsoldCrates = 0; // Keep this at 0 until unsold inventory tracking is built
         $deadMoney = $unsoldCrates * $averagePricePerCrate;
-        // -------------------------------
 
         return [
             'data' => [
@@ -317,7 +311,7 @@ class ReportController extends Controller
                 'avg_crates_per_day' => round($avgCrates, 1),
                 'economic_fcr' => $totalIncome > 0 ? round(($totalFeedKg * self::ECONOMIC_FCR_MULTIPLIER / $totalIncome) * 100, 2) : 0,
                 'production_gap' => round(max(0, $prodGap), 1),
-                'dead_money' => $deadMoney, // <--- Now using the dynamic calculation
+                'dead_money' => $deadMoney,
                 'labor_efficiency' => $totalPayroll > 0 ? round($totalIncome / $totalPayroll, 2) : 0,
                 'stock_aging_days' => 2, // Static for now
                 'spoilage_risk' => 'Low'
@@ -346,9 +340,8 @@ class ReportController extends Controller
             ->withoutTrashed()
             ->sum('crates');
 
-        // Safe growth rate calculation
         if ($prevTotalCrates == 0 && $totalCrates > 0) {
-            $growthRate = 100; // Going from 0 to something is effectively +100%
+            $growthRate = 100;
         } elseif ($prevTotalCrates == 0 && $totalCrates == 0) {
             $growthRate = 0;
         } else {
@@ -472,7 +465,6 @@ class ReportController extends Controller
             $data = $this->getReportData($request, $type);
 
             if ($format === 'csv') {
-                // Keep existing CSV fallback logic if needed
                 return redirect()->back()->with('error', 'CSV export handled via separate route if configured.');
             }
 
